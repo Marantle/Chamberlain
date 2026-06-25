@@ -1,0 +1,6 @@
+.env
+*.zip
+.release_meta.json
+.vscode/
+tutorial/
+.luarc.json

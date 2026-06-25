@@ -1,0 +1,39 @@
+## Interface: 120007
+## Title: Chamberlain
+## Notes: Names your housing rooms and announces them as you walk around your house.
+## Category-enUS: Housing
+## Category: Housing
+## Version: 2.7.0
+## Author: Savulohikala
+## IconTexture: 133100
+## X-Curse-Project-ID: 1573197
+## SavedVariables: ChamberlainDB
+
+Core\Core.lua
+Locale\enUS.lua
+Locale\deDE.lua
+Locale\esES.lua
+Locale\esMX.lua
+Locale\frFR.lua
+Locale\itIT.lua
+Locale\koKR.lua
+Locale\ptBR.lua
+Locale\ruRU.lua
+Locale\zhCN.lua
+Locale\zhTW.lua
+Locale\Locale.lua
+Core\Voice.lua
+Core\Constants.lua
+Core\Util.lua
+Core\Skins.lua
+Housing\Housing.lua
+Housing\Banner.lua
+Housing\TalkingHead.lua
+UI\HUD.lua
+UI\RoomDialog.lua
+Sharing\Share.lua
+Sharing\ShareUI.lua
+UI\RoomManager.lua
+UI\FloorPlan.lua
+UI\Stairs.lua
+UI\Minimap.lua
