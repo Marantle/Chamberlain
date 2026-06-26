@@ -1,6 +1,8 @@
 # Chamberlain
 World of Warcraft: Midnight player housing addon
 
+https://www.curseforge.com/wow/addons/chamberlain-room-names-for-housing
+
 Room names for player housing (retail, Interface 120007). Mark two corners of a
 room, name it, and a gold banner greets you whenever you walk in. Share your
 layout with your group, or grab theirs when you visit.
