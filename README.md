@@ -1,8 +1,11 @@
 # Chamberlain
+World of Warcraft: Midnight player housing addon
 
 Room names for player housing (retail, Interface 120007). Mark two corners of a
 room, name it, and a gold banner greets you whenever you walk in. Share your
 layout with your group, or grab theirs when you visit.
+
+Also additionally can create description that a talking head can read out aloud when you enter a room and click "read".
 
 Named after the manor officer who announced guests to each room.
 
@@ -12,6 +15,8 @@ Named after the manor officer who announced guests to each room.
 - Floor plan window with a top-down view of your rooms and a live position dot
 - Share layouts with your group, party or raid (consent dialog on every request, block list included)
 - Per-house data keyed by house GUID, so two houses on one account stay separate
+- Descriptions for rooms, that can optionally be read out loud by your favorite NPC talking heads
+- Multiple floors via some geofence trickery since WoW does not expose player elevation to addons.
 
 ## Slash commands
 
