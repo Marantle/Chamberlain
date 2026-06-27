@@ -495,7 +495,16 @@ local function GetZoneFrame(i)
                 end
             end
         end
-        ShowZoneTooltip(self, target.zoneName, target.zoneW, target.zoneH, target.zoneTime, target.cr, target.cg, target.cb)
+        ShowZoneTooltip(
+            self,
+            target.zoneName,
+            target.zoneW,
+            target.zoneH,
+            target.zoneTime,
+            target.cr,
+            target.cg,
+            target.cb
+        )
     end)
     f:SetScript("OnLeave", function()
         GameTooltip:Hide()
@@ -828,6 +837,7 @@ end)
 -- which world bounds its drag delta moves. The centre grip moves all four (a
 -- translation). px/py are the grip's fractional position along the tile (0..1).
 local HANDLE_SIZE = 10
+-- stylua: ignore
 local HANDLE_SPECS = {
     { px = 0,   py = 0,   mxX = 1, mxY = 1 }, -- top-left corner
     { px = 0.5, py = 0,   mxY = 1 },          -- top edge
