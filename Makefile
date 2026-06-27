@@ -21,6 +21,12 @@ DIST_FILES     := $(SRC_FILES)
 SRC_DIRS       := Core Housing UI Sharing Locale
 RELEASE_TYPE   ?= alpha
 CHANGELOG      ?= See project page for changes.
+# Unique per-build id for prerelease labels and tags. CI passes github.run_number.
+RELEASE_BUILD  ?= $(shell date +%s)
+# Version label per channel. A release is the bare X.Y.Z. Alpha and beta get a
+# suffix so repeated prereleases never collide with each other or with the eventual
+# stable tag, and the toc version never has to change between them.
+REL_LABEL      := $(if $(filter release,$(RELEASE_TYPE)),$(VERSION),$(VERSION)-$(RELEASE_TYPE).$(RELEASE_BUILD))
 
 .PHONY: help lint format check package package-min notes release-check release release-wago release-wowi release-github release-all clean
 
@@ -112,7 +118,7 @@ release-wago: release-check package notes
 	@test -n "$(WAGO_PROJECT)" || { echo "Error: X-Wago-ID not set in $(ADDON).toc"; exit 1; }
 	@echo "Uploading $(ADDON)-$(VERSION).zip to Wago..."
 	@STAB=$$(test "$(RELEASE_TYPE)" = "release" && echo stable || echo "$(RELEASE_TYPE)"); \
-	python -c "import json; open('.wago_meta.json','w').write(json.dumps({'label':'$(VERSION)','stability':'$$STAB','changelog':open('.notes.md',encoding='utf-8').read(),'supported_retail_patch':'$(TOC_DISPLAY)'}))" && \
+	python -c "import json; open('.wago_meta.json','w').write(json.dumps({'label':'$(REL_LABEL)','stability':'$$STAB','changelog':open('.notes.md',encoding='utf-8').read(),'supported_retail_patch':'$(TOC_DISPLAY)'}))" && \
 	curl -sf \
 	  -H "Authorization: Bearer $(WAGO_API_TOKEN)" \
 	  -H "Accept: application/json" \
@@ -120,7 +126,7 @@ release-wago: release-check package notes
 	  -F "file=@$(ADDON)-$(VERSION).zip" \
 	  "https://addons.wago.io/api/projects/$(WAGO_PROJECT)/version" && \
 	rm -f .wago_meta.json && \
-	echo "Released to Wago as '$$STAB'."
+	echo "Released $(REL_LABEL) to Wago as '$$STAB'."
 
 # WoWInterface field names follow its addons/update API. Confirm them against the
 # live docs before the first real upload. Inert until X-WoWI-ID and the token are set.
@@ -142,10 +148,10 @@ release-wowi: release-check package notes
 	echo "Released to WoWInterface."
 
 release-github: release-check package notes
-	@echo "Creating GitHub release $(VERSION)..."
+	@echo "Creating GitHub release $(REL_LABEL)..."
 	@PRE=$$(test "$(RELEASE_TYPE)" = "release" || echo --prerelease); \
-	gh release create "$(VERSION)" "$(ADDON)-$(VERSION).zip" --title "$(VERSION)" --notes-file .notes.md $$PRE && \
-	echo "Released $(VERSION) on GitHub."
+	gh release create "$(REL_LABEL)" "$(ADDON)-$(VERSION).zip" --title "$(REL_LABEL)" --notes-file .notes.md $$PRE && \
+	echo "Released $(REL_LABEL) on GitHub."
 
 # Push to every platform that's configured. A site with no token (or no ID) is
 # skipped with a notice instead of failing. WoWInterface has no alpha/beta channel,
