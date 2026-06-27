@@ -202,6 +202,37 @@ function CH.SendDecline(houseGUID)
     Send("LAYOUT_DECLINE|" .. (houseGUID or ""))
 end
 
+-- Live owner presence: house key -> GUID of whoever announced they own it now.
+-- Saved name/GUID can't track the owner onto an alt. Runtime only, wiped on roster.
+CH.liveOwners = CH.liveOwners or {}
+
+function CH.AnnounceOwnerPresence()
+    if not IsInGroup() or not CH.isOwnHouse or not CH.currentHouseGUID then
+        return
+    end
+    local h = ChamberlainDB.houses[CH.currentHouseGUID]
+    if not h or not h.zones then
+        return
+    end
+    local usesOwnerHead = false
+    for _, z in ipairs(h.zones) do
+        if z.useOwnerHead then
+            usesOwnerHead = true
+            break
+        end
+    end
+    if usesOwnerHead then
+        Send("OWNERHEAD|" .. CH.currentHouseGUID .. "|" .. (UnitGUID("player") or ""))
+    end
+end
+
+-- Ask the owner to re-announce, for when we missed it.
+function CH.RequestOwnerPresence(houseGUID)
+    if IsInGroup() and houseGUID then
+        Send("OWNERHEAD_REQ|" .. houseGUID)
+    end
+end
+
 -- Advertise the houses you hold. With `only` (a set of guids) just those go out;
 -- with nil, the whole catalog does (used on login / roster change).
 function CH.BroadcastCatalog(only)
@@ -814,6 +845,20 @@ function CH.HandleMessage(prefix, payload, _, fullSender)
         local h = ChamberlainDB.houses[guid]
         local houseName = (h and h.owner) and string.format(CH.L["SHARE_X_HOUSE"], h.owner) or CH.L["SHARE_THAT_LAYOUT"]
         CH.Print(CH.L["SHARE_DIDNT_SHARE_X"], sender, houseName)
+    elseif msgType == "OWNERHEAD" then
+        local guid = parts[2]
+        local ownerGUID = parts[3]
+        if guid and ownerGUID and ownerGUID ~= "" then
+            CH.liveOwners[guid] = { guid = ownerGUID, name = sender }
+            if CH.OnLiveOwnerUpdate then
+                CH.OnLiveOwnerUpdate(guid)
+            end
+        end
+    elseif msgType == "OWNERHEAD_REQ" then
+        local guid = parts[2]
+        if guid and CH.isOwnHouse and CH.currentHouseGUID == guid then
+            CH.AnnounceOwnerPresence() -- answer if this is our house
+        end
     end
 end
 
@@ -832,9 +877,11 @@ shareFrame:SetScript("OnEvent", function(_, event, arg1, arg2, arg3, arg4)
         wipe(CH.partyCatalogs)
         wipe(incompatible)
         wipe(peerVersions)
+        wipe(CH.liveOwners) -- cleared here, present owners re-announce below
         C_Timer.NewTimer(1, function()
             CH.SendHello()
             CH.BroadcastCatalog()
+            CH.AnnounceOwnerPresence()
         end)
     elseif event == "PLAYER_ENTERING_WORLD" then
         -- Announce our version and catalog on login / after each loading screen,

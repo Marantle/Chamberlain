@@ -36,7 +36,8 @@ Oh Yes, the source is full of `── long unicode lines ──` between section
 
 ## Development
 
-Copy `.env.example` to `.env` and fill in your CurseForge token before releasing.
+Copy `.env.example` to `.env` and fill in the tokens for the platforms you release
+to (CurseForge, Wago, WoWInterface) before releasing.
 
 ```
 make lint          run luacheck
@@ -45,7 +46,20 @@ make check         format validation without writing (CI)
 make package       build Chamberlain-x.y.z.zip
 make package-min   build minified zip (comments stripped)
 make release       upload to CurseForge (requires CURSEFORGE_TOKEN in .env)
+make release-wago  upload to Wago (requires WAGO_API_TOKEN in .env)
+make release-wowi  upload to WoWInterface (requires WOWI_API_TOKEN and X-WoWI-ID)
+make release-github  create a GitHub release with gh
+make release-all   upload to every configured platform at once
 make clean         remove built zips
 ```
 
-Set `CURSE_PROJECT` in the Makefile to your CurseForge project ID once you have one.
+Every release path first runs `release-check`, which fails unless the `.toc`
+version, `CH.VERSION` in Core.lua, and the top `CHANGELOG.md` entry match and the
+version is higher than the previous one.
+
+To release from GitHub instead of your machine, open the Actions tab, pick the
+Release workflow, and press Run workflow. It runs `make release-all` on a runner,
+using the repository secrets `CURSEFORGE_TOKEN`, `WAGO_API_TOKEN`, and
+`WOWI_API_TOKEN`. The project IDs live in the `.toc` (`X-Curse-Project-ID`,
+`X-Wago-ID`, `X-WoWI-ID`); set `CURSE_PROJECT` in the Makefile to your CurseForge
+project ID as well.

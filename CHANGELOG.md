@@ -1,9 +1,17 @@
 # Changelog
 
+## 2.8.0
+- A room set to use the owner's own head now shows that person to visitors as long
+  as you are in a party with them, even when they are on a different character than
+  the one that owns the house. Their addon announces who they are while they are
+  home, and yours points the talking head at them. They leave the group and it
+  falls back to the room's curated head.
+
 ## 2.7.0
 - The Floor Plan is now called the House Map.
 - Rooms can be resized and moved by dragging handles on the map: grab a corner or
-  edge to resize, the centre grip to move. The Move/Grow/Shrink buttons still work.
+  edge to resize, the centre grip to move. 
+  The Move/Grow/Shrink buttons still work for tiny nudges.
 - A selected room is now clearly highlighted, and the hover tooltip follows your
   selection as you click through overlapping rooms.
 - All floors share one scale, so switching floors no longer jumps or rescales the
@@ -29,7 +37,7 @@
   variants ship as empty stubs in Locale\ ready for translators to fill in. Any
   untranslated line falls back to English, so a partly-translated language is fine.
 - The "Create Zone" button on the position HUD is now labelled "Create Room".
-
+ 
 ## 2.4.1
 - Fixed the 2.4.0 release shipping without UI/Stairs.lua and Core/Voice.lua, which
   meant the Add stairs and Floor marker buttons did nothing and per-room voice

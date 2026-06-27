@@ -206,6 +206,9 @@ function CH.CheckHousingState()
         -- Let the party know what we have, and check if a party member has a
         -- layout for this house that we don't.
         CH.BroadcastCatalog()
+        if CH.AnnounceOwnerPresence then
+            CH.AnnounceOwnerPresence() -- in our own house, let visitors aim owner-head rooms at us
+        end
         local guid = CH.currentHouseGUID
         if guid and not ChamberlainDB.houses[guid] and guid ~= promptedGUID then
             if CH.partyCatalogs then

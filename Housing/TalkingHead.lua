@@ -237,24 +237,25 @@ local function ResolveOwnerUnit()
     if CH.isOwnHouse then
         return "player", owner or UnitName("player")
     end
-    -- Visiting: find the owner among visible group members. Prefer the GUID the
-    -- owner stamped on the house. It matches across their alts because GUIDs are
-    -- global and name-independent. Fall back to the stored owner name for older
-    -- layouts that have no GUID.
+    -- Saved name/GUID only match the character that made the room. CH.liveOwners
+    -- tracks the owner across alts, so prefer it, then fall back to the saved ones.
     if not IsInGroup() then
         return nil
     end
     local guid = h and h.ownerGUID
+    local live = CH.liveOwners and CH.currentHouseGUID and CH.liveOwners[CH.currentHouseGUID]
+    local liveGUID = live and live.guid
     local prefix = IsInRaid() and "raid" or "party"
     local count = IsInRaid() and 40 or 4
     for i = 1, count do
         local u = prefix .. i
         if UnitIsVisible(u) then
-            if guid then
-                if UnitGUID(u) == guid then
-                    return u, UnitName(u)
-                end
-            elseif owner and UnitMatchesOwner(u, owner) then
+            local ug = UnitGUID(u)
+            if liveGUID and ug == liveGUID then
+                return u, UnitName(u)
+            elseif guid and ug == guid then
+                return u, UnitName(u)
+            elseif not guid and not liveGUID and owner and UnitMatchesOwner(u, owner) then
                 return u, owner
             end
         end
@@ -262,8 +263,12 @@ local function ResolveOwnerUnit()
     return nil
 end
 
+-- Room open in the yapper, so a late owner ping can swap in the live model.
+local shownZone
+
 function CH.ShowTalkingHead(zone)
     warming = false -- a real open takes over from any warmup
+    shownZone = zone
     model:SetSize(MODEL_SIZE, MODEL_SIZE) -- restore size if the warmup shrank it
     local head = CH.HEADS[zone.headID or 1] or CH.HEADS[1]
     th:Show() -- the model needs the frame shown to load
@@ -279,6 +284,8 @@ function CH.ShowTalkingHead(zone)
             ownerName = name
             local sex = UnitSex(unit) -- 2 = male, 3 = female, 1 = unknown
             ownerGender = (sex == 3 and "female") or (sex == 2 and "male") or nil
+        elseif not CH.isOwnHouse and CH.RequestOwnerPresence then
+            CH.RequestOwnerPresence(CH.currentHouseGUID) -- ask the owner to announce
         end
     end
     if not ownerName then
@@ -304,10 +311,27 @@ function CH.ShowTalkingHead(zone)
     UIFrameFadeIn(th, 0.5, th:GetAlpha(), 1)
 end
 
+-- Owner just announced. Swap their live model into the open yapper.
+function CH.OnLiveOwnerUpdate(houseGUID)
+    if not th:IsShown() or not shownZone or not shownZone.useOwnerHead then
+        return
+    end
+    if houseGUID ~= CH.currentHouseGUID then
+        return
+    end
+    local unit, name = ResolveOwnerUnit()
+    if unit then
+        model:SetUnit(unit)
+        ReframeHead()
+        th.name:SetText(shownZone.speaker or name or "")
+    end
+end
+
 function CH.HideTalkingHead()
     if not th:IsShown() then
         return
     end
+    shownZone = nil
     CH.StopSpeaking() -- cut narration when the yapper closes
     StopYap()
     if model.reframeTicker then

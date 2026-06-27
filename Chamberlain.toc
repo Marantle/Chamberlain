@@ -3,10 +3,14 @@
 ## Notes: Names your housing rooms and announces them as you walk around your house.
 ## Category-enUS: Housing
 ## Category: Housing
-## Version: 2.7.0
+## Version: 2.8.0
 ## Author: Savulohikala
 ## IconTexture: 133100
 ## X-Curse-Project-ID: 1573197
+## X-Wago-ID: jK8gQ46y
+## X-WoWI-ID: 27160
+## X-Website: https://github.com/Marantle/Chamberlain
+## X-License: GPL-3.0
 ## SavedVariables: ChamberlainDB
 
 Core\Core.lua
