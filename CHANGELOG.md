@@ -1,5 +1,24 @@
 # Changelog
 
+## 2.9.0
+- The position HUD is now a small launcher. Instead of a tall stack of buttons it
+  carries a few: Build, Map, Rooms, and Settings. The House Map is one click away
+  again. It still shows in your own house and can be moved or hidden the same way.
+- New build toolbox. Click Build, or left-click the minimap button, to open it. It
+  shows your live coordinates and holds the tools for making and fitting rooms.
+- Making a room no longer needs Mark A, Mark B and Create. Stand where you want the
+  room and click Add room here. A small room drops at your feet and the name box
+  opens right away.
+- Fit a room while you stand in it: pick the room in the toolbox, walk to a wall and
+  click Snap nearest edge to me, or use Grow and Shrink. The house map keeps its
+  drag handles for fitting from above.
+- Add stairs and Floor marker moved off the HUD and into the toolbox.
+- Settings moved out of the room manager into their own window, opened by the
+  Settings button or /chamberlain settings. The room manager is now only My Rooms
+  and Party.
+- The minimap button opens the build toolbox on left-click and the room manager on
+  right-click.
+
 ## 2.8.0
 - A room set to use the owner's own head now shows that person to visitors as long
   as you are in a party with them, even when they are on a different character than

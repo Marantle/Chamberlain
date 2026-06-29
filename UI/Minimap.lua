@@ -1,14 +1,14 @@
 local _, CH = ...
 
 -- ─────────────────────────────────────────────────────────────────────
--- Minimap button  (left-click: room manager, right-click: floor plan)
+-- Minimap button  (left-click: build toolbox, right-click: room manager)
 -- ─────────────────────────────────────────────────────────────────────
 
 local btn = CreateFrame("Button", "ChamberlainMinimapButton", Minimap)
 btn:SetSize(31, 31)
 btn:SetFrameStrata("MEDIUM")
 btn:SetFrameLevel(8)
-btn:RegisterForClicks("LeftButtonUp", "RightButtonUp", "MiddleButtonUp")
+btn:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 btn:RegisterForDrag("LeftButton")
 btn:SetHighlightTexture("Interface/Minimap/UI-Minimap-ZoomButton-Highlight")
 
@@ -57,20 +57,9 @@ end)
 
 btn:SetScript("OnClick", function(_, mouseButton)
     if mouseButton == "RightButton" then
-        CH.OpenRoomManager()
-    elseif mouseButton == "MiddleButton" then
-        CH.OpenFloorPlan()
+        CH.ToggleRoomManager()
     else
-        -- Left-click always toggles the position HUD. Outside your house there
-        -- is nothing to show right then, so it just sets the preference.
-        local hidden = CH.ToggleHud()
-        if hidden then
-            CH.Print(CH.L["MM_HUD_HIDDEN"])
-        elseif C_Housing.IsInsideHouse() then
-            CH.Print(CH.L["CMD_HUD_SHOWN"])
-        else
-            CH.Print(CH.L["CMD_HUD_WILL_SHOW"])
-        end
+        CH.ToggleToolbox()
     end
 end)
 
@@ -79,7 +68,6 @@ btn:SetScript("OnEnter", function(self)
     GameTooltip:AddLine("Chamberlain", 1, 0.85, 0.25)
     GameTooltip:AddLine(CH.L["MM_TT_LEFT"], 0.8, 0.8, 0.8)
     GameTooltip:AddLine(CH.L["MM_TT_RIGHT"], 0.8, 0.8, 0.8)
-    GameTooltip:AddLine(CH.L["MM_TT_MIDDLE"], 0.8, 0.8, 0.8)
     GameTooltip:Show()
 end)
 btn:SetScript("OnLeave", function()

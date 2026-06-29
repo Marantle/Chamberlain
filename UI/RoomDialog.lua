@@ -693,97 +693,49 @@ local function ConfirmZone()
             renameTarget.setFloor = pendingSetFloor
             renameTarget.floorDelta = pendingFloorDelta
             CH.PushRecentColor(pendingColor)
-            h.updatedAt = GetServerTime()
-            CH.RebuildFloorPlan()
-            if CH.RefreshMyRoomsTab then
-                CH.RefreshMyRoomsTab()
-            end
-            CH.QueueBroadcast(guid)
+            CH.TouchHouse(guid)
         end
         CloseDialog()
         return
     end
 
-    if not CH.pendingA or not CH.pendingB then
-        return
-    end
-    if CH.pendingA.mapID ~= CH.pendingB.mapID then
-        CH.Print(CH.L["RD_DIFFERENT_MAPS"])
-        return
-    end
+    -- No rename target means create mode, which is gone: rooms are dropped at the
+    -- player's spot from the build toolbox (CH.CreateZoneAt) and named here after.
+    -- Nothing to save, so just close.
+    CloseDialog()
+end
+
+-- Drop a new room at a world position. This is the build toolbox's "add room
+-- here": it makes a small default-sized rectangle centred on (x, y), files it
+-- under the current house, and returns the zone and its house guid so the caller
+-- can select it and open this dialog to name it. Replaces the old Mark A / Mark B
+-- corner flow.
+local DEFAULT_HALF = 4 -- yards: a fresh room is 8x8, centred on the player
+function CH.CreateZoneAt(x, y, mapID)
     if not CH.currentHouseGUID then
         CH.Print(CH.L["RD_HOUSE_NOT_IDENTIFIED"])
         return
     end
-    local z = {
-        name = name,
-        mapID = CH.pendingA.mapID,
-        minX = math.min(CH.pendingA.x, CH.pendingB.x),
-        maxX = math.max(CH.pendingA.x, CH.pendingB.x),
-        minY = math.min(CH.pendingA.y, CH.pendingB.y),
-        maxY = math.max(CH.pendingA.y, CH.pendingB.y),
-        color = pendingColor,
-        headID = pendingHeadID or 1,
-        headDisplay = GetHeadDisplay(),
-        speaker = GetSpeaker(),
-        useOwnerHead = ownerCheck:GetChecked() or nil,
-        rpText = GetDescText(),
-        secret = secretCheck:GetChecked() or nil,
-        voice = pendingVoice, -- local-only; not shared (excluded from ExportLayout)
-        floor = pendingFloor or 1,
-        setFloor = pendingSetFloor,
-        floorDelta = pendingFloorDelta,
-    }
-    CH.PushRecentColor(pendingColor)
     if not ChamberlainDB.houses[CH.currentHouseGUID] then
         ChamberlainDB.houses[CH.currentHouseGUID] = { owner = CH.currentHouseOwner, zones = {} }
     end
     local h = ChamberlainDB.houses[CH.currentHouseGUID]
     h.owner = CH.currentHouseOwner or h.owner
-    h.updatedAt = GetServerTime()
-    -- Owner identity is per house: stamp our current character GUID once so
-    -- visitors can match us among their party even on an alt (see OpenRenameDialog).
-    if z.useOwnerHead and CH.isOwnHouse then
-        h.ownerGUID = UnitGUID("player")
-    end
+    h.floorCount = h.floorCount or 1
+    -- New rooms land on the floor the player is viewing (which tracks the active
+    -- floor), so dropping one upstairs files it upstairs.
+    local z = {
+        name = string.format(CH.L["TB_DEFAULT_ROOM_X"], #h.zones + 1),
+        mapID = mapID,
+        minX = x - DEFAULT_HALF,
+        maxX = x + DEFAULT_HALF,
+        minY = y - DEFAULT_HALF,
+        maxY = y + DEFAULT_HALF,
+        floor = CH.fpViewedFloor or CH.activeFloor or 1,
+    }
     table.insert(h.zones, z)
-    CH.pendingA = nil
-    CH.pendingB = nil
-    CH.RefreshCornerLabels()
-    CloseDialog()
-    CH.RebuildFloorPlan()
-    CH.QueueBroadcast(CH.currentHouseGUID)
-    CH.Print(CH.L["RD_ROOM_SAVED_X"], name, z.maxX - z.minX, z.maxY - z.minY)
-end
-
--- Opens the dialog in create mode for the two marked corners. Wired to the
--- HUD's Create Zone button.
-function CH.OpenCreateDialog()
-    renameTarget = nil
-    renameHouseGUID = nil
-    pendingColor = nil
-    pendingHeadID = 1
-    -- New rooms default to the floor the player is currently viewing on the floor
-    -- plan (which tracks the active floor), so marking a room upstairs files it
-    -- upstairs without an extra step.
-    pendingFloor = CH.fpViewedFloor or CH.activeFloor or 1
-    pendingSetFloor = nil
-    pendingFloorDelta = nil
-    dialog.title:SetText(CH.L["RD_TITLE_NAME_ROOM"])
-    editBox:SetText("")
-    descBox:SetText("")
-    headIdBox:SetText("")
-    speakerBox:SetText("")
-    ownerCheck:SetChecked(false)
-    secretCheck:SetChecked(false)
-    SetPendingVoice(nil)
-    UpdateMainSwatch()
-    RefreshHistorySwatches()
-    BuildHeadPicker()
-    UpdateHeadSelection()
-    RefreshFloorRow()
-    dialog:Show()
-    editBox:SetFocus()
+    CH.TouchHouse(CH.currentHouseGUID)
+    return z, CH.currentHouseGUID
 end
 
 btnOK:SetScript("OnClick", ConfirmZone)

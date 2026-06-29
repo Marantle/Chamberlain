@@ -1,6 +1,6 @@
 local ADDON, CH = ...
 
-CH.VERSION = "2.8.0"
+CH.VERSION = "2.9.0"
 
 -- ─────────────────────────────────────────────────────────────────────
 -- Chat output
@@ -60,6 +60,12 @@ events:SetScript("OnEvent", function(_, event, arg1)
         end
         if ChamberlainDB.hudY == nil then
             ChamberlainDB.hudY = 0
+        end
+        if ChamberlainDB.toolboxX == nil then
+            ChamberlainDB.toolboxX = -300
+        end
+        if ChamberlainDB.toolboxY == nil then
+            ChamberlainDB.toolboxY = -40
         end
         if ChamberlainDB.bannerX == nil then
             ChamberlainDB.bannerX = 0
@@ -155,6 +161,9 @@ events:SetScript("OnEvent", function(_, event, arg1)
         end
         C_ChatInfo.RegisterAddonMessagePrefix("CH")
         CH.ApplyHUDPos()
+        if CH.ApplyToolboxPos then
+            CH.ApplyToolboxPos()
+        end
     elseif event == "PLAYER_LOGIN" then
         if ChamberlainDB.bannerY == nil then
             -- 25% from top = UIParent height * 0.25 above centre
@@ -189,6 +198,10 @@ SlashCmdList["CH"] = function(msg)
 
     if cmd == "list" or cmd == "manage" then
         CH.OpenRoomManager()
+    elseif cmd == "build" then
+        CH.OpenToolbox()
+    elseif cmd == "settings" or cmd == "options" then
+        CH.OpenSettings()
     elseif cmd == "delete" or cmd == "del" then
         if not CH.isOwnHouse then
             CH.Print(CH.L["CMD_DELETE_OWN_ONLY"])
@@ -218,11 +231,16 @@ SlashCmdList["CH"] = function(msg)
     elseif cmd == "reset" then
         ChamberlainDB.hudX = -320
         ChamberlainDB.hudY = 0
+        ChamberlainDB.toolboxX = -300
+        ChamberlainDB.toolboxY = -40
         ChamberlainDB.bannerX = 0
         ChamberlainDB.bannerY = math.floor(UIParent:GetHeight() * 0.25)
         ChamberlainDB.thX = 0
         ChamberlainDB.thY = math.floor(UIParent:GetHeight() * 0.12)
         CH.ApplyHUDPos()
+        if CH.ApplyToolboxPos then
+            CH.ApplyToolboxPos()
+        end
         CH.ApplyBannerPos()
         CH.ApplyTalkingHeadPos()
         CH.Print(CH.L["CMD_POSITIONS_RESET"])
@@ -245,8 +263,10 @@ SlashCmdList["CH"] = function(msg)
     else
         -- "help", empty, and anything unrecognized all land here
         print(string.format(CH.L["CMD_HELP_HEADER_X"], CH.VERSION))
+        print(CH.L["CMD_HELP_BUILD"])
         print(CH.L["CMD_HELP_MANAGE"])
         print(CH.L["CMD_HELP_FLOOR"])
+        print(CH.L["CMD_HELP_SETTINGS"])
         print(CH.L["CMD_HELP_DELETE"])
         print(CH.L["CMD_HELP_RESET"])
         print(CH.L["CMD_HELP_HUD"])

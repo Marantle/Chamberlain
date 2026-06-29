@@ -118,6 +118,9 @@ function CH.CheckHousingState()
         CH.isOwnHouse = false
         CH.zoneLabel:SetText("-")
         CH.hud:Hide()
+        if CH.toolbox then
+            CH.toolbox:Hide()
+        end
         CH.HideBanner(0.8)
         CH.HideTalkingHead()
         CH.SetBannerRoom(nil)

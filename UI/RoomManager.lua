@@ -18,10 +18,8 @@ table.insert(UISpecialFrames, "ChamberlainRoomManager")
 
 local tabMyRooms = CH.MakeButton(roomMgr, CH.L["RM_TAB_MY_ROOMS"], 90, 22)
 local tabParty = CH.MakeButton(roomMgr, CH.L["RM_TAB_GROUP"], 68, 22)
-local tabSettings = CH.MakeButton(roomMgr, CH.L["RM_TAB_SETTINGS"], 86, 22)
 tabMyRooms:SetPoint("TOPLEFT", roomMgr, "TOPLEFT", 8, -30)
 tabParty:SetPoint("LEFT", tabMyRooms, "RIGHT", 2, 0)
-tabSettings:SetPoint("LEFT", tabParty, "RIGHT", 2, 0)
 
 local tabSep = roomMgr:CreateTexture(nil, "ARTWORK")
 tabSep:SetHeight(1)
@@ -31,12 +29,34 @@ tabSep:SetColorTexture(CH.RGBA(CH.COLORS.sep, 0.8))
 
 local panelMyRooms = CreateFrame("Frame", nil, roomMgr)
 local panelParty = CreateFrame("Frame", nil, roomMgr)
-local panelSettings = CreateFrame("Frame", nil, roomMgr)
-for _, p in ipairs({ panelMyRooms, panelParty, panelSettings }) do
+for _, p in ipairs({ panelMyRooms, panelParty }) do
     p:SetPoint("TOPLEFT", roomMgr, "TOPLEFT", 8, -58)
     p:SetPoint("BOTTOMRIGHT", roomMgr, "BOTTOMRIGHT", -8, 40)
     p:Hide()
 end
+
+-- Settings live in their own window now (opened by the launcher's Settings button
+-- or /rooms settings), so the manager is just My Rooms and Party. The settings
+-- panel below and everything built into it is parented here.
+local settingsWin = CreateFrame("Frame", "ChamberlainSettings", UIParent, "BackdropTemplate")
+settingsWin:SetSize(320, 520)
+settingsWin:SetFrameStrata("DIALOG")
+settingsWin:SetToplevel(true)
+settingsWin:SetPoint("CENTER")
+CH.MakeDraggable(settingsWin)
+CH.SkinWindow(settingsWin, CH.L["SET_WINDOW_TITLE"])
+settingsWin:Hide()
+table.insert(UISpecialFrames, "ChamberlainSettings")
+
+local panelSettings = CreateFrame("Frame", nil, settingsWin)
+panelSettings:SetPoint("TOPLEFT", settingsWin, "TOPLEFT", 8, -30)
+panelSettings:SetPoint("BOTTOMRIGHT", settingsWin, "BOTTOMRIGHT", -8, 40)
+
+local setClose = CH.MakeButton(settingsWin, CH.L["RM_CLOSE"], 80, 22)
+setClose:SetPoint("BOTTOM", settingsWin, "BOTTOM", 0, 10)
+setClose:SetScript("OnClick", function()
+    settingsWin:Hide()
+end)
 
 local mgrClose = CH.MakeButton(roomMgr, CH.L["RM_CLOSE"], 80, 22)
 mgrClose:SetPoint("BOTTOM", roomMgr, "BOTTOM", 0, 10)
@@ -729,18 +749,13 @@ local function ShowTab(tab)
     activeTab = tab
     panelMyRooms:SetShown(tab == "myrooms")
     panelParty:SetShown(tab == "party")
-    panelSettings:SetShown(tab == "settings")
     tabMyRooms:SetEnabled(tab ~= "myrooms")
     tabParty:SetEnabled(tab ~= "party")
-    tabSettings:SetEnabled(tab ~= "settings")
     if tab == "myrooms" then
         PopulateRoomList()
     end
     if tab == "party" then
         PopulatePartyList()
-    end
-    if tab == "settings" then
-        RefreshSettingsTab()
     end
 end
 
@@ -749,9 +764,6 @@ tabMyRooms:SetScript("OnClick", function()
 end)
 tabParty:SetScript("OnClick", function()
     ShowTab("party")
-end)
-tabSettings:SetScript("OnClick", function()
-    ShowTab("settings")
 end)
 
 -- ─────────────────────────────────────────────────────────────────────
@@ -772,8 +784,23 @@ end
 
 -- Exposed so the trust list refreshes when "Always accept from X" is ticked.
 CH.RefreshSettingsTab = function()
-    if activeTab == "settings" then
+    if settingsWin:IsShown() then
         RefreshSettingsTab()
+    end
+end
+
+function CH.OpenSettings()
+    settingsWin:Show()
+    settingsWin:Raise()
+    RefreshSettingsTab()
+end
+
+-- Launcher toggle: open if closed, close if already open.
+function CH.ToggleSettings()
+    if settingsWin:IsShown() then
+        settingsWin:Hide()
+    else
+        CH.OpenSettings()
     end
 end
 
@@ -781,4 +808,13 @@ function CH.OpenRoomManager()
     roomMgr:Show()
     roomMgr:Raise()
     ShowTab(activeTab or "myrooms")
+end
+
+-- Launcher/minimap toggle: open if closed, close if already open.
+function CH.ToggleRoomManager()
+    if roomMgr:IsShown() then
+        roomMgr:Hide()
+    else
+        CH.OpenRoomManager()
+    end
 end

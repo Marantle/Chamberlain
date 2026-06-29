@@ -1,0 +1,324 @@
+local _, CH = ...
+
+-- ─────────────────────────────────────────────────────────────────────
+-- Build toolbox  (the floating palette for making and fitting rooms)
+-- ─────────────────────────────────────────────────────────────────────
+-- A small movable window you open from the launcher's Build button or the
+-- minimap. It holds the live coordinate readout (moved off the old HUD), the
+-- "add a room where I stand" tools, and quick fitting for the picked room. The
+-- house map stays the bird's-eye editor; this is the build-while-standing-in-it
+-- companion.
+
+CH.toolbox = CreateFrame("Frame", "ChamberlainToolbox", UIParent, "BackdropTemplate")
+local tb = CH.toolbox
+tb:SetSize(210, 292)
+tb:SetFrameStrata("DIALOG")
+tb:SetToplevel(true)
+CH.SkinWindow(tb, CH.L["TB_TITLE"])
+tb:Hide()
+table.insert(UISpecialFrames, "ChamberlainToolbox")
+
+CH.ApplyToolboxPos = CH.MakeMovablePersistent(tb, "toolboxX", "toolboxY")
+
+-- The room these fit controls act on, and the house it lives in. Set when you
+-- drop a room or pick one from the dropdown. Kept on CH so the rest of the addon
+-- can read the current build target later.
+CH.tbSelZone = nil
+CH.tbSelGuid = nil
+
+-- ── Readout: live coords + current room/house (lives here now, not the HUD) ──
+CH.coordLabel = tb:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+CH.coordLabel:SetPoint("TOPLEFT", 12, -30)
+CH.coordLabel:SetText(CH.L["HUD_COORD_PLACEHOLDER"])
+
+CH.zoneLabel = tb:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+CH.zoneLabel:SetPoint("TOPLEFT", 12, -44)
+CH.zoneLabel:SetText("-")
+CH.zoneLabel:SetTextColor(0.75, 0.75, 0.75, 1)
+
+CH.MakeSep(tb, -56)
+
+-- ── Add tools ────────────────────────────────────────────────────────
+CH.MakeSectionHeader(tb, CH.L["TB_ADD_HEADER"], -62)
+
+local addRect = CH.MakeButton(tb, CH.L["TB_ADD_RECTANGLE"], 186, 22)
+addRect:SetPoint("TOPLEFT", 12, -80)
+
+local addStairs = CH.MakeButton(tb, CH.L["TB_ADD_STAIRS"], 91, 22)
+addStairs:SetPoint("TOPLEFT", 12, -104)
+local addMarker = CH.MakeButton(tb, CH.L["TB_ADD_MARKER"], 91, 22)
+addMarker:SetPoint("LEFT", addStairs, "RIGHT", 4, 0)
+
+CH.MakeSep(tb, -132)
+
+-- ── Selected room ────────────────────────────────────────────────────
+CH.MakeSectionHeader(tb, CH.L["TB_SELECTED_HEADER"], -138)
+
+local selDrop = CH.MakeButton(tb, CH.L["TB_SELECT_ROOM"], 186, 22)
+selDrop:SetPoint("TOPLEFT", 12, -156)
+local selDropFS = selDrop:GetFontString()
+if selDropFS then
+    selDropFS:SetWidth(172)
+    selDropFS:SetWordWrap(false)
+end
+
+local snapBtn = CH.MakeButton(tb, CH.L["TB_SNAP_EDGE"], 186, 22)
+snapBtn:SetPoint("TOPLEFT", 12, -180)
+
+local growBtn = CH.MakeButton(tb, CH.L["TB_GROW"], 91, 22)
+growBtn:SetPoint("TOPLEFT", 12, -204)
+local shrinkBtn = CH.MakeButton(tb, CH.L["TB_SHRINK"], 91, 22)
+shrinkBtn:SetPoint("LEFT", growBtn, "RIGHT", 4, 0)
+
+local editBtn = CH.MakeButton(tb, CH.L["TB_EDIT"], 91, 22)
+editBtn:SetPoint("TOPLEFT", 12, -228)
+local delBtn = CH.MakeButton(tb, CH.L["TB_DELETE"], 91, 22)
+delBtn:SetPoint("LEFT", editBtn, "RIGHT", 4, 0)
+
+CH.MakeSep(tb, -256)
+
+local mapBtn = CH.MakeButton(tb, CH.L["TB_SHOW_MAP"], 186, 22)
+mapBtn:SetPoint("TOPLEFT", 12, -262)
+
+-- ── Behaviour ────────────────────────────────────────────────────────
+
+-- Push a fit edit out to the map, list, and party, then resync our own labels.
+local function AfterEdit()
+    CH.TouchHouse(CH.tbSelGuid)
+    CH.RefreshToolbox()
+end
+
+-- The current house's room list, or nil if we have nothing for this house yet.
+local function HouseRooms()
+    local h = CH.currentHouseGUID and ChamberlainDB.houses[CH.currentHouseGUID]
+    return h and h.zones or nil
+end
+
+function CH.RefreshToolbox()
+    local own = CH.isOwnHouse
+    local zones = HouseRooms()
+
+    -- Drop a stale selection (room deleted, or we changed houses).
+    if CH.tbSelZone then
+        local stillHere = false
+        if zones then
+            for _, z in ipairs(zones) do
+                if z == CH.tbSelZone then
+                    stillHere = true
+                    break
+                end
+            end
+        end
+        if not stillHere then
+            CH.tbSelZone, CH.tbSelGuid = nil, nil
+        end
+    end
+
+    addRect:SetEnabled(own)
+    addStairs:SetEnabled(own)
+    addMarker:SetEnabled(own)
+    selDrop:SetEnabled(own and zones ~= nil)
+
+    local hasSel = own and CH.tbSelZone ~= nil
+    snapBtn:SetEnabled(hasSel)
+    growBtn:SetEnabled(hasSel)
+    shrinkBtn:SetEnabled(hasSel)
+    editBtn:SetEnabled(hasSel)
+    delBtn:SetEnabled(hasSel)
+
+    local z = CH.tbSelZone
+    if z then
+        selDrop:SetText(string.format(CH.L["TB_SEL_DIM_X"], z.name, z.maxX - z.minX, z.maxY - z.minY))
+    else
+        selDrop:SetText(CH.L["TB_SELECT_ROOM"])
+    end
+end
+
+-- One place to set the selected room so the toolbox and the house map always
+-- agree. Either side calls this and the other resyncs. The guard stops the two
+-- refreshes from bouncing the call back and forth.
+-- revealFloor switches the map to the room's floor so it can be seen. Only the
+-- toolbox's room list passes it: picking a room there may mean one on another
+-- floor. A map click never sets it, since you can only click what's already shown
+-- (and a staircase is drawn on both floors it links, so switching would jump you).
+local syncing = false
+function CH.SetSelection(zone, guid, revealFloor)
+    if syncing then
+        return
+    end
+    syncing = true
+    CH.tbSelZone = zone
+    CH.tbSelGuid = guid
+    CH.RefreshToolbox()
+    if CH.FloorPlanSelect then
+        CH.FloorPlanSelect(zone, revealFloor)
+    end
+    syncing = false
+end
+
+-- Drop a fresh room where the player stands, select it, and open the editor so
+-- it can be named right away.
+addRect:SetScript("OnClick", function()
+    local x, y, mapID = CH.GetWorldPos()
+    if not x then
+        CH.Print(CH.L["TB_NO_POSITION"])
+        return
+    end
+    local z, guid = CH.CreateZoneAt(x, y, mapID)
+    if z then
+        CH.SetSelection(z, guid)
+        CH.OpenRenameDialog(z, guid)
+    end
+end)
+
+addStairs:SetScript("OnClick", function()
+    CH.OpenStairsWizard()
+end)
+addMarker:SetScript("OnClick", function()
+    CH.OpenFloorMarkerWizard()
+end)
+
+selDrop:SetScript("OnClick", function(self)
+    if not MenuUtil then
+        return
+    end
+    local zones = HouseRooms()
+    MenuUtil.CreateContextMenu(self, function(_, root)
+        root:CreateTitle(CH.L["TB_PICK_ROOM"])
+        local any = false
+        if zones then
+            for _, z in ipairs(zones) do
+                -- skip stair anchors: they have their own editor on the map
+                if z.setFloor == nil and z.floorDelta == nil then
+                    any = true
+                    root:CreateRadio(z.name, function()
+                        return CH.tbSelZone == z
+                    end, function()
+                        CH.SetSelection(z, CH.currentHouseGUID, true)
+                    end)
+                end
+            end
+        end
+        if not any then
+            root:CreateButton(CH.L["TB_NO_ROOMS"]):SetEnabled(false)
+        end
+    end)
+end)
+
+-- Snap the room's nearest edge to where the player stands. Walking the perimeter
+-- and tapping this at each wall fits the room without marking corners.
+snapBtn:SetScript("OnClick", function()
+    local z = CH.tbSelZone
+    if not z then
+        return
+    end
+    local x, y = CH.GetWorldPos()
+    if not x then
+        CH.Print(CH.L["TB_NO_POSITION"])
+        return
+    end
+    -- Distance to each wall as a finite segment, not an infinite line. Standing off
+    -- to one side, the top and bottom walls are only reachable at their corner, so
+    -- the side wall you're actually next to wins (squared distance, no sqrt needed).
+    local function vDist(ex) -- a vertical wall at X = ex, spanning the room's Y
+        local dy = 0
+        if y < z.minY then
+            dy = y - z.minY
+        elseif y > z.maxY then
+            dy = y - z.maxY
+        end
+        local dx = x - ex
+        return dx * dx + dy * dy
+    end
+    local function hDist(ey) -- a horizontal wall at Y = ey, spanning the room's X
+        local dx = 0
+        if x < z.minX then
+            dx = x - z.minX
+        elseif x > z.maxX then
+            dx = x - z.maxX
+        end
+        local dy = y - ey
+        return dx * dx + dy * dy
+    end
+    local dMinX, dMaxX = vDist(z.minX), vDist(z.maxX)
+    local dMinY, dMaxY = hDist(z.minY), hDist(z.maxY)
+    local m = math.min(dMinX, dMaxX, dMinY, dMaxY)
+    if m == dMinX then
+        z.minX = math.min(x, z.maxX - 1)
+    elseif m == dMaxX then
+        z.maxX = math.max(x, z.minX + 1)
+    elseif m == dMinY then
+        z.minY = math.min(y, z.maxY - 1)
+    else
+        z.maxY = math.max(y, z.minY + 1)
+    end
+    AfterEdit()
+end)
+
+-- Grow/shrink all four edges by half a yard, keeping at least 1 yard across.
+local function Resize(d)
+    local z = CH.tbSelZone
+    if not z then
+        return
+    end
+    z.minX, z.maxX = z.minX - d, z.maxX + d
+    z.minY, z.maxY = z.minY - d, z.maxY + d
+    if z.maxX - z.minX < 1 then
+        local cx = (z.minX + z.maxX) * 0.5
+        z.minX, z.maxX = cx - 0.5, cx + 0.5
+    end
+    if z.maxY - z.minY < 1 then
+        local cy = (z.minY + z.maxY) * 0.5
+        z.minY, z.maxY = cy - 0.5, cy + 0.5
+    end
+    AfterEdit()
+end
+growBtn:SetScript("OnClick", function()
+    Resize(0.5)
+end)
+shrinkBtn:SetScript("OnClick", function()
+    Resize(-0.5)
+end)
+
+editBtn:SetScript("OnClick", function()
+    if CH.tbSelZone then
+        CH.OpenRenameDialog(CH.tbSelZone, CH.tbSelGuid)
+    end
+end)
+
+delBtn:SetScript("OnClick", function()
+    local z = CH.tbSelZone
+    local guid = CH.tbSelGuid
+    local h = guid and ChamberlainDB.houses[guid]
+    if not z or not h then
+        return
+    end
+    for i, zone in ipairs(h.zones) do
+        if zone == z then
+            table.remove(h.zones, i)
+            break
+        end
+    end
+    CH.DropZoneStats(h, z.name)
+    CH.SetSelection(nil, nil) -- clear it on the map too
+    CH.TouchHouse(guid)
+end)
+
+mapBtn:SetScript("OnClick", function()
+    CH.OpenFloorPlan()
+end)
+
+function CH.OpenToolbox()
+    tb:Show()
+    tb:Raise()
+    CH.RefreshToolbox()
+end
+
+-- Launcher/minimap toggle: open if closed, close if already open.
+function CH.ToggleToolbox()
+    if tb:IsShown() then
+        tb:Hide()
+    else
+        CH.OpenToolbox()
+    end
+end

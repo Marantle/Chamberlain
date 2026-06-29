@@ -324,6 +324,9 @@ local function AdjustSelected(dMinX, dMaxX, dMinY, dMaxY)
         CH.RefreshMyRoomsTab()
     end
     CH.QueueBroadcast(CH.currentHouseGUID)
+    if CH.RefreshToolbox then
+        CH.RefreshToolbox() -- keep the toolbox's size readout in step
+    end
     if CH.SyncAnchorLatch then
         CH.SyncAnchorLatch() -- nudging a stair box onto us shouldn't fire a transition
     end
@@ -386,15 +389,10 @@ btnDelete:SetScript("OnClick", function()
     if not zone or not h then
         return
     end
-    local removed = table.remove(h.zones, selectedIdx)
-    CH.DropZoneStats(h, removed and removed.name)
-    h.updatedAt = GetServerTime()
-    selectedIdx = nil
-    BuildFloorPlan()
-    if CH.RefreshMyRoomsTab then
-        CH.RefreshMyRoomsTab()
-    end
-    CH.QueueBroadcast(CH.currentHouseGUID)
+    table.remove(h.zones, selectedIdx)
+    CH.DropZoneStats(h, zone.name)
+    CH.SetSelection(nil, nil) -- clear it on the toolbox too, then rebuild
+    CH.TouchHouse(CH.currentHouseGUID)
 end)
 
 local function RefreshEditPanel()
@@ -527,21 +525,25 @@ local function GetZoneFrame(i)
                 break
             end
         end
+        local newIdx
         if not pos then
-            selectedIdx = hits[1]
+            newIdx = hits[1]
         elseif pos < #hits then
-            selectedIdx = hits[pos + 1]
+            newIdx = hits[pos + 1] -- cycle to the next room under the cursor
         else
-            selectedIdx = nil -- cycled past the last room under the cursor
+            newIdx = nil -- cycled past the last room: deselect
         end
-        BuildFloorPlan()
+        -- Route through the shared setter so the build toolbox follows along. It
+        -- sets selectedIdx (via CH.FloorPlanSelect) and rebuilds.
+        local house = CurrentHouse()
+        CH.SetSelection(newIdx and house and house.zones[newIdx] or nil, CH.currentHouseGUID)
         -- Refresh the tooltip to the room we just cycled to (OnEnter only fires on
         -- mouse motion or a frame re-show, so a click alone wouldn't update it).
         local sel = selectedIdx and ZoneFrameByIdx(selectedIdx)
         if sel then
             ShowZoneTooltip(self, sel.zoneName, sel.zoneW, sel.zoneH, sel.zoneTime, sel.cr, sel.cg, sel.cb)
         else
-            GameTooltip:Hide() -- cycled past the last room: nothing selected to show
+            GameTooltip:Hide() -- nothing selected
         end
     end)
 
@@ -825,6 +827,22 @@ canvas:SetScript("OnMouseDown", function(_, button)
     dragging = true
     dragSX, dragSY = CanvasCursor()
     panStartX, panStartY = panX, panY
+end)
+
+-- Releasing over the canvas means the click landed on empty map: the room tiles and
+-- handles are child frames that eat their own clicks. A near-stationary release is a
+-- click (not the end of a pan), so clear the selection on both the map and toolbox.
+canvas:SetScript("OnMouseUp", function(_, button)
+    if button ~= "LeftButton" then
+        return
+    end
+    dragging = false
+    if CH.isOwnHouse and dragSX then
+        local mx, my = CanvasCursor()
+        if math.abs(mx - dragSX) < 4 and math.abs(my - dragSY) < 4 then
+            CH.SetSelection(nil, nil)
+        end
+    end
 end)
 -- ── Drag handles: resize from any edge/corner, move from the centre ──────
 -- Eight gold grips around the selected tile (4 corners + 4 edge midpoints) resize
@@ -1373,6 +1391,15 @@ function CH.OpenFloorPlan()
     fp:Raise()
 end
 
+-- Launcher/minimap toggle: open if closed, close if already open.
+function CH.ToggleFloorPlan()
+    if fp:IsShown() then
+        fp:Hide()
+    else
+        CH.OpenFloorPlan()
+    end
+end
+
 -- Reopen the floor plan on login if it was open when we last left, but only while
 -- standing inside a house. Outside a house it stays closed, so a /reload in the
 -- open world doesn't pop an empty map. The window populates itself once the async
@@ -1398,5 +1425,33 @@ function CH.OnActiveFloorChanged()
     CH.fpViewedFloor = viewedFloor
     if fp:IsShown() then
         BuildFloorPlan()
+    end
+end
+
+-- Sync the map's selection to a room picked elsewhere (the build toolbox). Pass
+-- nil to clear. revealFloor switches the map to the room's floor first, which the
+-- toolbox room list wants but a map click does not (you can only click what's
+-- shown, and stairs draw on both floors they link). Called through CH.SetSelection,
+-- so it never calls back into it.
+function CH.FloorPlanSelect(zone, revealFloor)
+    local h = CurrentHouse()
+    local idx = nil
+    if zone and h then
+        for i, z in ipairs(h.zones) do
+            if z == zone then
+                idx = i
+                break
+            end
+        end
+    end
+    if revealFloor and idx and zone.floor and zone.floor ~= viewedFloor then
+        viewedFloor = zone.floor
+        CH.fpViewedFloor = viewedFloor
+    end
+    selectedIdx = idx
+    if fp:IsShown() then
+        BuildFloorPlan()
+    else
+        RefreshEditPanel()
     end
 end

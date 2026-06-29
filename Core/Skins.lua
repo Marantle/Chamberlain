@@ -307,6 +307,26 @@ function CH.PushRecentColor(c)
     end
 end
 
+-- Stamp a house as changed and push that change everywhere it shows: the floor
+-- plan, the room list, and the party broadcast. Saves repeating the same lines
+-- after every edit (create, resize, rename, delete). guid may be nil, in which
+-- case only the open windows refresh.
+function CH.TouchHouse(guid)
+    local h = guid and ChamberlainDB.houses[guid]
+    if h then
+        h.updatedAt = GetServerTime()
+    end
+    if CH.RebuildFloorPlan then
+        CH.RebuildFloorPlan()
+    end
+    if CH.RefreshMyRoomsTab then
+        CH.RefreshMyRoomsTab()
+    end
+    if guid and CH.QueueBroadcast then
+        CH.QueueBroadcast(guid)
+    end
+end
+
 -- Drop a deleted room's time stats, unless another room still uses the name
 -- (stats are keyed by room name and duplicates are allowed).
 function CH.DropZoneStats(house, name)
