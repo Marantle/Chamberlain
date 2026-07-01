@@ -10,7 +10,7 @@ local _, CH = ...
 -- "anchor / absolute / relative" and asks the player to mark their stairs.
 
 -- Half-extent of a stair anchor footprint, in yards. The landing is captured as a
--- single point and grown into a ~4 yd box so the 0.25s ticker reliably catches it.
+-- single point and grown into a ~4 yd box so the zone ticker reliably catches it.
 local ANCHOR_HALF = 2.0
 
 -- ── One-time explainer ───────────────────────────────────────────────
@@ -104,7 +104,7 @@ local function BuildWizard()
     end)
 
     -- Bottom-landing capture.
-    local botBtn = CH.MakeButton(wiz, CH.L["ST_MARK_BOTTOM"], 150, 24)
+    local botBtn = CH.MakeButton(wiz, CH.L["ST_MARK_TOP"], 150, 24)
     botBtn:SetPoint("TOPLEFT", 18, -88)
     wiz.botBtn = botBtn
     local botState = wiz:CreateFontString(nil, "OVERLAY", "GameFontDisable")
@@ -120,7 +120,7 @@ local function BuildWizard()
     end)
 
     -- Top-landing capture.
-    local topBtn = CH.MakeButton(wiz, CH.L["ST_MARK_TOP"], 150, 24)
+    local topBtn = CH.MakeButton(wiz, CH.L["ST_MARK_BOTTOM"], 150, 24)
     topBtn:SetPoint("TOPLEFT", 18, -124)
     wiz.topBtn = topBtn
     local topState = wiz:CreateFontString(nil, "OVERLAY", "GameFontDisable")

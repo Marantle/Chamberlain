@@ -2,6 +2,10 @@ local ADDON, CH = ...
 
 CH.VERSION = "2.9.0"
 
+-- How often the zone ticker samples your position, in seconds. Drives stair
+-- detection and the per-room time stats both, so they stay in step if it changes.
+CH.ZONE_TICK = 0.1
+
 -- ─────────────────────────────────────────────────────────────────────
 -- Chat output
 -- ─────────────────────────────────────────────────────────────────────
@@ -100,6 +104,11 @@ events:SetScript("OnEvent", function(_, event, arg1)
         if ChamberlainDB.settings.showRoomText == nil then
             ChamberlainDB.settings.showRoomText = true
         end
+        -- Whether the gold room banner appears on entry. Off is for players who only
+        -- want the map. Personal and local, never shared.
+        if ChamberlainDB.settings.bannerEnabled == nil then
+            ChamberlainDB.settings.bannerEnabled = true
+        end
         -- Personal text-to-speech defaults (local only, voiceFemale/voiceMale stay
         -- nil until the player picks them). When enabled, these read rooms shared
         -- to you that have no voice of their own. See CH.ResolveZoneVoice.
@@ -175,7 +184,7 @@ events:SetScript("OnEvent", function(_, event, arg1)
         end
         CH.ApplyBannerPos()
         CH.ApplyTalkingHeadPos()
-        C_Timer.NewTicker(0.25, CH.CheckZones)
+        C_Timer.NewTicker(CH.ZONE_TICK, CH.CheckZones)
         CH.CheckHousingState()
         if CH.RestoreFloorPlan then
             CH.RestoreFloorPlan()

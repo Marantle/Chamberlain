@@ -7,7 +7,7 @@ local _, CH = ...
 -- rooms (Mark A / Mark B / Create), and launch the windows. That stacked up to
 -- seven buttons. It is now just a small launcher. Build opens the toolbox, Rooms
 -- the manager, Settings the options. The coordinate readout and the make/fit
--- tools moved to the toolbox (UI/Toolbox.lua); the map has its own button when
+-- tools moved to the toolbox (UI/Toolbox.lua). The map has its own button when
 -- you're visiting a house you hold a layout for.
 
 CH.hud = CreateFrame("Frame", "ChamberlainHUDFrame", UIParent, "BackdropTemplate")

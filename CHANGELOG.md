@@ -4,7 +4,7 @@
 - The position HUD is now a small launcher. Instead of a tall stack of buttons it
   carries a few: Build, Map, Rooms, and Settings. The House Map is one click away
   again. It still shows in your own house and can be moved or hidden the same way.
-- New build toolbox. Click Build, or left-click the minimap button, to open it. It
+- New build toolbox. Click Build to open it. It
   shows your live coordinates and holds the tools for making and fitting rooms.
 - Making a room no longer needs Mark A, Mark B and Create. Stand where you want the
   room and click Add room here. A small room drops at your feet and the name box
@@ -16,8 +16,16 @@
 - Settings moved out of the room manager into their own window, opened by the
   Settings button or /chamberlain settings. The room manager is now only My Rooms
   and Party.
-- The minimap button opens the build toolbox on left-click and the room manager on
-  right-click.
+- The minimap button: left-click shows or hides the launcher as before, middle-click
+  opens the house map, right-click opens the room manager.
+- Rooms can be round. In the toolbox, Add a Circle instead of a Square and it drops
+  where you stand like any room. A circle's banner fires inside the actual circle,
+  not the corners of its box. Size it with Grow and Shrink, or stand at the rim and
+  click Set radius to me. Round rooms draw as a disc on the house map, and they
+  share and export like any other room. Older clients see them as a square.
+- A "Room banners" switch in Settings turns the gold name banner off entirely, for
+  players who only want the map. It's personal and stays on your computer, and
+  flipping it off clears any banner already showing.
 
 ## 2.8.0
 - A room set to use the owner's own head now shows that person to visitors as long
@@ -51,7 +59,7 @@
 
 ## 2.5.0
 - Localization support. Every visible string now goes through a locale table, so
-  Chamberlain can be translated. English ships complete; German, French, Spanish
+  Chamberlain can be translated. English ships complete. German, French, Spanish
   (EU and LatAm), Italian, Korean, Brazilian Portuguese, Russian, and both Chinese
   variants ship as empty stubs in Locale\ ready for translators to fill in. Any
   untranslated line falls back to English, so a partly-translated language is fine.
@@ -270,7 +278,7 @@ around making party sharing reliable.
   you could request theirs. Your catalog now goes out on login as well.
 - Catalog broadcasts are debounced. A burst of edits (for example nudging a
   room repeatedly on the floor plan) now sends one update instead of one per
-  change. The version handshake no longer rides along with every catalog; it
+  change. The version handshake no longer rides along with every catalog. It
   is sent only on join and login.
 - Requesting a layout you already have now updates it directly instead of
   asking you to resolve a conflict. The conflict prompt is only for layouts
@@ -306,7 +314,7 @@ around making party sharing reliable.
   new name.
 - Per-room colors. Pick one while naming the room (with your five most recent
   colors as one-click swatches) or later via the floor plan's Color button.
-  The room tile and the entry banner both use it; colors travel with shared
+  The room tile and the entry banner both use it. Colors travel with shared
   layouts.
 - Optional sound when entering a room. On by default, toggle in Settings.
 - Minimap button. Left-click opens the room manager, right-click the floor

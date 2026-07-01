@@ -550,6 +550,9 @@ local function DeserializeLayout(b64)
                 useOwnerHead = z.oh == true or nil,
                 rpText = type(z.t) == "string" and string.sub(z.t, 1, 500) or nil,
                 secret = z.se == true or nil,
+                -- Room shape (2.9.0): only "circle" so far. Anything else, or absent
+                -- from older blobs, is a rectangle. Geometry still rides in x1..y2.
+                shape = z.sh == "circle" and "circle" or nil,
                 -- Multi-floor (2.4.0): defaults to floor 1 so pre-floors blobs
                 -- (which omit these) land every room on the ground floor.
                 floor = type(z.fl) == "number" and z.fl or 1,
@@ -596,6 +599,7 @@ function CH.ExportLayout(houseGUID)
             y1 = z.minY,
             y2 = z.maxY,
             c = z.color,
+            sh = z.shape, -- room shape "circle", or nil for a rectangle (2.9.0)
             t = z.rpText, -- room description
             hi = z.headID, -- talking-head index
             hd = z.headDisplay, -- custom head display ID (overrides hi)

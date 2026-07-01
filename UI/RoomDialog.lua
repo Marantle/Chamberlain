@@ -706,12 +706,12 @@ local function ConfirmZone()
 end
 
 -- Drop a new room at a world position. This is the build toolbox's "add room
--- here": it makes a small default-sized rectangle centred on (x, y), files it
--- under the current house, and returns the zone and its house guid so the caller
--- can select it and open this dialog to name it. Replaces the old Mark A / Mark B
--- corner flow.
-local DEFAULT_HALF = 4 -- yards: a fresh room is 8x8, centred on the player
-function CH.CreateZoneAt(x, y, mapID)
+-- here": it makes a small default-sized room centred on (x, y), files it under the
+-- current house, and returns the zone and its house guid so the caller can select
+-- it and open this dialog to name it. shape "circle" makes a round room, stored as
+-- a square box. Anything else is a rectangle. Replaces the old Mark A/B flow.
+local DEFAULT_HALF = 4 -- yards: a fresh room is 8x8 (or a circle 8 across), centred on the player
+function CH.CreateZoneAt(x, y, mapID, shape)
     if not CH.currentHouseGUID then
         CH.Print(CH.L["RD_HOUSE_NOT_IDENTIFIED"])
         return
@@ -731,6 +731,7 @@ function CH.CreateZoneAt(x, y, mapID)
         maxX = x + DEFAULT_HALF,
         minY = y - DEFAULT_HALF,
         maxY = y + DEFAULT_HALF,
+        shape = shape == "circle" and "circle" or nil,
         floor = CH.fpViewedFloor or CH.activeFloor or 1,
     }
     table.insert(h.zones, z)

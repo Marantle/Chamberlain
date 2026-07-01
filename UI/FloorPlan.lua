@@ -311,13 +311,33 @@ local function AdjustSelected(dMinX, dMaxX, dMinY, dMaxY)
     if not zone then
         return
     end
-    local minX, maxX = zone.minX + dMinX * STEP, zone.maxX + dMaxX * STEP
-    local minY, maxY = zone.minY + dMinY * STEP, zone.maxY + dMaxY * STEP
-    if maxX - minX < 1 or maxY - minY < 1 then
-        return
-    end -- keep at least 1 yd
-    zone.minX, zone.maxX = minX, maxX
-    zone.minY, zone.maxY = minY, maxY
+    if zone.shape == "circle" then
+        -- Circles ignore direction. A Move button (both bounds of an axis) shifts the
+        -- centre. A Grow/Shrink button changes the radius, kept centred and square so
+        -- it stays a true circle.
+        if dMinX == dMaxX and dMinY == dMaxY then
+            zone.minX, zone.maxX = zone.minX + dMinX * STEP, zone.maxX + dMaxX * STEP
+            zone.minY, zone.maxY = zone.minY + dMinY * STEP, zone.maxY + dMaxY * STEP
+        else
+            local cx = (zone.minX + zone.maxX) * 0.5
+            local cy = (zone.minY + zone.maxY) * 0.5
+            local grow = (dMaxX - dMinX) + (dMaxY - dMinY) > 0
+            local r = (zone.maxX - zone.minX) * 0.5 + (grow and STEP or -STEP)
+            if r < 0.5 then
+                return
+            end
+            zone.minX, zone.maxX = cx - r, cx + r
+            zone.minY, zone.maxY = cy - r, cy + r
+        end
+    else
+        local minX, maxX = zone.minX + dMinX * STEP, zone.maxX + dMaxX * STEP
+        local minY, maxY = zone.minY + dMinY * STEP, zone.maxY + dMaxY * STEP
+        if maxX - minX < 1 or maxY - minY < 1 then
+            return
+        end -- keep at least 1 yd
+        zone.minX, zone.maxX = minX, maxX
+        zone.minY, zone.maxY = minY, maxY
+    end
     h.updatedAt = GetServerTime()
     BuildFloorPlan()
     if CH.RefreshMyRoomsTab then
@@ -399,7 +419,7 @@ local function RefreshEditPanel()
     local h = CH.currentHouseGUID and ChamberlainDB.houses[CH.currentHouseGUID]
     local zone = CH.isOwnHouse and h and selectedIdx and h.zones[selectedIdx]
     if zone then
-        editName:SetText(string.format(CH.L["FP_ZONE_DIM_X"], zone.name, zone.maxX - zone.minX, zone.maxY - zone.minY))
+        editName:SetText(string.format(CH.L["FMT_NAME_DIM_X"], zone.name, CH.ZoneDimText(zone)))
         editPanel:Show()
         editHint:Hide()
     else
@@ -468,6 +488,18 @@ local function GetZoneFrame(i)
     f.fill = f:CreateTexture(nil, "BORDER")
     f.fill:SetPoint("TOPLEFT", f, "TOPLEFT", 1, -1)
     f.fill:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -1, 1)
+
+    -- A round alpha mask, off by default. Circle rooms switch it on (see
+    -- SetZoneRound) so the square tile draws as a disc. The box is square for a
+    -- circle, so the inscribed mask matches the room exactly.
+    f.mask = f:CreateMaskTexture()
+    f.mask:SetAllPoints(f)
+    f.mask:SetTexture(
+        "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask",
+        "CLAMPTOBLACKADDITIVE",
+        "CLAMPTOBLACKADDITIVE"
+    )
+    f.masked = false
 
     f.label = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     f.label:SetAllPoints()
@@ -645,7 +677,7 @@ local PositionHandles
 -- move, so they stay the same size. Reset on house/floor change and on open.
 local zoom, panX, panY = 1, 0, 0
 local ZOOM_MIN, ZOOM_MAX = 1, 6
-local lastBuiltGuid, lastViewedFloor
+local lastBuiltGuid
 
 -- Secret rooms show only on the owner's own floor plan. Visitors holding the
 -- shared layout still get the banner on entry (the room is in thier zone list),
@@ -663,6 +695,20 @@ local function WorldToCanvas(x, y)
     px = (px - cx) * zoom + cx + panX
     py = (py - cy) * zoom + cy + panY
     return px, py
+end
+
+-- The inverse of WorldToCanvas: canvas-local pixels (as CanvasCursor returns) back
+-- to world yards. Used while dragging a circle's rim to read where the cursor sits.
+local function CanvasToWorld(px, py)
+    if not trScale or trScale == 0 then
+        return 0, 0
+    end
+    local cx, cy = (trCanvasW or 0) * 0.5, (trCanvasH or 0) * 0.5
+    local px0 = (px - cx - panX) / zoom + cx
+    local py0 = (py - cy - panY) / zoom + cy
+    local x = trMaxX - (px0 - PADDING) / trScale
+    local y = trMinY + (trCanvasH - PADDING - py0) / trScale
+    return x, y
 end
 
 -- House-wide fit: the bounding box across EVERY floor's visible zones, mapped onto
@@ -889,11 +935,32 @@ local function UpdateHandleDrag()
     if k == 0 then
         return
     end
+    local s = handleSpec
+
+    -- A circle resizes by radius: the rim grips set it to the cursor's distance from
+    -- the (fixed) centre, kept square so it stays a true circle. The centre move grip
+    -- still falls through to the translation path below.
+    if zone.shape == "circle" and not s.move then
+        local ccx = (handleStart.minX + handleStart.maxX) * 0.5
+        local ccy = (handleStart.minY + handleStart.maxY) * 0.5
+        local xw, yw = CanvasToWorld(CanvasCursor())
+        local r = SnapHalf(math.sqrt((xw - ccx) * (xw - ccx) + (yw - ccy) * (yw - ccy)))
+        if r < 0.5 then
+            r = 0.5
+        end
+        zone.minX, zone.maxX = ccx - r, ccx + r
+        zone.minY, zone.maxY = ccy - r, ccy + r
+        TileReposition()
+        if RefreshEditPanel then
+            RefreshEditPanel()
+        end
+        return
+    end
+
     local cx, cy = CanvasCursor()
     -- Screen +x is world -x (mirrored); screen +y is downward, i.e. world -y.
     local dx = SnapHalf(-(cx - handleStartCX) / k)
     local dy = SnapHalf(-(cy - handleStartCY) / k)
-    local s = handleSpec
     local minX = handleStart.minX + (s.mnX or 0) * dx
     local maxX = handleStart.maxX + (s.mxX or 0) * dx
     local minY = handleStart.minY + (s.mnY or 0) * dy
@@ -1008,11 +1075,37 @@ PositionHandles = function()
     if zh < 4 then
         zh = 4
     end
+    -- For a circle, keep the centre move grip and the four edge grips, which sit on
+    -- the rim (the box edge midpoints touch the inscribed circle) and drag the radius.
+    -- Hide the corner grips: they'd float off the disc, and a circle has no corners.
+    local round = zone.shape == "circle"
     for i, spec in ipairs(HANDLE_SPECS) do
         local hb = handles[i]
-        hb:ClearAllPoints()
-        hb:SetPoint("CENTER", canvas, "TOPLEFT", px + spec.px * zw, -(py + spec.py * zh))
-        hb:Show()
+        local isEdge = (spec.px == 0.5) ~= (spec.py == 0.5) -- exactly one centred axis
+        if round and not spec.move and not isEdge then
+            hb:Hide()
+        else
+            hb:ClearAllPoints()
+            hb:SetPoint("CENTER", canvas, "TOPLEFT", px + spec.px * zw, -(py + spec.py * zh))
+            hb:Show()
+        end
+    end
+end
+
+-- Toggle a pooled tile between a square room and a round one by masking its fill
+-- and border. Tracked on the frame so a rebuild doesn't stack masks, and so a
+-- pooled frame reused for a rectangle drops the mask again.
+local function SetZoneRound(f, round)
+    if round == f.masked then
+        return
+    end
+    f.masked = round
+    if round then
+        f.border:AddMaskTexture(f.mask)
+        f.fill:AddMaskTexture(f.mask)
+    else
+        f.border:RemoveMaskTexture(f.mask)
+        f.fill:RemoveMaskTexture(f.mask)
     end
 end
 
@@ -1054,18 +1147,16 @@ BuildFloorPlan = function()
     end
     CH.fpViewedFloor = viewedFloor
 
-    -- A different house reframes to its own bounds. Switching floors keeps the
-    -- shared house-wide frame (so the view never jumps between floors) and only
-    -- recenters the zoom/pan overlay. A plain rebuild (room edit, dot refresh)
-    -- leaves both the frame and your zoom/pan untouched, which keeps a dragged
-    -- handle from chasing a refitting map.
+    -- A different house reframes to its own bounds and resets the zoom and pan.
+    -- Switching floors keeps the shared house-wide frame and your current zoom and
+    -- pan, so the view stays put when you take the stairs or page through floors.
+    -- A plain rebuild (room edit, dot refresh) leaves everything untouched, which
+    -- keeps a dragged handle from chasing a refitting map.
     if CH.currentHouseGUID ~= lastBuiltGuid then
         zoom, panX, panY = 1, 0, 0
         trScale = nil -- new house: reframe via ComputeFit below
-    elseif viewedFloor ~= lastViewedFloor then
-        zoom, panX, panY = 1, 0, 0
     end
-    lastBuiltGuid, lastViewedFloor = CH.currentHouseGUID, viewedFloor
+    lastBuiltGuid = CH.currentHouseGUID
 
     -- Lazily (re)establish the house-wide fit. Only the reframe events null trScale
     -- (house change above, plus open, reset, canvas resize, and zone changes
@@ -1197,6 +1288,7 @@ BuildFloorPlan = function()
             f:ClearAllPoints()
             f:SetPoint("TOPLEFT", canvas, "TOPLEFT", px, -py)
             f:SetSize(zw, zh)
+            SetZoneRound(f, zone.shape == "circle")
             local anchor = FPIsAnchor(zone)
             -- Selected tiles get a fat ring: inset the fill by 3px (vs 1px normally)
             -- so the border texture shows through as a thick band. The pool reuses

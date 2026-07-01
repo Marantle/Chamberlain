@@ -6,7 +6,7 @@ local _, CH = ...
 -- A small movable window you open from the launcher's Build button or the
 -- minimap. It holds the live coordinate readout (moved off the old HUD), the
 -- "add a room where I stand" tools, and quick fitting for the picked room. The
--- house map stays the bird's-eye editor; this is the build-while-standing-in-it
+-- house map stays the bird's-eye editor. This is the build-while-standing-in-it
 -- companion.
 
 CH.toolbox = CreateFrame("Frame", "ChamberlainToolbox", UIParent, "BackdropTemplate")
@@ -19,6 +19,23 @@ tb:Hide()
 table.insert(UISpecialFrames, "ChamberlainToolbox")
 
 CH.ApplyToolboxPos = CH.MakeMovablePersistent(tb, "toolboxX", "toolboxY")
+
+-- Close button in the header corner, the same gold x as the talking head.
+local tbClose = CreateFrame("Button", nil, tb)
+tbClose:SetSize(18, 18)
+tbClose:SetPoint("TOPRIGHT", tb, "TOPRIGHT", -4, -4)
+local tbCloseX = tbClose:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+tbCloseX:SetAllPoints()
+tbCloseX:SetText("|cffFFD700x|r")
+tbClose:SetScript("OnEnter", function()
+    tbCloseX:SetText("|cffFFFFFFx|r")
+end)
+tbClose:SetScript("OnLeave", function()
+    tbCloseX:SetText("|cffFFD700x|r")
+end)
+tbClose:SetScript("OnClick", function()
+    tb:Hide()
+end)
 
 -- The room these fit controls act on, and the house it lives in. Set when you
 -- drop a room or pick one from the dropdown. Kept on CH so the rest of the addon
@@ -41,8 +58,10 @@ CH.MakeSep(tb, -56)
 -- ── Add tools ────────────────────────────────────────────────────────
 CH.MakeSectionHeader(tb, CH.L["TB_ADD_HEADER"], -62)
 
-local addRect = CH.MakeButton(tb, CH.L["TB_ADD_RECTANGLE"], 186, 22)
-addRect:SetPoint("TOPLEFT", 12, -80)
+local addSquare = CH.MakeButton(tb, CH.L["TB_ADD_SQUARE"], 91, 22)
+addSquare:SetPoint("TOPLEFT", 12, -80)
+local addCircle = CH.MakeButton(tb, CH.L["TB_ADD_CIRCLE"], 91, 22)
+addCircle:SetPoint("LEFT", addSquare, "RIGHT", 4, 0)
 
 local addStairs = CH.MakeButton(tb, CH.L["TB_ADD_STAIRS"], 91, 22)
 addStairs:SetPoint("TOPLEFT", 12, -104)
@@ -114,7 +133,8 @@ function CH.RefreshToolbox()
         end
     end
 
-    addRect:SetEnabled(own)
+    addSquare:SetEnabled(own)
+    addCircle:SetEnabled(own)
     addStairs:SetEnabled(own)
     addMarker:SetEnabled(own)
     selDrop:SetEnabled(own and zones ~= nil)
@@ -128,9 +148,12 @@ function CH.RefreshToolbox()
 
     local z = CH.tbSelZone
     if z then
-        selDrop:SetText(string.format(CH.L["TB_SEL_DIM_X"], z.name, z.maxX - z.minX, z.maxY - z.minY))
+        selDrop:SetText(string.format(CH.L["FMT_NAME_DIM_X"], z.name, CH.ZoneDimText(z)))
+        -- A circle has no edges to snap, so the same button sets its radius instead.
+        snapBtn:SetText(z.shape == "circle" and CH.L["TB_SET_RADIUS"] or CH.L["TB_SNAP_EDGE"])
     else
         selDrop:SetText(CH.L["TB_SELECT_ROOM"])
+        snapBtn:SetText(CH.L["TB_SNAP_EDGE"])
     end
 end
 
@@ -156,19 +179,25 @@ function CH.SetSelection(zone, guid, revealFloor)
     syncing = false
 end
 
--- Drop a fresh room where the player stands, select it, and open the editor so
--- it can be named right away.
-addRect:SetScript("OnClick", function()
+-- Drop a fresh room of the given shape where the player stands, select it, and
+-- open the editor so it can be named right away.
+local function DropRoom(shape)
     local x, y, mapID = CH.GetWorldPos()
     if not x then
         CH.Print(CH.L["TB_NO_POSITION"])
         return
     end
-    local z, guid = CH.CreateZoneAt(x, y, mapID)
+    local z, guid = CH.CreateZoneAt(x, y, mapID, shape)
     if z then
         CH.SetSelection(z, guid)
         CH.OpenRenameDialog(z, guid)
     end
+end
+addSquare:SetScript("OnClick", function()
+    DropRoom(nil)
+end)
+addCircle:SetScript("OnClick", function()
+    DropRoom("circle")
 end)
 
 addStairs:SetScript("OnClick", function()
@@ -205,8 +234,9 @@ selDrop:SetScript("OnClick", function(self)
     end)
 end)
 
--- Snap the room's nearest edge to where the player stands. Walking the perimeter
--- and tapping this at each wall fits the room without marking corners.
+-- For a rectangle, snap the nearest edge to where the player stands. Walking the
+-- perimeter and tapping at each wall fits the room without marking corners. For a
+-- circle, set the radius to the player's distance from the centre instead.
 snapBtn:SetScript("OnClick", function()
     local z = CH.tbSelZone
     if not z then
@@ -215,6 +245,15 @@ snapBtn:SetScript("OnClick", function()
     local x, y = CH.GetWorldPos()
     if not x then
         CH.Print(CH.L["TB_NO_POSITION"])
+        return
+    end
+    if z.shape == "circle" then
+        local cx = (z.minX + z.maxX) * 0.5
+        local cy = (z.minY + z.maxY) * 0.5
+        local r = math.max(0.5, math.sqrt((x - cx) * (x - cx) + (y - cy) * (y - cy)))
+        z.minX, z.maxX = cx - r, cx + r
+        z.minY, z.maxY = cy - r, cy + r
+        AfterEdit()
         return
     end
     -- Distance to each wall as a finite segment, not an infinite line. Standing off

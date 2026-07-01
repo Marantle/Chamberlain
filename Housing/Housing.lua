@@ -21,7 +21,26 @@ function CH.GetWorldPos()
 end
 
 local function IsInZone(zone, x, y, mapID)
-    return zone.mapID == mapID and x >= zone.minX and x <= zone.maxX and y >= zone.minY and y <= zone.maxY
+    if zone.mapID ~= mapID then
+        return false
+    end
+    -- Bounding-box reject first: cheap, and it's the whole test for a rectangle.
+    if x < zone.minX or x > zone.maxX or y < zone.minY or y > zone.maxY then
+        return false
+    end
+    if zone.shape == "circle" then
+        -- Stored as a square box, so the centre is the box centre and the radius is
+        -- half its width. Inside means within that radius of the centre.
+        local cx = (zone.minX + zone.maxX) * 0.5
+        local cy = (zone.minY + zone.maxY) * 0.5
+        local r = (zone.maxX - zone.minX) * 0.5
+        if r <= 0 then
+            return false
+        end
+        local dx, dy = x - cx, y - cy
+        return dx * dx + dy * dy <= r * r
+    end
+    return true
 end
 
 -- An anchor is a zone that changes the active floor when stepped on. Absolute
@@ -279,15 +298,22 @@ function CH.CheckZones()
 
     -- 1. Anchor pass: the stair-landing footprint we're standing on that fires from
     -- the active floor (see FindActiveAnchor for the rules).
-    local anchor = FindActiveAnchor(h, x, y, mapID)
+    --
+    -- Edge-trigger latch keyed to the box we last fired on, not "any anchor". Release
+    -- it the moment we step off that box, even straight onto another landing, so a
+    -- normal up/down pair fires as you walk between them (step on "To F2", then back
+    -- onto "To F1", and it drops you again). A spiral's two landings share one
+    -- footprint, so stepping onto the other does not leave the fired box, and they
+    -- still can't ping-pong the floor while you stand there.
+    --
+    -- Skip the effect while editing the layout (dragging or resizing a stair box):
+    -- that slides the zone under a stationary player, which isn't walking onto it.
+    -- CH.SyncAnchorLatch re-latches after an edit so it won't fire until you step off.
+    if currentAnchor and not IsInZone(currentAnchor, x, y, mapID) then
+        currentAnchor = nil
+    end
 
-    -- Edge-trigger + latch: apply an anchor's effect once, on entry, and don't
-    -- let any anchor fire again until we've cleared every anchor footprint. This
-    -- stops two overlapping up/down anchors from ping-ponging the floor each tick.
-    -- Skip the effect while the player is editing the layout (dragging or resizing a
-    -- stair box): that moves the zone under a stationary player, which isn't the
-    -- player walking onto it. currentAnchor still tracks below, so when editing ends
-    -- the landing is already latched and won't fire until you step off and back on.
+    local anchor = FindActiveAnchor(h, x, y, mapID)
     if anchor and not currentAnchor and not CH.editingLayout then
         if anchor.setFloor ~= nil then
             CH.activeFloor = anchor.setFloor
@@ -296,11 +322,11 @@ function CH.CheckZones()
             CH.activeFloor = math.max(1, math.min(floorCount, CH.activeFloor + anchor.floorDelta))
         end
         ChamberlainDB.floorMemory[CH.currentHouseGUID] = CH.activeFloor
+        currentAnchor = anchor
         if CH.OnActiveFloorChanged then
             CH.OnActiveFloorChanged()
         end
     end
-    currentAnchor = anchor
 
     -- 2. Room pass: smallest matching room wins, scoped to the active floor.
     -- Standing on a named anchor, the anchor itself provides the banner.
@@ -308,7 +334,7 @@ function CH.CheckZones()
     local foundArea = math.huge
     for _, zone in ipairs(h.zones) do
         if IsInZone(zone, x, y, mapID) and (zone.floor or 1) == CH.activeFloor and not IsAnchor(zone) then
-            local area = (zone.maxX - zone.minX) * (zone.maxY - zone.minY)
+            local area = CH.ZoneArea(zone)
             if area < foundArea then
                 found = zone
                 foundArea = area
@@ -325,7 +351,7 @@ function CH.CheckZones()
     -- Time spent per room, accumulated at the ticker rate (own house only)
     if found and CH.isOwnHouse then
         h.stats = h.stats or {}
-        h.stats[found.name] = (h.stats[found.name] or 0) + 0.25
+        h.stats[found.name] = (h.stats[found.name] or 0) + CH.ZONE_TICK
     end
 
     local foundName = found and found.name or nil
@@ -337,14 +363,20 @@ function CH.CheckZones()
             -- yapper on demand, we never pop it automatically. Close any yapper
             -- left over from the previous room.
             CH.HideTalkingHead()
-            local tc = found.color or CH.BANNER_TEXT_COLOR
-            local lc = found.color or CH.BANNER_LINE_COLOR
-            CH.bannerText:SetText(found.name)
-            CH.bannerText:SetTextColor(tc[1], tc[2], tc[3], 1)
-            CH.bannerLineTop:SetColorTexture(lc[1], lc[2], lc[3], 0.90)
-            CH.bannerLineBot:SetColorTexture(lc[1], lc[2], lc[3], 0.90)
-            CH.SetBannerRoom(found)
-            CH.ShowBanner(0.5)
+            if ChamberlainDB.settings.bannerEnabled then
+                local tc = found.color or CH.BANNER_TEXT_COLOR
+                local lc = found.color or CH.BANNER_LINE_COLOR
+                CH.bannerText:SetText(found.name)
+                CH.bannerText:SetTextColor(tc[1], tc[2], tc[3], 1)
+                CH.bannerLineTop:SetColorTexture(lc[1], lc[2], lc[3], 0.90)
+                CH.bannerLineBot:SetColorTexture(lc[1], lc[2], lc[3], 0.90)
+                CH.SetBannerRoom(found)
+                CH.ShowBanner(0.5)
+            else
+                -- Banners off: keep it hidden even as rooms change.
+                CH.SetBannerRoom(nil)
+                CH.HideBanner(0)
+            end
             if ChamberlainDB.settings.entrySound then
                 PlaySound(SOUNDKIT.MAP_PING, "SFX")
             end
@@ -353,5 +385,16 @@ function CH.CheckZones()
             CH.SetBannerRoom(nil)
             CH.HideBanner(0.8)
         end
+    end
+end
+
+-- Called when the "Show room banners" setting is flipped. Drop any banner that's
+-- up right now if it was turned off, and clear the room latch so the next tick
+-- re-decides (re-showing it if you're standing in a room and it was turned on).
+function CH.OnBannerSettingChanged()
+    currentZone = nil
+    if not ChamberlainDB.settings.bannerEnabled then
+        CH.HideBanner(0)
+        CH.HideTalkingHead()
     end
 end

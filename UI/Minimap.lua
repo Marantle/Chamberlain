@@ -1,14 +1,14 @@
 local _, CH = ...
 
 -- ─────────────────────────────────────────────────────────────────────
--- Minimap button  (left-click: build toolbox, right-click: room manager)
+-- Minimap button  (left: show/hide launcher, middle: house map, right: manager)
 -- ─────────────────────────────────────────────────────────────────────
 
 local btn = CreateFrame("Button", "ChamberlainMinimapButton", Minimap)
 btn:SetSize(31, 31)
 btn:SetFrameStrata("MEDIUM")
 btn:SetFrameLevel(8)
-btn:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+btn:RegisterForClicks("LeftButtonUp", "RightButtonUp", "MiddleButtonUp")
 btn:RegisterForDrag("LeftButton")
 btn:SetHighlightTexture("Interface/Minimap/UI-Minimap-ZoomButton-Highlight")
 
@@ -58,8 +58,11 @@ end)
 btn:SetScript("OnClick", function(_, mouseButton)
     if mouseButton == "RightButton" then
         CH.ToggleRoomManager()
+    elseif mouseButton == "MiddleButton" then
+        CH.ToggleFloorPlan()
     else
-        CH.ToggleToolbox()
+        -- Left-click shows/hides the launcher, the main bar, as it always has.
+        CH.ToggleHud()
     end
 end)
 
@@ -67,6 +70,7 @@ btn:SetScript("OnEnter", function(self)
     GameTooltip:SetOwner(self, "ANCHOR_LEFT")
     GameTooltip:AddLine("Chamberlain", 1, 0.85, 0.25)
     GameTooltip:AddLine(CH.L["MM_TT_LEFT"], 0.8, 0.8, 0.8)
+    GameTooltip:AddLine(CH.L["MM_TT_MIDDLE"], 0.8, 0.8, 0.8)
     GameTooltip:AddLine(CH.L["MM_TT_RIGHT"], 0.8, 0.8, 0.8)
     GameTooltip:Show()
 end)
