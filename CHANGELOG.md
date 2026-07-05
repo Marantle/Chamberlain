@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.9.0
+## 3.0.0
 - The position HUD is now a small launcher. Instead of a tall stack of buttons it
   carries a few: Build, Map, Rooms, and Settings. The House Map is one click away
   again. It still shows in your own house and can be moved or hidden the same way.
@@ -12,14 +12,14 @@
 - Fit a room while you stand in it: pick the room in the toolbox, walk to a wall and
   click Snap nearest edge to me, or use Grow and Shrink. The house map keeps its
   drag handles for fitting from above.
-- Add stairs and Floor marker moved off the HUD and into the toolbox.
+- Add stairs and Floor pin moved off the HUD and into the toolbox.
 - Settings moved out of the room manager into their own window, opened by the
   Settings button or /chamberlain settings. The room manager is now only My Rooms
   and Party.
 - The minimap button: left-click shows or hides the launcher as before, middle-click
   opens the house map, right-click opens the room manager.
-- Rooms can be round. In the toolbox, Add a Circle instead of a Square and it drops
-  where you stand like any room. A circle's banner fires inside the actual circle,
+- Rooms can be round. In the toolbox, click Round room instead of Square room and it
+  drops where you stand like any room. A circle's banner fires inside the actual circle,
   not the corners of its box. Size it with Grow and Shrink, or stand at the rim and
   click Set radius to me. Round rooms draw as a disc on the house map, and they
   share and export like any other room. Older clients see them as a square.
