@@ -26,6 +26,10 @@
 - A "Room banners" switch in Settings turns the gold name banner off entirely, for
   players who only want the map. It's personal and stays on your computer, and
   flipping it off clears any banner already showing.
+- A What's New notice pops the first time you step indoors after updating, listing
+  the changes since the version you last ran. Close it, or click Never show update
+  notes to silence them for good. You can reopen the latest notes anytime with
+  /chamberlain whatsnew. New installs don't see it.
 
 ## 2.8.0
 - A room set to use the owner's own head now shows that person to visitors as long

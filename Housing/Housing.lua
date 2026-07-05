@@ -160,6 +160,10 @@ function CH.CheckHousingState()
         wasInside = true
         floorResolved = false
         pendingRestore = isFirst
+        -- First step indoors this visit: surface any post-update release notes.
+        if CH.MaybeShowWhatsNew then
+            CH.MaybeShowWhatsNew()
+        end
     end
 
     CH.hud:Show()

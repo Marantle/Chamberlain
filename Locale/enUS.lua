@@ -34,6 +34,7 @@ L["CMD_HELP_SETTINGS"] = "  /chamberlain settings        - open settings"
 L["CMD_HELP_DELETE"] = "  /chamberlain delete <name>   - remove a room"
 L["CMD_HELP_RESET"] = "  /chamberlain reset           - reset frame positions"
 L["CMD_HELP_HUD"] = "  /chamberlain hud             - toggle position HUD"
+L["CMD_HELP_WHATSNEW"] = "  /chamberlain whatsnew        - show the latest update notes"
 L["CMD_HELP_DEBUG"] = "  /chamberlain debug           - toggle share debug logging"
 L["CMD_HELP_VERSION"] = "  /chamberlain version         - print addon version"
 
@@ -100,6 +101,14 @@ L["TB_NO_ROOMS"] = "No rooms yet"
 L["TB_NO_POSITION"] = "Can't read your position right now."
 L["TB_DEFAULT_ROOM_X"] = "Room %d"
 L["SET_WINDOW_TITLE"] = "Chamberlain Settings"
+
+-- ── What's New popup (UI/WhatsNew.lua) ───────────────────────────────
+L["WN_TITLE"] = "What's New"
+L["WN_SUBTITLE"] = "Here's what changed since you were last here."
+L["WN_VERSION_HEADER"] = "Version %s"
+L["WN_CLOSE"] = "Close"
+L["WN_NEVER"] = "Never show update notes"
+L["WN_DISABLED"] = "Update notes turned off. See them anytime with /rooms whatsnew."
 
 -- Shared size readouts (rooms, lists, edit panels)
 L["FMT_DIM_X"] = "%.0f x %.0f"
@@ -292,7 +301,7 @@ L["ST_LATER"] = "Later"
 L["ST_MARK_BOTTOM"] = "Mark bottom"
 L["ST_MARK_TOP"] = "Mark top"
 L["ST_WIZARD_HINT"] =
-    "Stand on the bottom step and click Mark bottom, then walk to the top and click Mark top. It is recommended to make under the stairs inaccessible to guests, as they will trigger the stair anchors and change your active floor.\n\nIt is also important for stairs on neighboring floors not to be in same coordinates, as they might mess up with picking which way you are going, so place the anchors on different spots on long spirals like stacked stairwell rooms. "
+    "Stand on the lower step and click Mark bottom, then walk to a higher step and click Mark top. The squares should ideally be right next the each other so going past them triggers the floor change. It is recommended to make under the stairs inaccessible to guests, as they will trigger the stair anchors and change your active floor.\n\nIt is also important for stairs on neighboring floors not to be in same coordinates, as they might mess up with picking which way you are going, so place the anchors on different spots on long spirals like stacked stairwell rooms. "
 L["ST_SAVE_STAIRS"] = "Save stairs"
 L["ST_CANCEL"] = "Cancel"
 L["ST_CONNECTING_X"] = "Connecting floor |cffFFD700%d|r and floor |cffFFD700%d|r"

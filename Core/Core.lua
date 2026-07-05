@@ -58,6 +58,10 @@ events:SetScript("OnEvent", function(_, event, arg1)
         if arg1 ~= ADDON then
             return
         end
+        -- A brand-new DB (no SavedVariables file yet) means a first install, not an
+        -- upgrade. Used below to decide whether the "What's New" popup fires: fresh
+        -- installs start current, upgraders see this release's notes on first entry.
+        local freshInstall = (ChamberlainDB == nil)
         ChamberlainDB = ChamberlainDB or {}
         if ChamberlainDB.hudX == nil then
             ChamberlainDB.hudX = -320
@@ -144,6 +148,18 @@ events:SetScript("OnEvent", function(_, event, arg1)
         end
         if ChamberlainDB.recentColors == nil then
             ChamberlainDB.recentColors = {}
+        end
+        -- Whether the "What's New" popup appears after an update. The popup's
+        -- "Don't show again" button flips this off.
+        if ChamberlainDB.settings.showUpdateNotes == nil then
+            ChamberlainDB.settings.showUpdateNotes = true
+        end
+        -- The version whose notes the player has already seen. A fresh install
+        -- starts current (no notes on a first run). An upgrade from before this
+        -- field existed leaves it nil, so the popup shows this release's notes on
+        -- the next house entry, then stamps CH.VERSION (see CH.MaybeShowWhatsNew).
+        if ChamberlainDB.lastSeenVersion == nil and freshInstall then
+            ChamberlainDB.lastSeenVersion = CH.VERSION
         end
         if ChamberlainDB.minimapAngle == nil then
             ChamberlainDB.minimapAngle = 220
@@ -264,6 +280,8 @@ SlashCmdList["CH"] = function(msg)
         end
     elseif cmd == "floor" then
         CH.OpenFloorPlan()
+    elseif cmd == "whatsnew" or cmd == "changes" then
+        CH.OpenWhatsNew()
     elseif cmd == "debug" then
         CH.shareDebug = not CH.shareDebug
         CH.Print(CH.shareDebug and CH.L["CMD_DEBUG_ON"] or CH.L["CMD_DEBUG_OFF"])
@@ -279,6 +297,7 @@ SlashCmdList["CH"] = function(msg)
         print(CH.L["CMD_HELP_DELETE"])
         print(CH.L["CMD_HELP_RESET"])
         print(CH.L["CMD_HELP_HUD"])
+        print(CH.L["CMD_HELP_WHATSNEW"])
         print(CH.L["CMD_HELP_DEBUG"])
         print(CH.L["CMD_HELP_VERSION"])
     end
