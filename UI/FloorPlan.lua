@@ -27,13 +27,13 @@ fp:SetFrameStrata("DIALOG")
 fp:SetToplevel(true)
 fp:SetPoint("CENTER", UIParent, "CENTER", 220, 0)
 CH.MakeDraggable(fp)
-CH.SkinWindow(fp, "|cffFFD700Chamberlain|r  " .. CH.L["FP_TITLE"])
+CH.SkinWindow(fp, "FP_TITLE", true)
 fp:Hide()
 table.insert(UISpecialFrames, "ChamberlainFloorPlan")
 
 local fpSub = fp:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 fpSub:SetPoint("TOPLEFT", 10, -27)
-fpSub:SetTextColor(0.75, 0.75, 0.75, 1)
+fpSub:SetTextColor(CH.RGBA(CH.COLORS.muted, 1))
 
 local canvas = CreateFrame("Frame", nil, fp)
 canvas:SetPoint("TOPLEFT", fp, "TOPLEFT", 10, -40)
@@ -49,7 +49,7 @@ fpEmpty:SetText(CH.L["FP_NO_ROOMS"])
 fpEmpty:SetTextColor(0.5, 0.5, 0.5, 1)
 fpEmpty:Hide()
 
-local fpClose = CH.MakeButton(fp, CH.L["FP_CLOSE"], 80, 22)
+local fpClose = CH.MakeButton(fp, "FP_CLOSE", 80, 22)
 -- Bottom-right so it never collides with the Add floor / Add stairs buttons that
 -- sit at the bottom-left for your own house.
 fpClose:SetPoint("BOTTOMRIGHT", fp, "BOTTOMRIGHT", -10, 10)
@@ -102,7 +102,7 @@ floorHeader:SetPoint("RIGHT", floorDown, "LEFT", -6, 0)
 -- Override: when you're browsing a floor you're not standing on, this tells
 -- Chamberlain you've actually moved there. Shown only when the viewed floor and
 -- the active floor disagree.
-local moveBtn = CH.MakeButton(fp, CH.L["FP_MOVE_HERE"], 110, 18)
+local moveBtn = CH.MakeButton(fp, "FP_MOVE_HERE", 110, 18)
 moveBtn:SetPoint("TOPRIGHT", floorUp, "BOTTOMRIGHT", 0, -4)
 moveBtn:Hide()
 moveBtn:SetScript("OnClick", function()
@@ -118,11 +118,11 @@ floorDown:SetFrameLevel(canvas:GetFrameLevel() + 20)
 moveBtn:SetFrameLevel(canvas:GetFrameLevel() + 20)
 
 -- Floor / stair management lives at the bottom-left, own house only.
-local addFloorBtn = CH.MakeButton(fp, CH.L["FP_ADD_FLOOR"], 76, 22)
+local addFloorBtn = CH.MakeButton(fp, "FP_ADD_FLOOR", 76, 22)
 addFloorBtn:SetPoint("BOTTOMLEFT", fp, "BOTTOMLEFT", 10, 10)
 addFloorBtn:Hide()
 
-local removeFloorBtn = CH.MakeButton(fp, CH.L["FP_REMOVE_FLOOR"], 86, 22)
+local removeFloorBtn = CH.MakeButton(fp, "FP_REMOVE_FLOOR", 86, 22)
 removeFloorBtn:SetPoint("LEFT", addFloorBtn, "RIGHT", 4, 0)
 removeFloorBtn:Hide()
 removeFloorBtn:SetScript("OnClick", function()
@@ -148,7 +148,7 @@ stairsCheck:SetScript("OnClick", function(self)
 end)
 stairsCheck:SetScript("OnEnter", function(self)
     GameTooltip:SetOwner(self, "ANCHOR_TOP")
-    GameTooltip:SetText(CH.L["FP_SHOW_STAIRS_TT_TITLE"], 1, 0.82, 0)
+    GameTooltip:SetText(CH.L["FP_SHOW_STAIRS_TT_TITLE"], unpack(CH.COLORS.tipGold))
     GameTooltip:AddLine(CH.L["FP_SHOW_STAIRS_TT_BODY"], 0.8, 0.8, 0.8, true)
     GameTooltip:Show()
 end)
@@ -205,7 +205,7 @@ local function ShowRemoveConfirm(msg)
         removeConfirm:SetToplevel(true)
         removeConfirm:SetPoint("CENTER")
         CH.MakeDraggable(removeConfirm)
-        CH.SkinWindow(removeConfirm, "|cffFFD700Chamberlain|r  " .. CH.L["FP_REMOVE_FLOOR_TITLE"])
+        CH.SkinWindow(removeConfirm, "FP_REMOVE_FLOOR_TITLE", true)
         local body = removeConfirm:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
         body:SetPoint("TOPLEFT", 18, -38)
         body:SetPoint("TOPRIGHT", -18, -38)
@@ -213,13 +213,13 @@ local function ShowRemoveConfirm(msg)
         body:SetJustifyV("TOP")
         body:SetSpacing(3)
         removeConfirm.body = body
-        local yes = CH.MakeButton(removeConfirm, CH.L["FP_REMOVE_ANYWAY"], 130, 24)
+        local yes = CH.MakeButton(removeConfirm, "FP_REMOVE_ANYWAY", 130, 24)
         yes:SetPoint("BOTTOMRIGHT", removeConfirm, "BOTTOM", -4, 12)
         yes:SetScript("OnClick", function()
             removeConfirm:Hide()
             DoRemoveTopFloor()
         end)
-        local no = CH.MakeButton(removeConfirm, CH.L["FP_CANCEL"], 90, 24)
+        local no = CH.MakeButton(removeConfirm, "FP_CANCEL", 90, 24)
         no:SetPoint("BOTTOMLEFT", removeConfirm, "BOTTOM", 4, 12)
         no:SetScript("OnClick", function()
             removeConfirm:Hide()
@@ -393,7 +393,7 @@ local function SelectedZone()
     return h and selectedIdx and h.zones[selectedIdx], h
 end
 
-local btnEdit = CH.MakeButton(editPanel, CH.L["FP_EDIT"], 62, 18)
+local btnEdit = CH.MakeButton(editPanel, "FP_EDIT", 62, 18)
 btnEdit:SetPoint("TOPRIGHT", editPanel, "TOPRIGHT", -2, -14)
 btnEdit:SetScript("OnClick", function()
     local zone = SelectedZone()
@@ -402,7 +402,7 @@ btnEdit:SetScript("OnClick", function()
     end
 end)
 
-local btnDelete = CH.MakeButton(editPanel, CH.L["FP_DELETE"], 62, 18)
+local btnDelete = CH.MakeButton(editPanel, "FP_DELETE", 62, 18)
 btnDelete:SetPoint("TOPRIGHT", editPanel, "TOPRIGHT", -2, -36)
 btnDelete:SetScript("OnClick", function()
     local zone, h = SelectedZone()
@@ -766,7 +766,7 @@ end
 -- Reset-view button, shown over the map's bottom-left only while zoomed or panned.
 local TileReposition -- forward declaration; the button and handlers call it
 
-local resetBtn = CH.MakeButton(fp, CH.L["FP_RESET_ZOOM"], 86, 18)
+local resetBtn = CH.MakeButton(fp, "FP_RESET_ZOOM", 86, 18)
 resetBtn:SetPoint("BOTTOMLEFT", canvas, "BOTTOMLEFT", 4, 4)
 resetBtn:SetFrameLevel(canvas:GetFrameLevel() + 20) -- above the tiles and dots
 resetBtn:Hide()

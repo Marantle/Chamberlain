@@ -8,7 +8,7 @@ local consentDialog = CreateFrame("Frame", "ChamberlainConsentDialog", UIParent,
 consentDialog:SetSize(280, 130)
 consentDialog:SetFrameStrata("FULLSCREEN_DIALOG")
 consentDialog:SetPoint("TOP", UIParent, "TOP", 0, -220)
-CH.SkinWindow(consentDialog, "|cffFFD700Chamberlain|r  " .. CH.L["SUI_TITLE_LAYOUT_REQUEST"])
+CH.SkinWindow(consentDialog, "SUI_TITLE_LAYOUT_REQUEST", true)
 consentDialog:Hide()
 table.insert(UISpecialFrames, "ChamberlainConsentDialog")
 
@@ -18,10 +18,10 @@ consentText:SetWidth(258)
 consentText:SetJustifyH("CENTER")
 consentText:SetWordWrap(true)
 
-local btnShare = CH.MakeButton(consentDialog, CH.L["SUI_SHARE"], 60, 22)
-local btnNoShare = CH.MakeButton(consentDialog, CH.L["SUI_NO"], 48, 22)
-local btnBlkHouse = CH.MakeButton(consentDialog, CH.L["SUI_BLOCK_HOUSE"], 82, 22)
-local btnBlkPlyr = CH.MakeButton(consentDialog, CH.L["SUI_BLOCK_PLAYER"], 82, 22)
+local btnShare = CH.MakeButton(consentDialog, "SUI_SHARE", 60, 22)
+local btnNoShare = CH.MakeButton(consentDialog, "SUI_NO", 48, 22)
+local btnBlkHouse = CH.MakeButton(consentDialog, "SUI_BLOCK_HOUSE", 82, 22)
+local btnBlkPlyr = CH.MakeButton(consentDialog, "SUI_BLOCK_PLAYER", 82, 22)
 
 btnShare:SetPoint("BOTTOMLEFT", consentDialog, "BOTTOM", -56, 36)
 btnNoShare:SetPoint("BOTTOMLEFT", consentDialog, "BOTTOM", 10, 36)
@@ -81,7 +81,7 @@ local acceptDialog = CreateFrame("Frame", "ChamberlainAcceptDialog", UIParent, "
 acceptDialog:SetSize(300, 146)
 acceptDialog:SetFrameStrata("FULLSCREEN_DIALOG")
 acceptDialog:SetPoint("TOP", UIParent, "TOP", 0, -220)
-CH.SkinWindow(acceptDialog, "|cffFFD700Chamberlain|r  " .. CH.L["SUI_TITLE_SHARED_LAYOUT"])
+CH.SkinWindow(acceptDialog, "SUI_TITLE_SHARED_LAYOUT", true)
 acceptDialog:Hide()
 table.insert(UISpecialFrames, "ChamberlainAcceptDialog")
 
@@ -99,8 +99,8 @@ local trustLabel = acceptDialog:CreateFontString(nil, "OVERLAY", "GameFontHighli
 trustLabel:SetPoint("LEFT", trustCB, "RIGHT", 4, 0)
 trustLabel:SetTextColor(0.8, 0.8, 0.8, 1)
 
-local btnAccept = CH.MakeButton(acceptDialog, CH.L["SUI_ACCEPT"], 80, 22)
-local btnDecline = CH.MakeButton(acceptDialog, CH.L["SUI_DECLINE"], 80, 22)
+local btnAccept = CH.MakeButton(acceptDialog, "SUI_ACCEPT", 80, 22)
+local btnDecline = CH.MakeButton(acceptDialog, "SUI_DECLINE", 80, 22)
 btnAccept:SetPoint("BOTTOMLEFT", acceptDialog, "BOTTOM", -84, 8)
 btnDecline:SetPoint("BOTTOMLEFT", acceptDialog, "BOTTOM", 4, 8)
 
@@ -253,6 +253,9 @@ function CH.ShowSendProgress(total)
     sendBar.bar:SetValue(0)
     sendBar.text:SetText(string.format(CH.L["SUI_PROGRESS_X"], 0, total))
     sendBar:Show()
+    if CH.SetShareBusy then
+        CH.SetShareBusy(true)
+    end
 end
 
 function CH.UpdateSendProgress(current, total)
@@ -262,6 +265,9 @@ end
 
 function CH.HideSendProgress()
     sendBar:Hide()
+    if CH.SetShareBusy then
+        CH.SetShareBusy(false)
+    end
 end
 
 -- ─────────────────────────────────────────────────────────────────────
@@ -272,7 +278,7 @@ local exportDialog = CreateFrame("Frame", "ChamberlainExportDialog", UIParent, "
 exportDialog:SetSize(360, 110)
 exportDialog:SetFrameStrata("FULLSCREEN_DIALOG")
 exportDialog:SetPoint("CENTER")
-CH.SkinWindow(exportDialog, "|cffFFD700Chamberlain|r  " .. CH.L["SUI_TITLE_LAYOUT_STRING"])
+CH.SkinWindow(exportDialog, "SUI_TITLE_LAYOUT_STRING", true)
 exportDialog:Hide()
 table.insert(UISpecialFrames, "ChamberlainExportDialog")
 
@@ -288,14 +294,14 @@ exportBox:SetScript("OnEscapePressed", function()
     exportDialog:Hide()
 end)
 
-local btnDoImport = CH.MakeButton(exportDialog, CH.L["SUI_IMPORT_BTN"], 80, 22)
+local btnDoImport = CH.MakeButton(exportDialog, "SUI_IMPORT_BTN", 80, 22)
 btnDoImport:SetPoint("BOTTOMLEFT", exportDialog, "BOTTOM", 2, 8)
 btnDoImport:SetScript("OnClick", function()
     CH.ImportLayout(exportBox:GetText())
     exportDialog:Hide()
 end)
 
-local btnExportClose = CH.MakeButton(exportDialog, CH.L["SUI_CLOSE"], 80, 22)
+local btnExportClose = CH.MakeButton(exportDialog, "SUI_CLOSE", 80, 22)
 btnExportClose:SetPoint("BOTTOMRIGHT", exportDialog, "BOTTOM", -2, 8)
 btnExportClose:SetScript("OnClick", function()
     exportDialog:Hide()

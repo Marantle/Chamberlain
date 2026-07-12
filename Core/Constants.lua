@@ -8,11 +8,16 @@ local _, CH = ...
 -- pass your own alpha at the call site (SetColorTexture/SetBackdropColor take 4).
 
 CH.COLORS = {
-    gold = { 1.00, 0.90, 0.30 }, -- bright gold: section headers, banner text
+    gold = { 1.00, 0.90, 0.30 }, -- bright gold: section headers
     frame = { 0.85, 0.70, 0.15 }, -- window border and header underline
     border = { 0.55, 0.45, 0.15 }, -- bronze control border: swatches, buttons
     sep = { 0.55, 0.50, 0.10 }, -- faint divider lines
     grey = { 0.25, 0.25, 0.25 }, -- "no color set" placeholder swatch
+    muted = { 0.75, 0.75, 0.75 }, -- muted label text
+    dim = { 0.60, 0.60, 0.60 }, -- dimmer secondary text
+    tipGold = { 1.00, 0.82, 0.00 }, -- tooltip title gold
+    line = { 0.85, 0.75, 0.15 }, -- banner and talking-head accent line
+    bannerText = { 1.00, 0.92, 0.40 }, -- banner and talking-head name text
 }
 
 -- 1px white-fill backdrop used by most of our flat frames. SetBackdrop copies

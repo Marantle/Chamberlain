@@ -10,7 +10,7 @@ dialog:SetFrameStrata("DIALOG")
 dialog:SetToplevel(true) -- clicking/showing lifts it above other windows, like the rest
 dialog:SetPoint("CENTER")
 CH.MakeDraggable(dialog) -- blocks click-through and lets the player drag it
-CH.SkinWindow(dialog, CH.L["RD_TITLE_NAME_ROOM"])
+CH.SkinWindow(dialog, "RD_TITLE_NAME_ROOM")
 dialog:Hide()
 
 local renameTarget = nil -- zone being renamed; nil means create mode
@@ -79,7 +79,7 @@ clearSwatch:SetBackdropColor(0, 0, 0, 0.6)
 local clearX = clearSwatch:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 clearX:SetPoint("CENTER")
 clearX:SetText("x")
-clearX:SetTextColor(0.6, 0.6, 0.6, 1)
+clearX:SetTextColor(CH.RGBA(CH.COLORS.dim, 1))
 clearSwatch:SetScript("OnClick", function()
     pendingColor = nil
     UpdateMainSwatch()
@@ -181,7 +181,7 @@ ownerCheckLabel:SetText(CH.L["RD_USE_MY_HEAD"])
 -- with you and nearby to see it.
 ownerCheck:HookScript("OnEnter", function(self)
     GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-    GameTooltip:SetText(CH.L["RD_USE_MY_HEAD"], 1, 0.82, 0)
+    GameTooltip:SetText(CH.L["RD_USE_MY_HEAD"], unpack(CH.COLORS.tipGold))
     GameTooltip:AddLine(CH.L["RD_USE_MY_HEAD_TT1"], 1, 1, 1, true)
     GameTooltip:AddLine(" ")
     GameTooltip:AddLine(CH.L["RD_USE_MY_HEAD_TT2"], 0.8, 0.8, 0.8, true)
@@ -202,7 +202,7 @@ secretCheckLabel:SetPoint("LEFT", secretCheck, "RIGHT", 2, 0)
 secretCheckLabel:SetText(CH.L["RD_SECRET"])
 secretCheck:HookScript("OnEnter", function(self)
     GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-    GameTooltip:SetText(CH.L["RD_SECRET_TT_TITLE"], 1, 0.82, 0)
+    GameTooltip:SetText(CH.L["RD_SECRET_TT_TITLE"], unpack(CH.COLORS.tipGold))
     GameTooltip:AddLine(CH.L["RD_SECRET_TT1"], 1, 1, 1, true)
     GameTooltip:AddLine(" ")
     GameTooltip:AddLine(CH.L["RD_SECRET_TT2"], 0.8, 0.8, 0.8, true)
@@ -215,17 +215,19 @@ end)
 -- Append a grey "(?)" to a field label and show an explanatory tooltip on hover.
 -- FontStrings take no mouse events, so an invisible button is laid over the label
 -- to catch the hover. Each extra argument is a wrapped body line.
-local function AddFieldHelp(label, title, ...)
+-- titleKey and the line keys are looked up when the tooltip is built. Appends a
+-- small "(?)" marker to the field label to show it has help on hover.
+local function AddFieldHelp(label, titleKey, ...)
     label:SetText((label:GetText():gsub(":%s*$", "")) .. " |cff808080(?)|r:")
     local hot = CreateFrame("Button", nil, dialog)
     hot:SetPoint("TOPLEFT", label, "TOPLEFT", 0, 2)
     hot:SetPoint("BOTTOMRIGHT", label, "BOTTOMRIGHT", 0, -2)
-    local lines = { ... }
+    local lineKeys = { ... }
     hot:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-        GameTooltip:SetText(title, 1, 0.82, 0)
-        for _, ln in ipairs(lines) do
-            GameTooltip:AddLine(ln, 0.9, 0.9, 0.9, true)
+        GameTooltip:SetText(CH.L[titleKey], unpack(CH.COLORS.tipGold))
+        for _, k in ipairs(lineKeys) do
+            GameTooltip:AddLine(CH.L[k], 0.9, 0.9, 0.9, true)
         end
         GameTooltip:Show()
     end)
@@ -239,7 +241,7 @@ end
 local headIdLabel = dialog:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 headIdLabel:SetPoint("TOPLEFT", 24, -150)
 headIdLabel:SetText(CH.L["RD_CUSTOM_ID"])
-AddFieldHelp(headIdLabel, CH.L["RD_CUSTOM_ID_TT_TITLE"], CH.L["RD_CUSTOM_ID_TT1"], CH.L["RD_CUSTOM_ID_TT2"])
+AddFieldHelp(headIdLabel, "RD_CUSTOM_ID_TT_TITLE", "RD_CUSTOM_ID_TT1", "RD_CUSTOM_ID_TT2")
 
 local headIdBox = CreateFrame("EditBox", nil, dialog, "InputBoxTemplate")
 headIdBox:SetSize(140, 20)
@@ -277,7 +279,7 @@ end
 local speakerLabel = dialog:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 speakerLabel:SetPoint("TOPLEFT", 24, -178)
 speakerLabel:SetText(CH.L["RD_SPEAKER"])
-AddFieldHelp(speakerLabel, CH.L["RD_SPEAKER_TT_TITLE"], CH.L["RD_SPEAKER_TT1"], CH.L["RD_SPEAKER_TT2"])
+AddFieldHelp(speakerLabel, "RD_SPEAKER_TT_TITLE", "RD_SPEAKER_TT1", "RD_SPEAKER_TT2")
 
 local speakerBox = CreateFrame("EditBox", nil, dialog, "InputBoxTemplate")
 speakerBox:SetSize(250, 20)
@@ -378,8 +380,8 @@ descBox:HookScript("OnEditFocusGained", UpdateDescHint)
 descBox:HookScript("OnEditFocusLost", UpdateDescHint)
 descBox:HookScript("OnTextChanged", UpdateDescHint)
 
-local btnOK = CH.MakeButton(dialog, CH.L["RD_SAVE"], 82, 22)
-local btnCancel = CH.MakeButton(dialog, CH.L["RD_CANCEL"], 82, 22)
+local btnOK = CH.MakeButton(dialog, "RD_SAVE", 82, 22)
+local btnCancel = CH.MakeButton(dialog, "RD_CANCEL", 82, 22)
 btnOK:SetPoint("BOTTOMRIGHT", dialog, "BOTTOM", -2, 6)
 btnCancel:SetPoint("BOTTOMLEFT", dialog, "BOTTOM", 2, 6)
 
@@ -397,7 +399,7 @@ local voiceLabel = dialog:CreateFontString(nil, "OVERLAY", "GameFontHighlightSma
 voiceLabel:SetPoint("TOPLEFT", 24, -206)
 voiceLabel:SetText(CH.L["RD_VOICE"])
 
-local voiceBtn = CH.MakeButton(dialog, CH.L["RD_DEFAULT_SILENT"], 198, 22)
+local voiceBtn = CH.MakeButton(dialog, "RD_DEFAULT_SILENT", 198, 22)
 voiceBtn:SetPoint("LEFT", voiceLabel, "RIGHT", 8, 0)
 -- Keep the selected-voice label on one line. Long OS voice names get an ellipsis
 -- instead of spilling over the Test button. CH.ShortVoiceName compacts the name.
@@ -438,7 +440,7 @@ voiceBtn:SetScript("OnClick", function(self)
     end)
 end)
 
-local voiceTest = CH.MakeButton(dialog, CH.L["RD_TEST"], 72, 22)
+local voiceTest = CH.MakeButton(dialog, "RD_TEST", 72, 22)
 voiceTest:SetPoint("LEFT", voiceBtn, "RIGHT", 6, 0)
 
 -- Test toggles play/stop: it reads the description with the picked voice, and
@@ -518,7 +520,7 @@ local stairsLabel = floorRow:CreateFontString(nil, "OVERLAY", "GameFontHighlight
 stairsLabel:SetPoint("LEFT", floorBtn, "RIGHT", 14, 0)
 stairsLabel:SetText(CH.L["RD_STAIRS"])
 
-local stairsBtn = CH.MakeButton(floorRow, CH.L["RD_NOT_STAIRS"], 132, 22)
+local stairsBtn = CH.MakeButton(floorRow, "RD_NOT_STAIRS", 132, 22)
 stairsBtn:SetPoint("LEFT", stairsLabel, "RIGHT", 8, 0)
 
 -- Label for the current stair link state.

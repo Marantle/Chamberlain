@@ -97,7 +97,7 @@ local function Build()
     win:SetToplevel(true)
     win:SetPoint("CENTER")
     CH.MakeDraggable(win)
-    CH.SkinWindow(win, "|cffFFD700Chamberlain|r  " .. CH.L["WN_TITLE"])
+    CH.SkinWindow(win, "WN_TITLE", true)
     table.insert(UISpecialFrames, "ChamberlainWhatsNew")
 
     -- Close button in the header corner, the same gold x as the toolbox.
@@ -122,7 +122,7 @@ local function Build()
     subtitle:SetPoint("TOPRIGHT", -16, -30)
     subtitle:SetJustifyH("LEFT")
     subtitle:SetText(CH.L["WN_SUBTITLE"])
-    subtitle:SetTextColor(0.75, 0.75, 0.75, 1)
+    subtitle:SetTextColor(CH.RGBA(CH.COLORS.muted, 1))
 
     local scroll, child = CH.MakeScrollList(win, "ChamberlainWhatsNewScroll")
     scroll:SetPoint("TOPLEFT", 12, -52)
@@ -130,13 +130,13 @@ local function Build()
     scrollChild = child
     scrollChild:SetWidth(CONTENT_W)
 
-    local closeBtn = CH.MakeButton(win, CH.L["WN_CLOSE"], 110, 24)
+    local closeBtn = CH.MakeButton(win, "WN_CLOSE", 110, 24)
     closeBtn:SetPoint("BOTTOMRIGHT", win, "BOTTOMRIGHT", -12, 12)
     closeBtn:SetScript("OnClick", function()
         win:Hide()
     end)
 
-    local neverBtn = CH.MakeButton(win, CH.L["WN_NEVER"], 170, 24)
+    local neverBtn = CH.MakeButton(win, "WN_NEVER", 170, 24)
     neverBtn:SetPoint("BOTTOMLEFT", win, "BOTTOMLEFT", 12, 12)
     neverBtn:SetScript("OnClick", function()
         ChamberlainDB.settings.showUpdateNotes = false

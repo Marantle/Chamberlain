@@ -1,5 +1,15 @@
 # Changelog
 
+## 3.1.0
+- Share My Houses button stays disabled while a share is still sending, and a Request
+  button in the group tab waits a few seconds after you click it, so neither can be
+  spammed.
+- Finnish translation added. WoW does not offer Finnish, so to switch the addon to
+  it, open Locale\SetLanguage.lua in the Chamberlain folder, set the language on the
+  marked line, and reload. Leaving it alone keeps your client's language. This was added
+  just for my friend who is better at Finnish than English so pay no mind to this.
+
+
 ## 3.0.0
 - The position HUD is now a small launcher. Instead of a tall stack of buttons it
   carries a few: Build, Map, Rooms, and Settings. The House Map is one click away

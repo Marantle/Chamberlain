@@ -15,7 +15,7 @@ local BTN = {
     edgeOff = { 0.30, 0.26, 0.16, 0.50 },
 }
 
-function CH.MakeButton(parent, text, w, h)
+function CH.MakeButton(parent, key, w, h)
     local b = CreateFrame("Button", nil, parent, "BackdropTemplate")
     b:SetSize(w, h)
     b:SetBackdrop(CH.BACKDROP_THIN)
@@ -24,12 +24,29 @@ function CH.MakeButton(parent, text, w, h)
     b:SetNormalFontObject(GameFontNormalSmall) -- gold
     b:SetHighlightFontObject(GameFontHighlightSmall) -- white on hover
     b:SetDisabledFontObject(GameFontDisableSmall)
-    b:SetText(text)
+    b:SetText(CH.L[key])
+
+    -- Bound the label to the button so a longer translation truncates with an
+    -- ellipsis instead of spilling past the edge. The full text shows on hover
+    -- (below) when it is actually cut off.
+    local fs = b:GetFontString()
+    if fs then
+        fs:SetWordWrap(false)
+        fs:ClearAllPoints()
+        fs:SetPoint("LEFT", 4, 0)
+        fs:SetPoint("RIGHT", -4, 0)
+    end
 
     b:SetScript("OnEnter", function(self)
         if self:IsEnabled() then
             self:SetBackdropColor(unpack(BTN.fillHover))
             self:SetBackdropBorderColor(unpack(BTN.edgeHover))
+        end
+        local f = self:GetFontString()
+        if f and f:IsTruncated() then
+            GameTooltip:SetOwner(self, "ANCHOR_TOP")
+            GameTooltip:SetText(self:GetText(), 1, 1, 1, 1, true)
+            GameTooltip:Show()
         end
     end)
     b:SetScript("OnLeave", function(self)
@@ -39,6 +56,7 @@ function CH.MakeButton(parent, text, w, h)
         else
             self:SetBackdropBorderColor(unpack(BTN.edgeOff))
         end
+        GameTooltip:Hide()
     end)
     b:SetScript("OnMouseDown", function(self)
         if self:IsEnabled() then
@@ -61,7 +79,7 @@ end
 
 -- Shared window skin: dark navy gradient, 1px gold frame, gold-tinted header
 -- strip with the title in it. Frame must be created with BackdropTemplate.
-function CH.SkinWindow(f, titleText)
+function CH.SkinWindow(f, titleKey, branded)
     f:SetBackdrop({ edgeFile = "Interface/Buttons/WHITE8X8", edgeSize = 1 })
     f:SetBackdropBorderColor(CH.RGBA(CH.COLORS.frame, 0.9))
 
@@ -94,7 +112,11 @@ function CH.SkinWindow(f, titleText)
 
     f.title = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     f.title:SetPoint("LEFT", f, "TOPLEFT", 10, -13)
-    f.title:SetText(titleText)
+    -- `branded` titles get the gold "Chamberlain" prefix; the key supplies the
+    -- localized tail. RM_WINDOW_TITLE bakes the brand into its own value, so it is
+    -- passed without branded.
+    local t = CH.L[titleKey]
+    f.title:SetText(branded and ("|cffFFD700Chamberlain|r  " .. t) or t)
 
     return f
 end
@@ -145,10 +167,10 @@ function CH.MakeSwatch(parent, size)
 end
 
 -- Gold section title, top-left of its parent at the given y offset.
-function CH.MakeSectionHeader(parent, text, yOff)
+function CH.MakeSectionHeader(parent, key, yOff)
     local fs = parent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     fs:SetPoint("TOPLEFT", 4, yOff)
-    fs:SetText(text)
+    fs:SetText(CH.L[key])
     fs:SetTextColor(CH.RGBA(CH.COLORS.gold, 1))
     return fs
 end
@@ -167,11 +189,11 @@ end
 -- ON/OFF toggle button bound to a boolean in ChamberlainDB.settings[key].
 -- Clicking flips the setting and relabels. Call b:Refresh() to sync the label
 -- to the stored value (e.g. when the panel opens).
-function CH.MakeToggleButton(parent, label, key)
+function CH.MakeToggleButton(parent, labelKey, key)
     local b = CH.MakeButton(parent, "", 230, 22)
     function b:Refresh()
         local on = ChamberlainDB.settings[key]
-        self:SetText(label .. (on and CH.L["SKIN_TOGGLE_ON"] or CH.L["SKIN_TOGGLE_OFF"]))
+        self:SetText(CH.L[labelKey] .. (on and CH.L["SKIN_TOGGLE_ON"] or CH.L["SKIN_TOGGLE_OFF"]))
     end
     b:SetScript("OnClick", function(self)
         ChamberlainDB.settings[key] = not ChamberlainDB.settings[key]
@@ -185,22 +207,22 @@ end
 -- or nil. setName(name) stores the choice. Returns the button. Call :Refresh() to
 -- resync its label, for example when a panel opens. The button shows a compacted
 -- name from CH.ShortVoiceName while the menu lists the full OS names.
-function CH.MakeVoiceDropdown(parent, w, noneLabel, getName, setName)
-    local btn = CH.MakeButton(parent, noneLabel, w, 22)
+function CH.MakeVoiceDropdown(parent, w, noneKey, getName, setName)
+    local btn = CH.MakeButton(parent, noneKey, w, 22)
     local fs = btn:GetFontString()
     if fs then
         fs:SetWidth(w - 14)
         fs:SetWordWrap(false)
     end
     function btn:Refresh()
-        self:SetText(CH.ShortVoiceName(getName()) or noneLabel)
+        self:SetText(CH.ShortVoiceName(getName()) or CH.L[noneKey])
     end
     btn:SetScript("OnClick", function(self)
         if not MenuUtil then
             return
         end
         MenuUtil.CreateContextMenu(self, function(_, root)
-            root:CreateRadio(noneLabel, function()
+            root:CreateRadio(CH.L[noneKey], function()
                 return getName() == nil
             end, function()
                 setName(nil)

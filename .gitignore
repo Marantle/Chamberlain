@@ -6,3 +6,10 @@ tutorial/
 .luarc.json
 .notes.md
 .wago_meta.json
+
+# Translation working CSVs: regenerated from enUS.lua by extract_locale.py and
+# translated in a spreadsheet. Throwaway, not shipped. The tooling that makes
+# them (extract_locale.py, reassemble_locale.py, translation-context.json,
+# deepl.gs) stays tracked, and the result lands in Locale/<code>.lua.
+chamberlain-*.csv
+translationresults*.csv

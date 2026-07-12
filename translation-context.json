@@ -1,0 +1,64 @@
+{
+  "_readme": "Context hints fed to the translator per row (DeepL 'context' field). Not shipped with the addon (the Makefile only packages files the .toc references), only used when extracting the translation CSV with extract_locale.py. Edit freely. 'prefixes' matches the key prefix (longest match wins) and describes where the string appears. 'terms' adds word-specific disambiguation, the exact thing that tells the engine 'Close' is Sulje not Lahella. Token notes (%s, |cff codes, /commands) are added automatically by the script from the string itself. IMPORTANT: when a new CH.L key prefix is added to Locale\\enUS.lua, add a matching prefix here, or extract_locale.py exits with a warning listing the uncovered keys.",
+
+  "lead": "Chamberlain, a World of Warcraft housing addon. Short in-game interface text, translate into natural Finnish as used in game UIs.",
+
+  "_skip_note": "Rows matched here are pure format/label scaffolding (placeholders, unit letters, coordinates) that render identically in every language. Their context becomes a DO NOT TRANSLATE flag and their finnish cell is left blank, so they fall back to English. skip_prefixes matches a key prefix, skip_keys matches an exact key.",
+  "skip_prefixes": ["UTIL_"],
+  "skip_keys": [
+    "FMT_DIM_X",
+    "FMT_NAME_DIM_X",
+    "RM_SECONDS_X",
+    "SUI_PROGRESS_X",
+    "HUD_COORD_PLACEHOLDER",
+    "HUD_CORNER_A_NONE",
+    "HUD_CORNER_B_NONE",
+    "HUD_CORNER_A_X",
+    "HUD_CORNER_B_X",
+    "HOUSE_COORD_X"
+  ],
+
+  "prefixes": [
+    { "match": "CMD_HELP_", "context": "One line in the /chamberlain help list that describes a command." },
+    { "match": "CMD_", "context": "A status or error message printed to the chat window." },
+    { "match": "UTIL_", "context": "A compact time-duration format like '2h 30m'." },
+    { "match": "SKIN_TOGGLE_", "context": "Text appended to a settings button showing its ON or OFF state." },
+    { "match": "SKIN_", "context": "A small shared widget label." },
+    { "match": "HUD_TT_", "context": "One line of a mouseover tooltip on the position HUD, instructional." },
+    { "match": "HUD_CORNER_", "context": "A tiny coordinate readout for a marked corner." },
+    { "match": "HUD_COORD", "context": "A tiny live coordinate readout." },
+    { "match": "HUD_", "context": "A button or label on the compact launcher bar / position HUD." },
+    { "match": "TB_", "context": "A button or label in the Build toolbox window (placing and sizing rooms)." },
+    { "match": "SET_", "context": "Text in the settings window." },
+    { "match": "WN_", "context": "Text in the 'What's New' update-notes popup." },
+    { "match": "FMT_", "context": "A size or dimension readout like '40 x 30 yd'." },
+    { "match": "MM_", "context": "A line in the minimap button's tooltip." },
+    { "match": "HOUSE_", "context": "A housing-detection message printed to chat." },
+    { "match": "BANNER_", "context": "A control on the gold room banner that appears on room entry." },
+    { "match": "TH_", "context": "A tooltip on the talking-head speaker box." },
+    { "match": "RD_", "context": "A field, button, or tooltip in the room create/edit dialog." },
+    { "match": "RM_", "context": "A label, button, or status in the Room Manager window." },
+    { "match": "FP_", "context": "A label or button in the Floor Plan / house map window." },
+    { "match": "ST_", "context": "Text in the stairs and floor-marker setup windows." },
+    { "match": "SHARE_", "context": "A message about sharing house layouts with your group, printed to chat." },
+    { "match": "SUI_", "context": "A button or prompt in the layout-sharing dialogs." }
+  ],
+
+  "terms": [
+    { "match": "Close", "whole": true, "context": "Button that dismisses a window: the verb to close, not the adverb meaning near/nearby." },
+    { "match": "Read", "whole": true, "context": "Button that reads the room description aloud: the verb, read out loud." },
+    { "match": "Floor", "whole": false, "context": "A storey or level of a building, not the ground surface you stand on." },
+    { "match": "Share", "whole": false, "context": "Sharing a house layout with other players (verb / feature name)." },
+    { "match": "Group", "whole": false, "context": "A party/group of players, the noun, not the verb to group." },
+    { "match": "Home", "whole": false, "context": "The player's own house/home." },
+    { "match": "House", "whole": false, "context": "A player housing plot in WoW." },
+    { "match": "Mark", "whole": false, "context": "To stamp/mark a spot or a rectangle corner (verb)." },
+    { "match": "Yapper", "whole": false, "context": "Chamberlain's name for the talking-head speaker of a room. Treat as a coined noun; keep or lightly adapt, do not translate literally as a chatterer." },
+    { "match": "Banner", "whole": false, "context": "The gold on-screen room-name banner that fades in when you enter a room." },
+    { "match": "Secret", "whole": false, "context": "A room hidden from visitors' map and list (adjective)." },
+    { "match": "Stairs", "whole": false, "context": "Staircase anchors used to detect which floor the player is on." },
+    { "match": "Room", "whole": false, "context": "A named rectangular zone inside a house." },
+    { "match": "Feminine", "whole": false, "context": "Describes a text-to-speech voice that sounds female. One half of a Feminine/Masculine pair of voice options, so keep it a voice descriptor that reads parallel with its Masculine counterpart, not a term for biological sex." },
+    { "match": "Masculine", "whole": false, "context": "Describes a text-to-speech voice that sounds male. One half of a Feminine/Masculine pair of voice options, so keep it a voice descriptor that reads parallel with its Feminine counterpart, not a term for biological sex." }
+  ]
+}

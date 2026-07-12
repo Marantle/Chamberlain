@@ -14,7 +14,7 @@ local tb = CH.toolbox
 tb:SetSize(210, 292)
 tb:SetFrameStrata("DIALOG")
 tb:SetToplevel(true)
-CH.SkinWindow(tb, CH.L["TB_TITLE"])
+CH.SkinWindow(tb, "TB_TITLE")
 tb:Hide()
 table.insert(UISpecialFrames, "ChamberlainToolbox")
 
@@ -51,29 +51,29 @@ CH.coordLabel:SetText(CH.L["HUD_COORD_PLACEHOLDER"])
 CH.zoneLabel = tb:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 CH.zoneLabel:SetPoint("TOPLEFT", 12, -44)
 CH.zoneLabel:SetText("-")
-CH.zoneLabel:SetTextColor(0.75, 0.75, 0.75, 1)
+CH.zoneLabel:SetTextColor(CH.RGBA(CH.COLORS.muted, 1))
 
 CH.MakeSep(tb, -56)
 
 -- ── Add tools ────────────────────────────────────────────────────────
-CH.MakeSectionHeader(tb, CH.L["TB_ADD_HEADER"], -62)
+CH.MakeSectionHeader(tb, "TB_ADD_HEADER", -62)
 
-local addSquare = CH.MakeButton(tb, CH.L["TB_ADD_SQUARE"], 91, 22)
+local addSquare = CH.MakeButton(tb, "TB_ADD_SQUARE", 91, 22)
 addSquare:SetPoint("TOPLEFT", 12, -80)
-local addCircle = CH.MakeButton(tb, CH.L["TB_ADD_CIRCLE"], 91, 22)
+local addCircle = CH.MakeButton(tb, "TB_ADD_CIRCLE", 91, 22)
 addCircle:SetPoint("LEFT", addSquare, "RIGHT", 4, 0)
 
-local addStairs = CH.MakeButton(tb, CH.L["TB_ADD_STAIRS"], 91, 22)
+local addStairs = CH.MakeButton(tb, "TB_ADD_STAIRS", 91, 22)
 addStairs:SetPoint("TOPLEFT", 12, -104)
-local addMarker = CH.MakeButton(tb, CH.L["TB_ADD_MARKER"], 91, 22)
+local addMarker = CH.MakeButton(tb, "TB_ADD_MARKER", 91, 22)
 addMarker:SetPoint("LEFT", addStairs, "RIGHT", 4, 0)
 
 CH.MakeSep(tb, -132)
 
 -- ── Selected room ────────────────────────────────────────────────────
-CH.MakeSectionHeader(tb, CH.L["TB_SELECTED_HEADER"], -138)
+CH.MakeSectionHeader(tb, "TB_SELECTED_HEADER", -138)
 
-local selDrop = CH.MakeButton(tb, CH.L["TB_SELECT_ROOM"], 186, 22)
+local selDrop = CH.MakeButton(tb, "TB_SELECT_ROOM", 186, 22)
 selDrop:SetPoint("TOPLEFT", 12, -156)
 local selDropFS = selDrop:GetFontString()
 if selDropFS then
@@ -81,22 +81,22 @@ if selDropFS then
     selDropFS:SetWordWrap(false)
 end
 
-local snapBtn = CH.MakeButton(tb, CH.L["TB_SNAP_EDGE"], 186, 22)
+local snapBtn = CH.MakeButton(tb, "TB_SNAP_EDGE", 186, 22)
 snapBtn:SetPoint("TOPLEFT", 12, -180)
 
-local growBtn = CH.MakeButton(tb, CH.L["TB_GROW"], 91, 22)
+local growBtn = CH.MakeButton(tb, "TB_GROW", 91, 22)
 growBtn:SetPoint("TOPLEFT", 12, -204)
-local shrinkBtn = CH.MakeButton(tb, CH.L["TB_SHRINK"], 91, 22)
+local shrinkBtn = CH.MakeButton(tb, "TB_SHRINK", 91, 22)
 shrinkBtn:SetPoint("LEFT", growBtn, "RIGHT", 4, 0)
 
-local editBtn = CH.MakeButton(tb, CH.L["TB_EDIT"], 91, 22)
+local editBtn = CH.MakeButton(tb, "TB_EDIT", 91, 22)
 editBtn:SetPoint("TOPLEFT", 12, -228)
-local delBtn = CH.MakeButton(tb, CH.L["TB_DELETE"], 91, 22)
+local delBtn = CH.MakeButton(tb, "TB_DELETE", 91, 22)
 delBtn:SetPoint("LEFT", editBtn, "RIGHT", 4, 0)
 
 CH.MakeSep(tb, -256)
 
-local mapBtn = CH.MakeButton(tb, CH.L["TB_SHOW_MAP"], 186, 22)
+local mapBtn = CH.MakeButton(tb, "TB_SHOW_MAP", 186, 22)
 mapBtn:SetPoint("TOPLEFT", 12, -262)
 
 -- ── Behaviour ────────────────────────────────────────────────────────

@@ -12,12 +12,12 @@ roomMgr:SetFrameStrata("DIALOG")
 roomMgr:SetToplevel(true)
 roomMgr:SetPoint("CENTER")
 CH.MakeDraggable(roomMgr)
-CH.SkinWindow(roomMgr, CH.L["RM_WINDOW_TITLE"])
+CH.SkinWindow(roomMgr, "RM_WINDOW_TITLE")
 roomMgr:Hide()
 table.insert(UISpecialFrames, "ChamberlainRoomManager")
 
-local tabMyRooms = CH.MakeButton(roomMgr, CH.L["RM_TAB_MY_ROOMS"], 90, 22)
-local tabParty = CH.MakeButton(roomMgr, CH.L["RM_TAB_GROUP"], 68, 22)
+local tabMyRooms = CH.MakeButton(roomMgr, "RM_TAB_MY_ROOMS", 90, 22)
+local tabParty = CH.MakeButton(roomMgr, "RM_TAB_GROUP", 68, 22)
 tabMyRooms:SetPoint("TOPLEFT", roomMgr, "TOPLEFT", 8, -30)
 tabParty:SetPoint("LEFT", tabMyRooms, "RIGHT", 2, 0)
 
@@ -44,7 +44,7 @@ settingsWin:SetFrameStrata("DIALOG")
 settingsWin:SetToplevel(true)
 settingsWin:SetPoint("CENTER")
 CH.MakeDraggable(settingsWin)
-CH.SkinWindow(settingsWin, CH.L["SET_WINDOW_TITLE"])
+CH.SkinWindow(settingsWin, "SET_WINDOW_TITLE")
 settingsWin:Hide()
 table.insert(UISpecialFrames, "ChamberlainSettings")
 
@@ -52,13 +52,13 @@ local panelSettings = CreateFrame("Frame", nil, settingsWin)
 panelSettings:SetPoint("TOPLEFT", settingsWin, "TOPLEFT", 8, -30)
 panelSettings:SetPoint("BOTTOMRIGHT", settingsWin, "BOTTOMRIGHT", -8, 40)
 
-local setClose = CH.MakeButton(settingsWin, CH.L["RM_CLOSE"], 80, 22)
+local setClose = CH.MakeButton(settingsWin, "RM_CLOSE", 80, 22)
 setClose:SetPoint("BOTTOM", settingsWin, "BOTTOM", 0, 10)
 setClose:SetScript("OnClick", function()
     settingsWin:Hide()
 end)
 
-local mgrClose = CH.MakeButton(roomMgr, CH.L["RM_CLOSE"], 80, 22)
+local mgrClose = CH.MakeButton(roomMgr, "RM_CLOSE", 80, 22)
 mgrClose:SetPoint("BOTTOM", roomMgr, "BOTTOM", 0, 10)
 mgrClose:SetScript("OnClick", function()
     roomMgr:Hide()
@@ -70,7 +70,7 @@ end)
 
 local ownerLabel = panelMyRooms:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 ownerLabel:SetPoint("TOPLEFT", 2, -4)
-ownerLabel:SetTextColor(0.75, 0.75, 0.75, 1)
+ownerLabel:SetTextColor(CH.RGBA(CH.COLORS.muted, 1))
 
 CH.MakeSep(panelMyRooms, -18, 0.4)
 
@@ -78,13 +78,13 @@ local mgrScroll, mgrScrollChild = CH.MakeScrollList(panelMyRooms, "ChamberlainMg
 mgrScroll:SetPoint("TOPLEFT", panelMyRooms, "TOPLEFT", 0, -22)
 mgrScroll:SetPoint("BOTTOMRIGHT", panelMyRooms, "BOTTOMRIGHT", -20, 26)
 
-local btnExport = CH.MakeButton(panelMyRooms, CH.L["RM_EXPORT"], 80, 20)
+local btnExport = CH.MakeButton(panelMyRooms, "RM_EXPORT", 80, 20)
 btnExport:SetPoint("BOTTOMLEFT", panelMyRooms, "BOTTOM", -84, 2)
 btnExport:SetScript("OnClick", function()
     CH.OpenExportDialog("export")
 end)
 
-local btnImport = CH.MakeButton(panelMyRooms, CH.L["RM_IMPORT"], 80, 20)
+local btnImport = CH.MakeButton(panelMyRooms, "RM_IMPORT", 80, 20)
 btnImport:SetPoint("BOTTOMLEFT", panelMyRooms, "BOTTOM", 4, 2)
 btnImport:SetScript("OnClick", function()
     CH.OpenExportDialog("import")
@@ -93,7 +93,7 @@ end)
 local mgrEmpty = mgrScrollChild:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 mgrEmpty:SetPoint("TOP", 0, -20)
 mgrEmpty:SetText(CH.L["RM_NO_ROOMS_SAVED"])
-mgrEmpty:SetTextColor(0.6, 0.6, 0.6, 1)
+mgrEmpty:SetTextColor(CH.RGBA(CH.COLORS.dim, 1))
 mgrEmpty:Hide()
 
 local ROW_H = 26
@@ -202,7 +202,7 @@ local function AddSectionHeader(hdrIdx, w, y, text, removeGUID, toggleGUID, isEx
         hdr.label:SetJustifyH("LEFT")
         hdr.label:SetTextColor(CH.RGBA(CH.COLORS.gold, 1))
         hdr.label:SetWordWrap(false)
-        hdr.removeBtn = CH.MakeButton(hdr, CH.L["RM_REMOVE"], 56, 16)
+        hdr.removeBtn = CH.MakeButton(hdr, "RM_REMOVE", 56, 16)
         hdr.removeBtn:SetPoint("RIGHT", hdr, "RIGHT", -2, 0)
         headerPool[hdrIdx] = hdr
     end
@@ -252,10 +252,10 @@ local function AddZoneRow(rowIdx, w, y, zone, zoneIdx, houseGUID, canDelete)
         row.nameLabel:SetJustifyH("LEFT")
         row.nameLabel:SetWordWrap(false)
 
-        row.delBtn = CH.MakeButton(row, CH.L["RM_DELETE"], 52, 20)
+        row.delBtn = CH.MakeButton(row, "RM_DELETE", 52, 20)
         row.delBtn:SetPoint("RIGHT", row, "RIGHT", -2, 0)
 
-        row.editBtn = CH.MakeButton(row, CH.L["RM_EDIT"], 38, 20)
+        row.editBtn = CH.MakeButton(row, "RM_EDIT", 38, 20)
         row.editBtn:SetPoint("RIGHT", row.delBtn, "LEFT", -2, 0)
 
         rowPool[rowIdx] = row
@@ -380,7 +380,7 @@ end
 
 local partySubtitle = panelParty:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 partySubtitle:SetPoint("TOPLEFT", 2, -4)
-partySubtitle:SetTextColor(0.75, 0.75, 0.75, 1)
+partySubtitle:SetTextColor(CH.RGBA(CH.COLORS.muted, 1))
 
 CH.MakeSep(panelParty, -18, 0.4)
 
@@ -391,17 +391,28 @@ partyScroll:SetPoint("BOTTOMRIGHT", panelParty, "BOTTOMRIGHT", -20, 30)
 local partyEmpty = partyScrollChild:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 partyEmpty:SetPoint("TOP", 0, -20)
 partyEmpty:SetText(CH.L["RM_NO_LAYOUTS_FROM_GROUP"])
-partyEmpty:SetTextColor(0.6, 0.6, 0.6, 1)
+partyEmpty:SetTextColor(CH.RGBA(CH.COLORS.dim, 1))
 partyEmpty:Hide()
 
-local shareAllBtn = CH.MakeButton(panelParty, CH.L["RM_SHARE_MY_HOUSES"], 120, 22)
+local shareAllBtn = CH.MakeButton(panelParty, "RM_SHARE_MY_HOUSES", 120, 22)
 shareAllBtn:SetPoint("BOTTOM", panelParty, "BOTTOM", 0, 4)
 shareAllBtn:SetScript("OnClick", function()
     CH.ShareAll()
 end)
 
+-- Disable the share button while a transfer is in flight so it can't be spammed
+-- mid-share. Driven by the send-progress lifecycle in ShareUI (ShowSendProgress
+-- on start, HideSendProgress when the queue drains or the send is aborted).
+function CH.SetShareBusy(busy)
+    shareAllBtn:SetEnabled(not busy)
+end
+
 local PARTY_ROW_H = 34
 local partyRowPool = {}
+-- Per-house Request debounce: after a click the button stays disabled this many
+-- seconds, kept across list repopulates so it can't be spammed.
+local REQUEST_COOLDOWN = 5
+local requestCooldowns = {}
 
 local function GetPartyHouseList()
     local byGUID = {}
@@ -486,7 +497,7 @@ local function PopulatePartyList()
             row.statusLabel = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
             row.statusLabel:SetPoint("BOTTOMLEFT", 4, 4)
 
-            row.reqBtn = CH.MakeButton(row, CH.L["RM_REQUEST"], 62, 20)
+            row.reqBtn = CH.MakeButton(row, "RM_REQUEST", 62, 20)
             row.reqBtn:SetPoint("RIGHT", row, "RIGHT", -2, 0)
 
             partyRowPool[i] = row
@@ -503,7 +514,8 @@ local function PopulatePartyList()
         end
         row.nameLabel:SetText(displayName)
 
-        local status = GetStatus(data.guid, data.bestTimestamp)
+        local guid = data.guid
+        local status = GetStatus(guid, data.bestTimestamp)
         if status == "own" then
             row.statusLabel:SetText(CH.L["RM_STATUS_YOUR_HOUSE"])
             row.reqBtn:Disable()
@@ -517,9 +529,16 @@ local function PopulatePartyList()
             row.statusLabel:SetText(CH.L["RM_STATUS_UP_TO_DATE"])
             row.reqBtn:Disable()
         end
+        -- Keep a just-requested house's button disabled until its cooldown ends,
+        -- even though the status above would otherwise re-enable it.
+        if requestCooldowns[guid] and GetTime() - requestCooldowns[guid] < REQUEST_COOLDOWN then
+            row.reqBtn:Disable()
+        end
 
-        local guid = data.guid
         row.reqBtn:SetScript("OnClick", function()
+            requestCooldowns[guid] = GetTime()
+            row.reqBtn:Disable()
+            C_Timer.After(REQUEST_COOLDOWN, CH.RefreshPartyTab)
             CH.RequestLayout(guid)
         end)
     end
@@ -532,20 +551,20 @@ end
 -- Settings Panel
 -- ─────────────────────────────────────────────────────────────────────
 
-CH.MakeSectionHeader(panelSettings, CH.L["RM_SECTION_SHARING"], -6)
+CH.MakeSectionHeader(panelSettings, "RM_SECTION_SHARING", -6)
 
-local shareToggle = CH.MakeToggleButton(panelSettings, CH.L["RM_TOGGLE_SHARING"], "shareEnabled")
+local shareToggle = CH.MakeToggleButton(panelSettings, "RM_TOGGLE_SHARING", "shareEnabled")
 shareToggle:SetPoint("TOPLEFT", 4, -22)
 
-local soundToggle = CH.MakeToggleButton(panelSettings, CH.L["RM_TOGGLE_ENTRY_SOUND"], "entrySound")
+local soundToggle = CH.MakeToggleButton(panelSettings, "RM_TOGGLE_ENTRY_SOUND", "entrySound")
 soundToggle:SetPoint("TOPLEFT", 4, -46)
 
-local roomTextToggle = CH.MakeToggleButton(panelSettings, CH.L["RM_TOGGLE_ROOM_DESCRIPTIONS"], "showRoomText")
+local roomTextToggle = CH.MakeToggleButton(panelSettings, "RM_TOGGLE_ROOM_DESCRIPTIONS", "showRoomText")
 roomTextToggle:SetPoint("TOPLEFT", 4, -70)
 
 -- Turn the gold room banner off entirely, for players who only want the map. It's
 -- personal and local, never shared. Flipping it off drops any banner that's up.
-local bannerToggle = CH.MakeToggleButton(panelSettings, CH.L["RM_TOGGLE_SHOW_BANNERS"], "bannerEnabled")
+local bannerToggle = CH.MakeToggleButton(panelSettings, "RM_TOGGLE_SHOW_BANNERS", "bannerEnabled")
 bannerToggle:SetPoint("TOPLEFT", 4, -94)
 bannerToggle:HookScript("OnClick", function()
     if CH.OnBannerSettingChanged then
@@ -564,7 +583,7 @@ bannerSlider:SetPoint("LEFT", bannerTimeoutLabel, "RIGHT", 12, 0)
 
 local bannerTimeoutVal = panelSettings:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 bannerTimeoutVal:SetPoint("LEFT", bannerSlider, "RIGHT", 10, 0)
-bannerTimeoutVal:SetTextColor(0.75, 0.75, 0.75, 1)
+bannerTimeoutVal:SetTextColor(CH.RGBA(CH.COLORS.muted, 1))
 
 local function UpdateBannerTimeoutLabel(v)
     bannerTimeoutVal:SetText(v <= 0 and CH.L["RM_BANNER_OFF_STAYS"] or string.format(CH.L["RM_SECONDS_X"], v))
@@ -577,25 +596,25 @@ bannerSlider:SetScript("OnValueChanged", function(_, value)
 end)
 
 CH.MakeSep(panelSettings, -144)
-CH.MakeSectionHeader(panelSettings, CH.L["RM_SECTION_ROOM_NARRATION"], -150)
+CH.MakeSectionHeader(panelSettings, "RM_SECTION_ROOM_NARRATION", -150)
 
 -- When on, your personal voices read rooms shared to you that carry no voice
 -- (your own rooms always use the per-room voice you set in the room dialog).
-local voiceToggle = CH.MakeToggleButton(panelSettings, CH.L["RM_TOGGLE_USE_DEFAULT_VOICES"], "voiceDefaultsEnabled")
+local voiceToggle = CH.MakeToggleButton(panelSettings, "RM_TOGGLE_USE_DEFAULT_VOICES", "voiceDefaultsEnabled")
 voiceToggle:SetPoint("TOPLEFT", 4, -166)
 
 local femLabel = panelSettings:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 femLabel:SetPoint("TOPLEFT", 8, -196)
 femLabel:SetText(CH.L["RM_FEMININE"])
 
-local femVoice = CH.MakeVoiceDropdown(panelSettings, 150, CH.L["RM_VOICE_NONE"], function()
+local femVoice = CH.MakeVoiceDropdown(panelSettings, 150, "RM_VOICE_NONE", function()
     return ChamberlainDB.settings.voiceFemale
 end, function(n)
     ChamberlainDB.settings.voiceFemale = n
 end)
 femVoice:SetPoint("TOPLEFT", 84, -192)
 
-local femTest = CH.MakeButton(panelSettings, CH.L["RM_TEST"], 44, 20)
+local femTest = CH.MakeButton(panelSettings, "RM_TEST", 44, 20)
 femTest:SetPoint("LEFT", femVoice, "RIGHT", 6, 0)
 femTest:SetScript("OnClick", function()
     local v = ChamberlainDB.settings.voiceFemale
@@ -610,14 +629,14 @@ local malLabel = panelSettings:CreateFontString(nil, "OVERLAY", "GameFontHighlig
 malLabel:SetPoint("TOPLEFT", 8, -222)
 malLabel:SetText(CH.L["RM_MASCULINE"])
 
-local malVoice = CH.MakeVoiceDropdown(panelSettings, 150, CH.L["RM_VOICE_NONE"], function()
+local malVoice = CH.MakeVoiceDropdown(panelSettings, 150, "RM_VOICE_NONE", function()
     return ChamberlainDB.settings.voiceMale
 end, function(n)
     ChamberlainDB.settings.voiceMale = n
 end)
 malVoice:SetPoint("TOPLEFT", 84, -218)
 
-local malTest = CH.MakeButton(panelSettings, CH.L["RM_TEST"], 44, 20)
+local malTest = CH.MakeButton(panelSettings, "RM_TEST", 44, 20)
 malTest:SetPoint("LEFT", malVoice, "RIGHT", 6, 0)
 malTest:SetScript("OnClick", function()
     local v = ChamberlainDB.settings.voiceMale
@@ -634,15 +653,15 @@ voiceNote:SetPoint("RIGHT", panelSettings, "RIGHT", -8, 0)
 voiceNote:SetJustifyH("LEFT")
 voiceNote:SetWordWrap(true)
 voiceNote:SetText(CH.L["RM_VOICE_NOTE"])
-voiceNote:SetTextColor(0.6, 0.6, 0.6, 1)
+voiceNote:SetTextColor(CH.RGBA(CH.COLORS.dim, 1))
 
 CH.MakeSep(panelSettings, -302)
-CH.MakeSectionHeader(panelSettings, CH.L["RM_SECTION_TRUSTED_BLOCKED"], -308)
+CH.MakeSectionHeader(panelSettings, "RM_SECTION_TRUSTED_BLOCKED", -308)
 
 local blockDesc = panelSettings:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 blockDesc:SetPoint("TOPLEFT", 4, -324)
 blockDesc:SetText(CH.L["RM_TRUST_BLOCK_DESC"])
-blockDesc:SetTextColor(0.75, 0.75, 0.75, 1)
+blockDesc:SetTextColor(CH.RGBA(CH.COLORS.muted, 1))
 
 local blockScroll, blockScrollChild = CH.MakeScrollList(panelSettings, "ChamberlainBlockScroll")
 blockScroll:SetPoint("TOPLEFT", panelSettings, "TOPLEFT", 0, -340)
@@ -651,7 +670,7 @@ blockScroll:SetPoint("BOTTOMRIGHT", panelSettings, "BOTTOMRIGHT", -20, 0)
 local blockEmpty = blockScrollChild:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 blockEmpty:SetPoint("TOP", 0, -12)
 blockEmpty:SetText(CH.L["RM_NO_TRUST_OR_BLOCKS"])
-blockEmpty:SetTextColor(0.6, 0.6, 0.6, 1)
+blockEmpty:SetTextColor(CH.RGBA(CH.COLORS.dim, 1))
 blockEmpty:Hide()
 
 local BLOCK_ROW_H = 22
@@ -700,7 +719,7 @@ local function PopulateBlockList()
             row.kindLabel = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
             row.kindLabel:SetPoint("RIGHT", row, "RIGHT", -62, 0)
 
-            row.unblockBtn = CH.MakeButton(row, CH.L["RM_UNBLOCK"], 58, 18)
+            row.unblockBtn = CH.MakeButton(row, "RM_UNBLOCK", 58, 18)
             row.unblockBtn:SetPoint("RIGHT", row, "RIGHT", -2, 0)
 
             blockRowPool[i] = row

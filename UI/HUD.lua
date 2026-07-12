@@ -14,15 +14,15 @@ CH.hud = CreateFrame("Frame", "ChamberlainHUDFrame", UIParent, "BackdropTemplate
 local hud = CH.hud
 hud:SetSize(184, 58)
 hud:SetFrameStrata("MEDIUM")
-CH.SkinWindow(hud, CH.L["HUD_TITLE"])
+CH.SkinWindow(hud, "HUD_TITLE")
 hud:Hide()
 
 CH.ApplyHUDPos = CH.MakeMovablePersistent(hud, "hudX", "hudY")
 
-local btnBuild = CH.MakeButton(hud, CH.L["HUD_BUILD"], 60, 22)
-local btnRooms = CH.MakeButton(hud, CH.L["HUD_ROOMS"], 60, 22)
-local btnMap = CH.MakeButton(hud, CH.L["HUD_MAP"], 56, 22)
-local btnSettings = CH.MakeButton(hud, CH.L["HUD_SETTINGS"], 72, 22)
+local btnBuild = CH.MakeButton(hud, "HUD_BUILD", 60, 22)
+local btnRooms = CH.MakeButton(hud, "HUD_ROOMS", 60, 22)
+local btnMap = CH.MakeButton(hud, "HUD_MAP", 56, 22)
+local btnSettings = CH.MakeButton(hud, "HUD_SETTINGS", 72, 22)
 
 btnBuild:SetScript("OnClick", function()
     CH.ToggleToolbox()
@@ -37,20 +37,22 @@ btnSettings:SetScript("OnClick", function()
     CH.ToggleSettings()
 end)
 
-local function Tip(btn, text)
+-- Attach a descriptive tooltip to a launcher button, looked up by key on hover
+-- like the addon's other OnEnter tooltips.
+local function Tip(btn, key)
     btn:HookScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
-        GameTooltip:SetText(text, 1, 1, 1, 1, true)
+        GameTooltip:SetText(CH.L[key], 1, 1, 1, 1, true)
         GameTooltip:Show()
     end)
     btn:HookScript("OnLeave", function()
         GameTooltip:Hide()
     end)
 end
-Tip(btnBuild, CH.L["HUD_TT_BUILD"])
-Tip(btnRooms, CH.L["HUD_TT_ROOMS"])
-Tip(btnMap, CH.L["HUD_TT_MAP"])
-Tip(btnSettings, CH.L["HUD_TT_SETTINGS"])
+Tip(btnBuild, "HUD_TT_BUILD")
+Tip(btnRooms, "HUD_TT_ROOMS")
+Tip(btnMap, "HUD_TT_MAP")
+Tip(btnSettings, "HUD_TT_SETTINGS")
 
 -- Lay the visible buttons left to right under the header and size the bar to fit.
 local function Layout(buttons)

@@ -40,13 +40,13 @@ local lineTop = th:CreateTexture(nil, "BORDER")
 lineTop:SetHeight(1)
 lineTop:SetPoint("TOPLEFT", th, "TOPLEFT", 10, -8)
 lineTop:SetPoint("TOPRIGHT", th, "TOPRIGHT", -10, -8)
-lineTop:SetColorTexture(0.85, 0.75, 0.15, 0.90)
+lineTop:SetColorTexture(CH.RGBA(CH.COLORS.line, 0.90))
 
 local lineBot = th:CreateTexture(nil, "BORDER")
 lineBot:SetHeight(1)
 lineBot:SetPoint("BOTTOMLEFT", th, "BOTTOMLEFT", 10, 8)
 lineBot:SetPoint("BOTTOMRIGHT", th, "BOTTOMRIGHT", -10, 8)
-lineBot:SetColorTexture(0.85, 0.75, 0.15, 0.90)
+lineBot:SetColorTexture(CH.RGBA(CH.COLORS.line, 0.90))
 
 -- 3D head portrait on the left
 local model = CreateFrame("PlayerModel", nil, th)
@@ -92,7 +92,7 @@ th.name:SetPoint("TOPLEFT", th, "TOPLEFT", TEXT_X, -14)
 th.name:SetWidth(BODY_W)
 th.name:SetJustifyH("LEFT")
 th.name:SetWordWrap(false)
-th.name:SetTextColor(1.00, 0.92, 0.40, 1)
+th.name:SetTextColor(CH.RGBA(CH.COLORS.bannerText, 1))
 
 -- Clipping viewport for the (possibly scrolling) description
 local viewport = CreateFrame("Frame", nil, th)
@@ -123,7 +123,7 @@ th.close:SetScript("OnLeave", function()
 end)
 
 -- Small gold glyph buttons stacked under the close X: live scroll-speed control.
-local function MakeMiniButton(glyph, yOff, tip, onClick)
+local function MakeMiniButton(glyph, yOff, tipKey, onClick)
     local b = CreateFrame("Button", nil, th)
     b:SetSize(18, 18)
     b:SetPoint("TOPRIGHT", th, "TOPRIGHT", -4, yOff)
@@ -133,7 +133,7 @@ local function MakeMiniButton(glyph, yOff, tip, onClick)
     b:SetScript("OnEnter", function(self)
         fs:SetText("|cffFFFFFF" .. glyph .. "|r")
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-        GameTooltip:SetText(tip, 1, 0.85, 0.25)
+        GameTooltip:SetText(CH.L[tipKey], 1, 0.85, 0.25)
         GameTooltip:Show()
     end)
     b:SetScript("OnLeave", function()
@@ -144,10 +144,10 @@ local function MakeMiniButton(glyph, yOff, tip, onClick)
     return b
 end
 
-th.faster = MakeMiniButton("+", -26, CH.L["TH_SCROLL_FASTER"], function()
+th.faster = MakeMiniButton("+", -26, "TH_SCROLL_FASTER", function()
     ChamberlainDB.scrollSpeed = math.min(MAX_SPEED, (ChamberlainDB.scrollSpeed or DEFAULT_SPEED) + SPEED_STEP)
 end)
-th.slower = MakeMiniButton("-", -46, CH.L["TH_SCROLL_SLOWER"], function()
+th.slower = MakeMiniButton("-", -46, "TH_SCROLL_SLOWER", function()
     ChamberlainDB.scrollSpeed = math.max(MIN_SPEED, (ChamberlainDB.scrollSpeed or DEFAULT_SPEED) - SPEED_STEP)
 end)
 

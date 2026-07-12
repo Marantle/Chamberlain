@@ -32,7 +32,7 @@ Move to floor button for when it gets the floor wrong. If your stairs spiral or
 stack so one flight sits right above another, keep each flight's marks off the same
 spot, or they trigger each other.
 
-## More than a name
+## Room name, description and talking head
 
 Rooms carry more than a name. Set a color for the banner and map tile, write
 a description, and pick a face to read it on a talking-head box. Your computer can

@@ -19,13 +19,13 @@ CH.bannerLineTop = banner:CreateTexture(nil, "BORDER")
 CH.bannerLineTop:SetHeight(1)
 CH.bannerLineTop:SetPoint("TOPLEFT", banner, "TOPLEFT", 12, -12)
 CH.bannerLineTop:SetPoint("TOPRIGHT", banner, "TOPRIGHT", -12, -12)
-CH.bannerLineTop:SetColorTexture(0.85, 0.75, 0.15, 0.90)
+CH.bannerLineTop:SetColorTexture(CH.RGBA(CH.COLORS.line, 0.90))
 
 CH.bannerLineBot = banner:CreateTexture(nil, "BORDER")
 CH.bannerLineBot:SetHeight(1)
 CH.bannerLineBot:SetPoint("BOTTOMLEFT", banner, "BOTTOMLEFT", 12, 12)
 CH.bannerLineBot:SetPoint("BOTTOMRIGHT", banner, "BOTTOMRIGHT", -12, 12)
-CH.bannerLineBot:SetColorTexture(0.85, 0.75, 0.15, 0.90)
+CH.bannerLineBot:SetColorTexture(CH.RGBA(CH.COLORS.line, 0.90))
 
 CH.bannerText = banner:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
 -- Default centered across the full banner. SetBannerRoom re-anchors to reserve
@@ -34,11 +34,11 @@ CH.bannerText:SetPoint("LEFT", banner, "LEFT", 16, 0)
 CH.bannerText:SetPoint("RIGHT", banner, "RIGHT", -16, 0)
 CH.bannerText:SetJustifyH("CENTER")
 CH.bannerText:SetWordWrap(false)
-CH.bannerText:SetTextColor(1.00, 0.92, 0.40, 1)
+CH.bannerText:SetTextColor(CH.RGBA(CH.COLORS.bannerText, 1))
 
 -- "Read" button: shown only when the current room has a description, opens the
 -- talking-head yapper (which hides this banner while it's up).
-CH.bannerYapBtn = CH.MakeButton(banner, CH.L["BANNER_READ"], 44, 18)
+CH.bannerYapBtn = CH.MakeButton(banner, "BANNER_READ", 44, 18)
 CH.bannerYapBtn:SetPoint("RIGHT", banner, "RIGHT", -12, 0)
 CH.bannerYapBtn:SetScript("OnClick", function()
     CH.OpenYapper()
@@ -46,8 +46,8 @@ end)
 CH.bannerYapBtn:Hide()
 
 -- Default banner colors, overridden by per-zone colors on entry
-CH.BANNER_TEXT_COLOR = { 1.00, 0.92, 0.40 }
-CH.BANNER_LINE_COLOR = { 0.85, 0.75, 0.15 }
+CH.BANNER_TEXT_COLOR = CH.COLORS.bannerText
+CH.BANNER_LINE_COLOR = CH.COLORS.line
 
 -- Track the room the banner is currently annoucing, size the banner to fit the
 -- full room name (names are already length-capped, so no ellipsis), and place
