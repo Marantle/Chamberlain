@@ -18,6 +18,17 @@ local _, CH = ...
 -- (title, buttons) is still localized.
 CH.WHATS_NEW = {
     {
+        v = "3.1.0",
+        notes = {
+            "Moved your house to another neighborhood? It gets a new internal id and owner name, so "
+                .. "the rooms stayed parked on the old one and the new house came up empty. Stand in "
+                .. "your house and run /rooms fixer, then pick the saved house that is really this "
+                .. "one. It only works in a house you own.",
+            "Share My Houses stays disabled while a share is still sending, and a Request button "
+                .. "waits a few seconds after you click it, so neither can be spammed.",
+        },
+    },
+    {
         v = "3.0.0",
         notes = {
             "The HUD is now a small launcher: Build, Map, Rooms, Settings.",

@@ -253,6 +253,18 @@ L["RM_KIND_PLAYER"] = "|cff88aaFFplayer|r"
 L["RM_UNBLOCK"] = "Unblock"
 L["RM_UNTRUST"] = "Untrust"
 
+-- ── House fixer (UI/FixHouse.lua) ────────────────────────────────────
+L["FIX_TITLE"] = "Fix house"
+L["FIX_BODY"] =
+    "Moved your house? Its rooms are still saved under the old house's id and owner name, so if this house looks empty. Stand in your house, then pick the saved house below that is really this one."
+L["FIX_ROW_X"] = "%s  |cff666666%d rooms|r"
+L["FIX_BUTTON"] = "This one"
+L["FIX_CLOSE"] = "Close"
+L["FIX_NO_HOUSES"] = "You have no saved houses of your own."
+L["FIX_NOT_IN_HOUSE"] = "Stand inside the house you want to fix, then run /rooms fixer again."
+L["FIX_ONLY_OWN_HOUSE"] = "You can only do this in your own house."
+L["FIX_FIXED_X"] = "Pointed %s at the house you're standing in."
+
 -- ── Floor plan (UI/FloorPlan.lua) ────────────────────────────────────
 L["FP_TITLE"] = "House Map"
 L["FP_CLOSE"] = "Close"

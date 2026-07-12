@@ -282,6 +282,11 @@ SlashCmdList["CH"] = function(msg)
         CH.OpenFloorPlan()
     elseif cmd == "whatsnew" or cmd == "changes" then
         CH.OpenWhatsNew()
+    elseif cmd == "fixer" then
+        -- Repair tool, deliberately left out of the help list: re-points a saved
+        -- house at the one you're standing in, for when a house move changed its
+        -- internal id and owner name (see UI/FixHouse.lua).
+        CH.OpenFixHouse()
     elseif cmd == "debug" then
         CH.shareDebug = not CH.shareDebug
         CH.Print(CH.shareDebug and CH.L["CMD_DEBUG_ON"] or CH.L["CMD_DEBUG_OFF"])

@@ -42,6 +42,7 @@ Sharing\Share.lua
 Sharing\ShareUI.lua
 UI\RoomManager.lua
 UI\FloorPlan.lua
+UI\FixHouse.lua
 UI\Stairs.lua
 UI\WhatsNew.lua
 UI\Minimap.lua

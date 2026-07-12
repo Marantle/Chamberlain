@@ -122,6 +122,64 @@ function CH.MigrateLegacyHouse(stableKey, owner)
     end
 end
 
+-- Moving a house to another neighborhood mints a new stable key
+-- (neighborhoodGUID:plotID), and the owner name on the entry can go stale too, so
+-- the rooms saved under the old key are orphaned and the map comes up empty.
+-- Re-point a saved house at the house you are standing in now, adopting its key,
+-- owner and realm. Driven by the fixer dialog (UI/FixHouse.lua). Merge rules match
+-- MigrateLegacyHouse for the case where the new key already holds an entry.
+function CH.RepairHouseKey(oldKey)
+    local newKey = CH.currentHouseGUID
+    -- Hard gate: this marks the current house as yours (myHouses) and stamps its
+    -- owner onto your rooms, so it must never run in someone else's house. The
+    -- housing API is the authority, not the saved entry.
+    if not CH.isOwnHouse then
+        return false
+    end
+    if not newKey or not oldKey or oldKey == newKey then
+        return false
+    end
+    local old = ChamberlainDB.houses[oldKey]
+    if not old then
+        return false
+    end
+
+    local h = ChamberlainDB.houses[newKey]
+    if not h then
+        ChamberlainDB.houses[newKey] = old
+        h = old
+    else
+        for _, z in ipairs(old.zones or {}) do
+            table.insert(h.zones, z)
+        end
+        if old.stats then
+            h.stats = h.stats or {}
+            for name, secs in pairs(old.stats) do
+                h.stats[name] = (h.stats[name] or 0) + secs
+            end
+        end
+        if (old.floorCount or 1) > (h.floorCount or 1) then
+            h.floorCount = old.floorCount
+        end
+    end
+
+    -- Adopt the house actually being stood in: after a move its owner name can
+    -- differ from what the old entry recorded.
+    h.owner = CH.currentHouseOwner or h.owner
+    h.realm = GetRealmName()
+    h.updatedAt = GetServerTime()
+
+    ChamberlainDB.myHouses[newKey] = true
+    ChamberlainDB.myHouses[oldKey] = nil
+    if ChamberlainDB.floorMemory then
+        ChamberlainDB.floorMemory[newKey] = ChamberlainDB.floorMemory[oldKey]
+        ChamberlainDB.floorMemory[oldKey] = nil
+    end
+    ChamberlainDB.houses[oldKey] = nil
+
+    return true
+end
+
 -- Called on ZONE_CHANGED_NEW_AREA and PLAYER_LOGIN.
 -- Re-requests house info every time so house transitions are caught.
 function CH.CheckHousingState()

@@ -1,6 +1,10 @@
 # Changelog
 
 ## 3.1.0
+- Fixed: moving your house to another neighborhood gives it a new internal id and
+  owner name, so the rooms stayed saved under the old one and the house came up
+  empty. Stand in your house and run /rooms fixer, then pick the saved house that is
+  really this one. It only works in a house you own.
 - Share My Houses button stays disabled while a share is still sending, and a Request
   button in the group tab waits a few seconds after you click it, so neither can be
   spammed.

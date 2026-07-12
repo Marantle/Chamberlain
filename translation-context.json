@@ -39,6 +39,7 @@
     { "match": "RD_", "context": "A field, button, or tooltip in the room create/edit dialog." },
     { "match": "RM_", "context": "A label, button, or status in the Room Manager window." },
     { "match": "FP_", "context": "A label or button in the Floor Plan / house map window." },
+    { "match": "FIX_", "context": "Text in the house fixer, a repair dialog opened with /rooms fixer. Moving a house in WoW gives it a new internal id and owner name, orphaning the saved rooms, and this re-points a saved house at the one the player is standing in." },
     { "match": "ST_", "context": "Text in the stairs and floor-marker setup windows." },
     { "match": "SHARE_", "context": "A message about sharing house layouts with your group, printed to chat." },
     { "match": "SUI_", "context": "A button or prompt in the layout-sharing dialogs." }

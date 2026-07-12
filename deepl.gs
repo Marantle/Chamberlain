@@ -137,7 +137,7 @@ function endpointFor_(key) {
 // from SUBCOMMANDS below, so prose like "/chamberlain hud to restore" protects
 // "/chamberlain hud" and still translates "to restore". Add any new slash
 // subcommand to that list when the addon gains one.
-var SUBCOMMANDS = "build|manage|floor|settings|delete|reset|hud|whatsnew|debug|version";
+var SUBCOMMANDS = "build|manage|floor|settings|delete|reset|hud|whatsnew|debug|version|fixer";
 
 function guard_(text) {
   var wrap = function (m) { return "<x>" + m + "</x>"; };
