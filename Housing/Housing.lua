@@ -149,6 +149,9 @@ function CH.RepairHouseKey(oldKey)
         ChamberlainDB.houses[newKey] = old
         h = old
     else
+        -- An entry can exist without a zones table (a house you'd entered but never
+        -- put a room in), so don't assume one is there to insert into.
+        h.zones = h.zones or {}
         for _, z in ipairs(old.zones or {}) do
             table.insert(h.zones, z)
         end
@@ -163,16 +166,35 @@ function CH.RepairHouseKey(oldKey)
         end
     end
 
-    -- Adopt the house actually being stood in: after a move its owner name can
-    -- differ from what the old entry recorded.
-    h.owner = CH.currentHouseOwner or h.owner
+    -- Rooms are map-bound: IsInZone rejects any zone whose stored mapID isn't the
+    -- map you're standing on. A moved house can come back on a new interior map id,
+    -- and then the rooms would draw on the plan but never fire a banner, which looks
+    -- like the repair half-worked. Re-stamp them onto the map we're on now. A no-op
+    -- when the id didn't change. Every zone in a house shares one map by design (the
+    -- room dialog refuses corners on different maps), so stamping them all is safe.
+    local _, _, mapID = CH.GetWorldPos()
+    if mapID then
+        for _, z in ipairs(h.zones or {}) do
+            z.mapID = mapID
+        end
+    end
+
+    -- Adopt the house actually being stood in. A move can change the owner name and
+    -- the house name, so take both from the housing API rather than from the stale
+    -- saved entry (and never from the player's own character).
+    local info = C_Housing.GetCurrentHouseInfo()
+    h.owner = (info and (info.ownerName or info.owner)) or CH.currentHouseOwner or h.owner
+    h.houseName = (info and info.houseName) or h.houseName
     h.realm = GetRealmName()
     h.updatedAt = GetServerTime()
 
     ChamberlainDB.myHouses[newKey] = true
     ChamberlainDB.myHouses[oldKey] = nil
+    -- Drop the old floor memory instead of carrying it over. You are standing in
+    -- this house right now, so the floor you walked in on (already recorded against
+    -- the new key on entry) is the truth. Copying the old house's last floor would
+    -- make a later reload restore a floor you are not standing on.
     if ChamberlainDB.floorMemory then
-        ChamberlainDB.floorMemory[newKey] = ChamberlainDB.floorMemory[oldKey]
         ChamberlainDB.floorMemory[oldKey] = nil
     end
     ChamberlainDB.houses[oldKey] = nil

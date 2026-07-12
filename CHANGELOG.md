@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.2.0
+- /rooms fixer now also re-stamps your rooms onto the house's current map. A moved
+  house can come back on a new internal map, and without this the rooms showed on the
+  house map but never announced themselves when you walked into one.
+- /rooms fixer no longer leaves you on the wrong floor after a reload, and it now
+  picks up the house's current name as well as its owner.
+
 ## 3.1.0
 - Fixed: moving your house to another neighborhood gives it a new internal id and
   owner name, so the rooms stayed saved under the old one and the house came up
