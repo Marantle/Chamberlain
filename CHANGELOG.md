@@ -1,5 +1,16 @@
 # Changelog
 
+## 3.3.0
+- The build toolbox now docks to the right edge of the house map, so Build opens the
+  pair and they move as one window. Drag the toolbox away to set it floating on its
+  own for walking the house with just the small palette up, and the « button in its
+  header glues it back. Opening the map alone never brings the toolbox along, and
+  closing the toolbox leaves the map open.
+- The house map now points at the repair itself. If you own the house you are standing
+  in, its map is empty, and another house of yours does have rooms, the map offers a
+  Fix house button under the empty message. It opens the same window as /rooms fixer.
+  A house you have simply not made rooms in yet still shows the plain empty map.
+
 ## 3.2.0
 - /rooms fixer now also re-stamps your rooms onto the house's current map. A moved
   house can come back on a new internal map, and without this the rooms showed on the

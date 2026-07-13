@@ -8,6 +8,12 @@ local _, CH = ...
 -- "add a room where I stand" tools, and quick fitting for the picked room. The
 -- house map stays the bird's-eye editor. This is the build-while-standing-in-it
 -- companion.
+--
+-- By default it docks to the map's right edge, so Build opens the pair and they
+-- move as one window. Dragging the toolbox tears it off into a free float for
+-- walking the house with just the small palette up, and the « button in the
+-- header glues it back. Opening the map alone never brings the toolbox with it,
+-- and closing the toolbox leaves the map alone.
 
 CH.toolbox = CreateFrame("Frame", "ChamberlainToolbox", UIParent, "BackdropTemplate")
 local tb = CH.toolbox
@@ -35,6 +41,27 @@ tbClose:SetScript("OnLeave", function()
 end)
 tbClose:SetScript("OnClick", function()
     tb:Hide()
+end)
+
+-- Dock toggle next to the x. « pulls the toolbox onto the map's right edge
+-- (opening the map if it's closed), » pops it back out to its floating spot.
+-- Dragging the toolbox while docked tears it off the same way.
+local tbDock = CreateFrame("Button", nil, tb)
+tbDock:SetSize(18, 18)
+tbDock:SetPoint("RIGHT", tbClose, "LEFT", -2, 0)
+local tbDockGlyph = tbDock:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+tbDockGlyph:SetAllPoints()
+tbDockGlyph:SetTextColor(CH.RGBA(CH.COLORS.gold, 1))
+tbDock:SetScript("OnEnter", function(self)
+    tbDockGlyph:SetTextColor(1, 1, 1, 1)
+    GameTooltip:SetOwner(self, "ANCHOR_TOP")
+    local key = ChamberlainDB.settings.toolboxDocked and "TB_TT_UNDOCK" or "TB_TT_DOCK"
+    GameTooltip:SetText(CH.L[key], 1, 1, 1, 1, true)
+    GameTooltip:Show()
+end)
+tbDock:SetScript("OnLeave", function()
+    tbDockGlyph:SetTextColor(CH.RGBA(CH.COLORS.gold, 1))
+    GameTooltip:Hide()
 end)
 
 -- The room these fit controls act on, and the house it lives in. Set when you
@@ -94,7 +121,8 @@ editBtn:SetPoint("TOPLEFT", 12, -228)
 local delBtn = CH.MakeButton(tb, "TB_DELETE", 91, 22)
 delBtn:SetPoint("LEFT", editBtn, "RIGHT", 4, 0)
 
-CH.MakeSep(tb, -256)
+-- The Show map row only exists while floating; docked, the map is right there.
+local mapSep = CH.MakeSep(tb, -256)
 
 local mapBtn = CH.MakeButton(tb, "TB_SHOW_MAP", 186, 22)
 mapBtn:SetPoint("TOPLEFT", 12, -262)
@@ -347,7 +375,65 @@ mapBtn:SetScript("OnClick", function()
     CH.OpenFloorPlan()
 end)
 
+-- Put the toolbox where the docked flag says it belongs. Docked, it becomes a
+-- child of the map anchored to its right edge, so dragging the map carries it
+-- along and hiding the map hides it too. Floating, it goes back to being its
+-- own toplevel window at the saved offset. The Show map row is dropped while
+-- docked and the frame shortened to match.
+function CH.ApplyToolboxLayout()
+    local fp = CH.floorPlan
+    if ChamberlainDB.settings.toolboxDocked and fp then
+        tb:SetParent(fp)
+        tb:ClearAllPoints()
+        tb:SetPoint("TOPLEFT", fp, "TOPRIGHT", 4, 0)
+        tb:SetToplevel(false)
+        mapSep:Hide()
+        mapBtn:Hide()
+        tb:SetHeight(262)
+        tbDockGlyph:SetText("»")
+    else
+        tb:SetParent(UIParent)
+        tb:SetFrameStrata("DIALOG")
+        tb:SetToplevel(true)
+        mapSep:Show()
+        mapBtn:Show()
+        tb:SetHeight(292)
+        tbDockGlyph:SetText("«")
+        CH.ApplyToolboxPos()
+    end
+end
+
+tbDock:SetScript("OnClick", function()
+    ChamberlainDB.settings.toolboxDocked = not ChamberlainDB.settings.toolboxDocked
+    if ChamberlainDB.settings.toolboxDocked and CH.floorPlan and not CH.floorPlan:IsShown() then
+        CH.OpenFloorPlan()
+    end
+    CH.ApplyToolboxLayout()
+end)
+
+-- Tear-off: dragging a docked toolbox sets it loose. The persistent-position
+-- handler has already saved the drop point by the time this hook runs, so the
+-- relayout leaves it right where it was let go.
+tb:HookScript("OnDragStop", function()
+    if ChamberlainDB.settings.toolboxDocked then
+        ChamberlainDB.settings.toolboxDocked = false
+        CH.ApplyToolboxLayout()
+    end
+end)
+
+-- Docked, the toolbox gives up its own toplevel flag, so clicking it has to
+-- lift the map's subtree by hand for the pair to rise above other windows.
+tb:HookScript("OnMouseDown", function()
+    if CH.floorPlan and tb:GetParent() == CH.floorPlan then
+        CH.floorPlan:Raise()
+    end
+end)
+
 function CH.OpenToolbox()
+    if ChamberlainDB.settings.toolboxDocked then
+        CH.OpenFloorPlan()
+    end
+    CH.ApplyToolboxLayout()
     tb:Show()
     tb:Raise()
     CH.RefreshToolbox()

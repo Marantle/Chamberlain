@@ -18,6 +18,18 @@ local _, CH = ...
 -- (title, buttons) is still localized.
 CH.WHATS_NEW = {
     {
+        v = "3.3.0",
+        notes = {
+            "The build toolbox now docks to the house map, so Build opens them as one "
+                .. "window. Drag the toolbox away to float it on its own again, and the « "
+                .. "button in its header glues it back.",
+            "If you moved your house to a new neighborhood and the addon no longer knows which rooms "
+                .. "belong to it, so the map comes up empty. It now offers a Fix house button "
+                .. "there, which opens a window listing your saved houses. Pick the one that is "
+                .. "really the house you are standing in and its rooms come back.",
+        },
+    },
+    {
         v = "3.1.0",
         notes = {
             "Moved your house to another neighborhood? It gets a new internal id and owner name, so "

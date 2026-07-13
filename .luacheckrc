@@ -23,6 +23,8 @@ read_globals = {
     "UnitGUID",
     "IsInGroup",
     "IsInRaid",
+    "GetNumGroupMembers",
+    "UnitIsUnit",
     "LE_PARTY_CATEGORY_HOME",
     "LE_PARTY_CATEGORY_INSTANCE",
     "GetRealmName",

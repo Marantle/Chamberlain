@@ -572,10 +572,15 @@ bannerToggle:HookScript("OnClick", function()
     end
 end)
 
+-- Class-colored dots for party (and raid) members on the floor plan. Positions
+-- are read locally, so the others don't need the addon.
+local groupDotsToggle = CH.MakeToggleButton(panelSettings, "RM_TOGGLE_GROUP_ON_MAP", "showGroupDots")
+groupDotsToggle:SetPoint("TOPLEFT", 4, -118)
+
 -- Banner fade-out: seconds before the room banner fades after it appears. 0 keeps
 -- it up until you leave the room.
 local bannerTimeoutLabel = panelSettings:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-bannerTimeoutLabel:SetPoint("TOPLEFT", 8, -122)
+bannerTimeoutLabel:SetPoint("TOPLEFT", 8, -146)
 bannerTimeoutLabel:SetText(CH.L["RM_BANNER_FADE_OUT"])
 
 local bannerSlider = CH.MakeSlider(panelSettings, 120, 0, 20, 1)
@@ -595,16 +600,16 @@ bannerSlider:SetScript("OnValueChanged", function(_, value)
     UpdateBannerTimeoutLabel(value)
 end)
 
-CH.MakeSep(panelSettings, -144)
-CH.MakeSectionHeader(panelSettings, "RM_SECTION_ROOM_NARRATION", -150)
+CH.MakeSep(panelSettings, -168)
+CH.MakeSectionHeader(panelSettings, "RM_SECTION_ROOM_NARRATION", -174)
 
 -- When on, your personal voices read rooms shared to you that carry no voice
 -- (your own rooms always use the per-room voice you set in the room dialog).
 local voiceToggle = CH.MakeToggleButton(panelSettings, "RM_TOGGLE_USE_DEFAULT_VOICES", "voiceDefaultsEnabled")
-voiceToggle:SetPoint("TOPLEFT", 4, -166)
+voiceToggle:SetPoint("TOPLEFT", 4, -190)
 
 local femLabel = panelSettings:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-femLabel:SetPoint("TOPLEFT", 8, -196)
+femLabel:SetPoint("TOPLEFT", 8, -220)
 femLabel:SetText(CH.L["RM_FEMININE"])
 
 local femVoice = CH.MakeVoiceDropdown(panelSettings, 150, "RM_VOICE_NONE", function()
@@ -612,7 +617,7 @@ local femVoice = CH.MakeVoiceDropdown(panelSettings, 150, "RM_VOICE_NONE", funct
 end, function(n)
     ChamberlainDB.settings.voiceFemale = n
 end)
-femVoice:SetPoint("TOPLEFT", 84, -192)
+femVoice:SetPoint("TOPLEFT", 84, -216)
 
 local femTest = CH.MakeButton(panelSettings, "RM_TEST", 44, 20)
 femTest:SetPoint("LEFT", femVoice, "RIGHT", 6, 0)
@@ -626,7 +631,7 @@ femTest:SetScript("OnClick", function()
 end)
 
 local malLabel = panelSettings:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-malLabel:SetPoint("TOPLEFT", 8, -222)
+malLabel:SetPoint("TOPLEFT", 8, -246)
 malLabel:SetText(CH.L["RM_MASCULINE"])
 
 local malVoice = CH.MakeVoiceDropdown(panelSettings, 150, "RM_VOICE_NONE", function()
@@ -634,7 +639,7 @@ local malVoice = CH.MakeVoiceDropdown(panelSettings, 150, "RM_VOICE_NONE", funct
 end, function(n)
     ChamberlainDB.settings.voiceMale = n
 end)
-malVoice:SetPoint("TOPLEFT", 84, -218)
+malVoice:SetPoint("TOPLEFT", 84, -242)
 
 local malTest = CH.MakeButton(panelSettings, "RM_TEST", 44, 20)
 malTest:SetPoint("LEFT", malVoice, "RIGHT", 6, 0)
@@ -648,23 +653,23 @@ malTest:SetScript("OnClick", function()
 end)
 
 local voiceNote = panelSettings:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-voiceNote:SetPoint("TOPLEFT", 8, -246)
+voiceNote:SetPoint("TOPLEFT", 8, -270)
 voiceNote:SetPoint("RIGHT", panelSettings, "RIGHT", -8, 0)
 voiceNote:SetJustifyH("LEFT")
 voiceNote:SetWordWrap(true)
 voiceNote:SetText(CH.L["RM_VOICE_NOTE"])
 voiceNote:SetTextColor(CH.RGBA(CH.COLORS.dim, 1))
 
-CH.MakeSep(panelSettings, -302)
-CH.MakeSectionHeader(panelSettings, "RM_SECTION_TRUSTED_BLOCKED", -308)
+CH.MakeSep(panelSettings, -326)
+CH.MakeSectionHeader(panelSettings, "RM_SECTION_TRUSTED_BLOCKED", -332)
 
 local blockDesc = panelSettings:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-blockDesc:SetPoint("TOPLEFT", 4, -324)
+blockDesc:SetPoint("TOPLEFT", 4, -348)
 blockDesc:SetText(CH.L["RM_TRUST_BLOCK_DESC"])
 blockDesc:SetTextColor(CH.RGBA(CH.COLORS.muted, 1))
 
 local blockScroll, blockScrollChild = CH.MakeScrollList(panelSettings, "ChamberlainBlockScroll")
-blockScroll:SetPoint("TOPLEFT", panelSettings, "TOPLEFT", 0, -340)
+blockScroll:SetPoint("TOPLEFT", panelSettings, "TOPLEFT", 0, -364)
 blockScroll:SetPoint("BOTTOMRIGHT", panelSettings, "BOTTOMRIGHT", -20, 0)
 
 local blockEmpty = blockScrollChild:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
@@ -757,6 +762,7 @@ local function RefreshSettingsTab()
     soundToggle:Refresh()
     roomTextToggle:Refresh()
     bannerToggle:Refresh()
+    groupDotsToggle:Refresh()
     voiceToggle:Refresh()
     femVoice:Refresh()
     malVoice:Refresh()

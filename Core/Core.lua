@@ -1,6 +1,6 @@
 local ADDON, CH = ...
 
-CH.VERSION = "3.2.0"
+CH.VERSION = "3.3.0"
 
 -- How often the zone ticker samples your position, in seconds. Drives stair
 -- detection and the per-room time stats both, so they stay in step if it changes.
@@ -129,6 +129,17 @@ events:SetScript("OnEvent", function(_, event, arg1)
         if ChamberlainDB.settings.seenFloorIntro == nil then
             ChamberlainDB.settings.seenFloorIntro = false
         end
+        -- Draw party/raid member dots on the floor plan. Read locally from the
+        -- client, so it works even when nobody else runs the addon.
+        if ChamberlainDB.settings.showGroupDots == nil then
+            ChamberlainDB.settings.showGroupDots = true
+        end
+        -- Glue the build toolbox to the house map's right edge so they act as
+        -- one window. Dragging the toolbox off flips this false; the « button
+        -- in its header flips it back. (3.3.0)
+        if ChamberlainDB.settings.toolboxDocked == nil then
+            ChamberlainDB.settings.toolboxDocked = true
+        end
         -- Draw stair anchors on the floor plan. On by default. The floor plan has a
         -- "Show stairs" checkbox to hide them for a cleaner map.
         if ChamberlainDB.settings.showStairsOnMap == nil then
@@ -186,8 +197,8 @@ events:SetScript("OnEvent", function(_, event, arg1)
         end
         C_ChatInfo.RegisterAddonMessagePrefix("CH")
         CH.ApplyHUDPos()
-        if CH.ApplyToolboxPos then
-            CH.ApplyToolboxPos()
+        if CH.ApplyToolboxLayout then
+            CH.ApplyToolboxLayout()
         end
     elseif event == "PLAYER_LOGIN" then
         if ChamberlainDB.bannerY == nil then
@@ -263,8 +274,8 @@ SlashCmdList["CH"] = function(msg)
         ChamberlainDB.thX = 0
         ChamberlainDB.thY = math.floor(UIParent:GetHeight() * 0.12)
         CH.ApplyHUDPos()
-        if CH.ApplyToolboxPos then
-            CH.ApplyToolboxPos()
+        if CH.ApplyToolboxLayout then
+            CH.ApplyToolboxLayout()
         end
         CH.ApplyBannerPos()
         CH.ApplyTalkingHeadPos()

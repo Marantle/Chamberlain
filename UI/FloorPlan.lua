@@ -30,6 +30,8 @@ CH.MakeDraggable(fp)
 CH.SkinWindow(fp, "FP_TITLE", true)
 fp:Hide()
 table.insert(UISpecialFrames, "ChamberlainFloorPlan")
+-- The build toolbox docks onto this frame's right edge (UI/Toolbox.lua).
+CH.floorPlan = fp
 
 local fpSub = fp:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 fpSub:SetPoint("TOPLEFT", 10, -27)
@@ -48,6 +50,48 @@ fpEmpty:SetPoint("CENTER")
 fpEmpty:SetText(CH.L["FP_NO_ROOMS"])
 fpEmpty:SetTextColor(0.5, 0.5, 0.5, 1)
 fpEmpty:Hide()
+
+-- Nudge toward the fixer, shown under the empty state only when this house looks
+-- like one that moved (see FixerCandidate). /rooms fixer opens the same window.
+local fpFixHint = canvas:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+fpFixHint:SetPoint("TOP", fpEmpty, "BOTTOM", 0, -16)
+fpFixHint:SetWidth(280)
+fpFixHint:SetJustifyH("CENTER")
+fpFixHint:SetWordWrap(true)
+fpFixHint:SetSpacing(2)
+fpFixHint:SetText(CH.L["FP_FIX_HINT"])
+fpFixHint:SetTextColor(CH.RGBA(CH.COLORS.dim, 1))
+fpFixHint:Hide()
+
+local fpFixBtn = CH.MakeButton(canvas, "FIX_TITLE", 110, 22)
+fpFixBtn:SetPoint("TOP", fpFixHint, "BOTTOM", 0, -8)
+fpFixBtn:SetScript("OnClick", function()
+    CH.OpenFixHouse()
+end)
+fpFixBtn:Hide()
+
+-- A house of yours that comes up with no rooms while other houses you own do have
+-- some is what a moved house looks like: the new neighborhood minted a new id, so
+-- every room is still parked under the old one. Suggest the repair instead of
+-- leaving a blank map with no explanation.
+local function FixerCandidate()
+    if not CH.isOwnHouse or not CH.currentHouseGUID then
+        return false
+    end
+    local cur = ChamberlainDB.houses[CH.currentHouseGUID]
+    if cur and cur.zones and #cur.zones > 0 then
+        return false
+    end
+    for guid in pairs(ChamberlainDB.myHouses or {}) do
+        if guid ~= CH.currentHouseGUID then
+            local other = ChamberlainDB.houses[guid]
+            if other and other.zones and #other.zones > 0 then
+                return true
+            end
+        end
+    end
+    return false
+end
 
 local fpClose = CH.MakeButton(fp, "FP_CLOSE", 80, 22)
 -- Bottom-right so it never collides with the Add floor / Add stairs buttons that
@@ -635,9 +679,19 @@ end
 local markerA = MakeCornerMarker("A", 0.40, 0.90, 1.00)
 local markerB = MakeCornerMarker("B", 0.40, 0.90, 1.00)
 
--- Party member dots: class-colored, tooltip with the member's name.
+-- Group member dots: class-colored, tooltip with the member's name.
 -- UnitPosition only returns coordinates for members in the same instance.
 local partyDots = {}
+
+-- Unit tokens built once. The dot loop runs every frame, and rebuilding
+-- "raid17" forty times a frame is needless string garbage.
+local partyUnits, raidUnits = {}, {}
+for i = 1, 4 do
+    partyUnits[i] = "party" .. i
+end
+for i = 1, 40 do
+    raidUnits[i] = "raid" .. i
+end
 
 local function GetPartyDot(i)
     if partyDots[i] then
@@ -1120,6 +1174,8 @@ BuildFloorPlan = function()
     markerA:Hide()
     markerB:Hide()
     fpEmpty:Hide()
+    fpFixHint:Hide()
+    fpFixBtn:Hide()
     -- NB: do NOT clear trScale here. The transform persists across builds and is
     -- only invalidated by the explicit reframe events (open, house change, canvas
     -- resize, reset, zone changes). Nulling it every build would make the lazy
@@ -1243,6 +1299,11 @@ BuildFloorPlan = function()
             floorCount > 1 and string.format(CH.L["FP_NO_ROOMS_ON_FLOOR_X"], viewedFloor) or CH.L["FP_NO_ROOMS"]
         )
         fpEmpty:Show()
+        -- Only for a house with nothing saved at all. An empty floor in a house that
+        -- does have rooms is just an empty floor, nothing to repair.
+        local suggestFix = FixerCandidate()
+        fpFixHint:SetShown(suggestFix)
+        fpFixBtn:SetShown(suggestFix)
         selectedIdx = nil
         RefreshEditPanel()
         PositionHandles()
@@ -1369,10 +1430,8 @@ canvas:SetScript("OnUpdate", function()
         dotFrame:Hide()
         markerA:Hide()
         markerB:Hide()
-        for i = 1, 4 do
-            if partyDots[i] then
-                partyDots[i]:Hide()
-            end
+        for i = 1, #partyDots do
+            partyDots[i]:Hide()
         end
         floorHint:SetText(string.format(CH.L["FP_YOURE_ON_FLOOR_X"], CH.activeFloor or 1))
         floorHint:Show()
@@ -1430,8 +1489,17 @@ canvas:SetScript("OnUpdate", function()
         markerB:Hide()
     end
 
-    for i = 1, 4 do
-        local unit = "party" .. i
+    -- party1-4 covers a 5-man, but in a raid those tokens only reach your own
+    -- subgroup, so switch to raid units there. raidN includes the player, who
+    -- already has the lettered dot above, so their slot is skipped.
+    local inRaid = IsInRaid()
+    local units = inRaid and raidUnits or partyUnits
+    local numUnits = 0
+    if ChamberlainDB.settings.showGroupDots then
+        numUnits = inRaid and GetNumGroupMembers() or 4
+    end
+    for i = 1, numUnits do
+        local unit = units[i]
         local pd = GetPartyDot(i)
         -- UnitIsVisible is true only when the member is in the same area as us
         -- and in range. A friend in their own (separate) house is not visible,
@@ -1439,7 +1507,7 @@ canvas:SetScript("OnUpdate", function()
         -- share a map id and reuse similar coordinates.
         local uy, ux = UnitPosition(unit)
         local upx, upy
-        if ux and UnitIsVisible(unit) then
+        if ux and UnitIsVisible(unit) and not UnitIsUnit(unit, "player") then
             upx, upy = WorldToCanvas(ux, uy)
             -- Drop dots that would land outside the canvas
             if upx < 0 or upy < 0 or upx > canvas:GetWidth() or upy > canvas:GetHeight() then
@@ -1459,6 +1527,11 @@ canvas:SetScript("OnUpdate", function()
             pd:Hide()
         end
     end
+    -- Dots past the current roster stay behind after leaving a raid, shrinking
+    -- the group, or flipping the setting off. Put them away.
+    for i = numUnits + 1, #partyDots do
+        partyDots[i]:Hide()
+    end
 end)
 
 -- OnShow/OnHide also track the open flag, so every close path (the Close button,
@@ -1473,6 +1546,12 @@ end)
 fp:SetScript("OnHide", function()
     if ChamberlainDB and ChamberlainDB.settings then
         ChamberlainDB.settings.floorPlanOpen = false
+    end
+    -- A docked toolbox is part of this window, so closing the map puts it away
+    -- too. Without the explicit Hide it would pop back the next time the map
+    -- alone is opened, and the Map button is supposed to open just the map.
+    if CH.toolbox and CH.toolbox:GetParent() == fp and CH.toolbox:IsShown() then
+        CH.toolbox:Hide()
     end
 end)
 
