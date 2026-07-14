@@ -41,7 +41,12 @@ UI\RoomDialog.lua
 Sharing\Share.lua
 Sharing\ShareUI.lua
 UI\RoomManager.lua
-UI\FloorPlan.lua
+UI\FloorPlan\Window.lua
+UI\FloorPlan\Transform.lua
+UI\FloorPlan\Floors.lua
+UI\FloorPlan\Tiles.lua
+UI\FloorPlan\EditPanel.lua
+UI\FloorPlan\Dots.lua
 UI\FixHouse.lua
 UI\Stairs.lua
 UI\WhatsNew.lua
