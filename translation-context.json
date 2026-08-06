@@ -15,7 +15,8 @@
     "HUD_CORNER_B_NONE",
     "HUD_CORNER_A_X",
     "HUD_CORNER_B_X",
-    "HOUSE_COORD_X"
+    "HOUSE_COORD_X",
+    "CT_CREATOR_NAME"
   ],
 
   "prefixes": [
@@ -42,7 +43,8 @@
     { "match": "FIX_", "context": "Text in the house fixer, a repair dialog opened with /rooms fixer. Moving a house in WoW gives it a new internal id and owner name, orphaning the saved rooms, and this re-points a saved house at the one the player is standing in." },
     { "match": "ST_", "context": "Text in the stairs and floor-marker setup windows." },
     { "match": "SHARE_", "context": "A message about sharing house layouts with your group, printed to chat." },
-    { "match": "SUI_", "context": "A button or prompt in the layout-sharing dialogs." }
+    { "match": "SUI_", "context": "A button or prompt in the layout-sharing dialogs." },
+    { "match": "CT_", "context": "The creator-thanks scene: a butler introduces the addon's author, who thanks the player in a short speech. Warm, spoken register." }
   ],
 
   "terms": [
@@ -58,6 +60,10 @@
     { "match": "Banner", "whole": false, "context": "The gold on-screen room-name banner that fades in when you enter a room." },
     { "match": "Secret", "whole": false, "context": "A room hidden from visitors' map and list (adjective)." },
     { "match": "Stairs", "whole": false, "context": "Staircase anchors used to detect which floor the player is on." },
+    { "match": "Rothirr", "whole": false, "context": "A player character's name, keep exactly as written." },
+    { "match": "Savulohikala", "whole": false, "context": "A player character's name, keep exactly as written." },
+    { "match": "Thraut", "whole": false, "context": "A player character's name, keep exactly as written." },
+    { "match": "Sylvanas", "whole": false, "context": "A WoW realm (server) name, keep exactly as written." },
     { "match": "Room", "whole": false, "context": "A named rectangular zone inside a house." },
     { "match": "Feminine", "whole": false, "context": "Describes a text-to-speech voice that sounds female. One half of a Feminine/Masculine pair of voice options, so keep it a voice descriptor that reads parallel with its Masculine counterpart, not a term for biological sex." },
     { "match": "Masculine", "whole": false, "context": "Describes a text-to-speech voice that sounds male. One half of a Feminine/Masculine pair of voice options, so keep it a voice descriptor that reads parallel with its Feminine counterpart, not a term for biological sex." }

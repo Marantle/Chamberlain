@@ -46,7 +46,7 @@ end
 -- An anchor is a zone that changes the active floor when stepped on. Absolute
 -- anchors (setFloor) jump to a fixed floor. Relative anchors (floorDelta) move
 -- up/down from the current one. A zone with neither is an ordinary room.
-local function IsAnchor(zone)
+function CH.IsAnchor(zone)
     return zone.setFloor ~= nil or zone.floorDelta ~= nil
 end
 
@@ -60,7 +60,7 @@ end
 --     fires from any floor (the power-user dialog option, used rarely).
 local function FindActiveAnchor(h, x, y, mapID)
     for _, zone in ipairs(h.zones) do
-        if IsAnchor(zone) and IsInZone(zone, x, y, mapID) then
+        if CH.IsAnchor(zone) and IsInZone(zone, x, y, mapID) then
             local fires
             if zone.setFloor ~= nil then
                 fires = (zone.fromFloor == nil) or (zone.fromFloor == CH.activeFloor)
@@ -417,7 +417,7 @@ function CH.CheckZones()
     local found = nil
     local foundArea = math.huge
     for _, zone in ipairs(h.zones) do
-        if IsInZone(zone, x, y, mapID) and (zone.floor or 1) == CH.activeFloor and not IsAnchor(zone) then
+        if IsInZone(zone, x, y, mapID) and (zone.floor or 1) == CH.activeFloor and not CH.IsAnchor(zone) then
             local area = CH.ZoneArea(zone)
             if area < foundArea then
                 found = zone

@@ -630,7 +630,7 @@ end
 function CH.OpenRenameDialog(zone, houseGUID)
     -- Stair anchors get a stripped editor (name, floor, behaviour) instead of the
     -- full room dialog, which has yapper/description/voice/secret they never use.
-    if (zone.setFloor ~= nil or zone.floorDelta ~= nil) and CH.OpenAnchorEditor then
+    if CH.IsAnchor(zone) and CH.OpenAnchorEditor then
         CH.OpenAnchorEditor(zone, houseGUID)
         return
     end

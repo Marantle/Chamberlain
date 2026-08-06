@@ -1,5 +1,13 @@
 # Changelog
 
+## 3.4.0
+- Added a credits button to Settings. Worth a minute when you have one.
+- Sharing now has a sibling switch, Receiving. Sharing is your houses going out,
+  Receiving is other people's houses coming in. Turn Receiving off and their
+  catalogs and layouts are dropped before any popup can fire, and whatever the
+  Party tab had already collected is cleared out. With Sharing off, requests for
+  your houses are now ignored outright instead of popping a consent dialog at you.
+
 ## 3.3.0
 - The build toolbox now docks to the right edge of the house map, so Build opens the
   pair and they move as one window. Drag the toolbox away to set it floating on its

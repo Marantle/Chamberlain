@@ -279,6 +279,17 @@ function CH.QueueBroadcast(guid)
 end
 
 function CH.RequestLayout(houseGUID)
+    -- Called from a Party tab button, so refusals say why instead of doing
+    -- nothing. Requesting needs both levers: receiving to take the answer,
+    -- sharing because it goes out over the same muted wire.
+    if not ChamberlainDB.settings.receiveEnabled then
+        CH.Print(CH.L["SHARE_RECV_OFF"])
+        return
+    end
+    if not ChamberlainDB.settings.shareEnabled then
+        CH.Print(CH.L["SHARE_OFF"])
+        return
+    end
     if not CanSend() then
         return
     end
@@ -488,8 +499,8 @@ function CH.ReceiveLayout(houseGUID, data, senderName)
     -- take it silently, otherwise ask whether to accept it.
     if ChamberlainDB.trusted[senderName] then
         CH.ApplyLayout(houseGUID, data, senderName)
-    else
-        CH.ShowAcceptDialog(houseGUID, data, senderName)
+    elseif CH.onLayoutReceived then
+        CH.onLayoutReceived(houseGUID, data, senderName)
     end
 end
 
@@ -703,6 +714,21 @@ function CH.HandleMessage(prefix, payload, _, fullSender)
         return
     end
 
+    -- The two sharing levers. Sharing off ignores requests for our houses
+    -- outright, so nobody can spam the consent popup. Receiving off drops other
+    -- people's catalogs and layout pushes before any UI fires.
+    if msgType == "LAYOUT_REQ" and not ChamberlainDB.settings.shareEnabled then
+        Debug("recv dropped (sharing off): LAYOUT_REQ from", sender)
+        return
+    end
+    if
+        not ChamberlainDB.settings.receiveEnabled
+        and (msgType == "CATALOG" or msgType == "BLOBSTART" or msgType == "BLOB")
+    then
+        Debug("recv dropped (receiving off):", msgType, "from", sender)
+        return
+    end
+
     if msgType == "CATALOG" then
         local guid = parts[2]
         local owner = parts[3]
@@ -737,7 +763,9 @@ function CH.HandleMessage(prefix, payload, _, fullSender)
             Send("LAYOUT_DECLINE|" .. guid)
             return
         end
-        CH.ShowConsentDialog(sender, guid)
+        if CH.onConsentRequired then
+            CH.onConsentRequired(sender, guid)
+        end
     elseif msgType == "BLOBSTART" then
         local guid = parts[2]
         local owner = parts[3]

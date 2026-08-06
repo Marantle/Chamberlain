@@ -227,6 +227,7 @@ L["RM_STATUS_NEWER_AVAILABLE"] = "|cff44FF44Newer available|r"
 L["RM_STATUS_UP_TO_DATE"] = "|cff666666Up to date|r"
 L["RM_SECTION_SHARING"] = "Sharing"
 L["RM_TOGGLE_SHARING"] = "Sharing"
+L["RM_TOGGLE_RECEIVING"] = "Receiving"
 L["RM_TOGGLE_ENTRY_SOUND"] = "Entry sound"
 L["RM_TOGGLE_ROOM_DESCRIPTIONS"] = "Room descriptions"
 L["RM_TOGGLE_SHOW_BANNERS"] = "Room banners"
@@ -355,6 +356,7 @@ L["ST_DEFAULT_TO_FLOOR_X"] = "To floor %d"
 
 -- ── Party sharing core (Sharing/Share.lua) ───────────────────────────
 L["SHARE_OFF"] = "Sharing is turned off. Enable it in settings first."
+L["SHARE_RECV_OFF"] = "Receiving houses is turned off. Enable it in settings first."
 L["SHARE_JOIN_GROUP"] = "Join a group to share your houses."
 L["SHARE_CANT_NOW"] = "Can't share right now (in combat or a timed instance)."
 L["SHARE_CANT_OUTDATED_X"] = "Can't share -- these group members need to update Chamberlain: %s."
@@ -415,3 +417,13 @@ L["SUI_CLOSE"] = "Close"
 L["SUI_NO_EXPORT"] = "No rooms to export for this house."
 L["SUI_COPY_HINT"] = "Press Ctrl+C to copy the layout string."
 L["SUI_PASTE_HINT"] = "Paste a layout string and click Import."
+
+-- ── Creator thanks scene (UI/CreatorThanks.lua) ──────────────────────
+L["CT_WINDOW_TITLE"] = "From the Creator"
+L["CT_BUTTON"] = "From the creator"
+L["CT_INTRO_NAME"] = "Lord Chamberlain"
+L["CT_CREATOR_NAME"] = "Rothirr"
+L["CT_INTRO_TEXT"] =
+    "Ahem. The keeper of this addon begs a moment of your evening. May I present my employer, Rothirr. Or, as you are about to see, more or less them."
+L["CT_SPEECH"] =
+    "First, an apology. The figure before you is your own character wearing my clothes. Yours was the only model your game would lend me for this scene, and it suits the occasion, because Chamberlain exists as much through you as through me.\n\nI wanted to say thank you. Thank you for giving my butler a home. News of how it lands only reaches me in small ways, through a few guildmates and their housing-mad friends, and once through catching the addon running in someone's stream. I sat there reading the chat's kind comments with a grin I refuse to explain. That evening is a good part of why this scene exists.\n\nIf something misbehaves, or you have an idea Chamberlain ought to learn, come bother me. You will find me most often on Thraut or Savulohikala on Sylvanas EU, or you can leave a comment on CurseForge.\n\nThis began as a small tool for my own house, and watching it wander into yours has been the best part of building it. Enjoy your rooms, and may the banner always call them by name.\n\nRothirr"

@@ -1,6 +1,6 @@
 local ADDON, CH = ...
 
-CH.VERSION = "3.3.0"
+CH.VERSION = "3.4.0"
 
 -- How often the zone ticker samples your position, in seconds. Drives stair
 -- detection and the per-room time stats both, so they stay in step if it changes.
@@ -98,6 +98,12 @@ events:SetScript("OnEvent", function(_, event, arg1)
         end
         if ChamberlainDB.settings == nil then
             ChamberlainDB.settings = { conflictMode = "ask", shareEnabled = true }
+        end
+        -- The sharing levers are separate. shareEnabled is "my houses go out"
+        -- (broadcasts, serving requests). receiveEnabled is "other people's
+        -- houses come in" (catalogs, pushed layouts, the accept dialog).
+        if ChamberlainDB.settings.receiveEnabled == nil then
+            ChamberlainDB.settings.receiveEnabled = true
         end
         if ChamberlainDB.settings.entrySound == nil then
             ChamberlainDB.settings.entrySound = false

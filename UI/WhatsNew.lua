@@ -18,6 +18,16 @@ local _, CH = ...
 -- (title, buttons) is still localized.
 CH.WHATS_NEW = {
     {
+        v = "3.4.0",
+        notes = {
+            "There is a small thank-you waiting in Settings, behind a From the creator "
+                .. "button. Give it a minute when you have one to spare.",
+            "Sharing got a sibling switch, Receiving. Turn it off and other people's "
+                .. "houses never reach you, no catalogs, no popups. Sharing off now also "
+                .. "ignores requests for your houses instead of asking you to decline them.",
+        },
+    },
+    {
         v = "3.3.0",
         notes = {
             "The build toolbox now docks to the house map, so Build opens them as one "

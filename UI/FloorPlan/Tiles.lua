@@ -18,11 +18,6 @@ local PALETTE = {
     { 0.65, 1.00, 0.35 },
 }
 
--- An anchor is a stair-link zone, drawn with a distinct border and an arrow glyph.
-local function FPIsAnchor(zone)
-    return zone.setFloor ~= nil or zone.floorDelta ~= nil
-end
-
 local function AnchorGlyph(zone)
     if zone.floorDelta == 1 then
         return "|cff66ddff^|r "
@@ -281,7 +276,7 @@ function FP.Build()
         if not FP.ZoneVisible(zone) then
             return false
         end
-        if FPIsAnchor(zone) then
+        if CH.IsAnchor(zone) then
             if not showStairs then
                 return false
             end
@@ -360,7 +355,7 @@ function FP.Build()
             f:SetPoint("TOPLEFT", canvas, "TOPLEFT", px, -py)
             f:SetSize(zw, zh)
             SetZoneRound(f, zone.shape == "circle")
-            local anchor = FPIsAnchor(zone)
+            local anchor = CH.IsAnchor(zone)
             -- Selected tiles get a fat ring: inset the fill by 3px (vs 1px normally)
             -- so the border texture shows through as a thick band. The pool reuses
             -- frames, so the unselected branch has to put the inset back to 1px.

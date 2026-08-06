@@ -63,4 +63,5 @@ read_globals = {
     "GetBuildInfo",
     "Enum",
     "UnitSex",
+    "ItemUtil",
 }

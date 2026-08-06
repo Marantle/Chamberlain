@@ -229,18 +229,11 @@ function CH.SaveStairs()
     table.insert(h.zones, bottom)
     table.insert(h.zones, top)
     h.owner = CH.currentHouseOwner or h.owner
-    h.updatedAt = GetServerTime()
 
     if wiz then
         wiz:Hide()
     end
-    if CH.RebuildFloorPlan then
-        CH.RebuildFloorPlan()
-    end
-    if CH.RefreshMyRoomsTab then
-        CH.RefreshMyRoomsTab()
-    end
-    CH.QueueBroadcast(CH.currentHouseGUID)
+    CH.TouchHouse(CH.currentHouseGUID)
     CH.Print(CH.L["ST_STAIRS_ADDED_X"], lowerFloor, upper)
 end
 
@@ -371,18 +364,11 @@ function CH.SaveFloorMarker()
 
     table.insert(h.zones, z)
     h.owner = CH.currentHouseOwner or h.owner
-    h.updatedAt = GetServerTime()
 
     if marker then
         marker:Hide()
     end
-    if CH.RebuildFloorPlan then
-        CH.RebuildFloorPlan()
-    end
-    if CH.RefreshMyRoomsTab then
-        CH.RefreshMyRoomsTab()
-    end
-    CH.QueueBroadcast(CH.currentHouseGUID)
+    CH.TouchHouse(CH.currentHouseGUID)
     CH.Print(CH.L["ST_MARKER_ADDED_X"], markerFloor)
 end
 
@@ -591,20 +577,8 @@ function CH.SaveAnchorEdit()
     -- aeFromFloor is the live pairing: set while it's a staircase, cleared the moment
     -- a one-way behaviour is chosen. Persist it straight through.
     z.fromFloor = aeFromFloor
-    local h = AnchorEditorHouse()
-    if h then
-        h.updatedAt = GetServerTime()
-    end
     editor:Hide()
-    if CH.RebuildFloorPlan then
-        CH.RebuildFloorPlan()
-    end
-    if CH.RefreshMyRoomsTab then
-        CH.RefreshMyRoomsTab()
-    end
-    if aeGuid then
-        CH.QueueBroadcast(aeGuid)
-    end
+    CH.TouchHouse(aeGuid)
 end
 
 function CH.OpenAnchorEditor(zone, houseGUID)

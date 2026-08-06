@@ -196,6 +196,15 @@ btnDecline:SetScript("OnClick", function()
     ShowNextAccept()
 end)
 
+-- Share.lua fires these instead of calling the dialogs directly, so the wire
+-- layer stays free of UI knowledge. Wired here once both dialogs exist.
+CH.onLayoutReceived = function(houseGUID, data, senderName)
+    CH.ShowAcceptDialog(houseGUID, data, senderName)
+end
+CH.onConsentRequired = function(sender, guid)
+    CH.ShowConsentDialog(sender, guid)
+end
+
 -- ─────────────────────────────────────────────────────────────────────
 -- Transfer Progress Bars
 -- ─────────────────────────────────────────────────────────────────────

@@ -39,7 +39,7 @@ end
 -- or /rooms settings), so the manager is just My Rooms and Party. The settings
 -- panel below and everything built into it is parented here.
 local settingsWin = CreateFrame("Frame", "ChamberlainSettings", UIParent, "BackdropTemplate")
-settingsWin:SetSize(320, 544)
+settingsWin:SetSize(320, 568)
 settingsWin:SetFrameStrata("DIALOG")
 settingsWin:SetToplevel(true)
 settingsWin:SetPoint("CENTER")
@@ -53,9 +53,17 @@ panelSettings:SetPoint("TOPLEFT", settingsWin, "TOPLEFT", 8, -30)
 panelSettings:SetPoint("BOTTOMRIGHT", settingsWin, "BOTTOMRIGHT", -8, 40)
 
 local setClose = CH.MakeButton(settingsWin, "RM_CLOSE", 80, 22)
-setClose:SetPoint("BOTTOM", settingsWin, "BOTTOM", 0, 10)
+setClose:SetPoint("BOTTOMRIGHT", settingsWin, "BOTTOMRIGHT", -10, 10)
 setClose:SetScript("OnClick", function()
     settingsWin:Hide()
+end)
+
+-- A word from the author, tucked down here so it never nags anyone.
+local thanksBtn = CH.MakeButton(settingsWin, "CT_BUTTON", 120, 22)
+thanksBtn:SetPoint("BOTTOMLEFT", settingsWin, "BOTTOMLEFT", 10, 10)
+thanksBtn:SetScript("OnClick", function()
+    settingsWin:Hide()
+    CH.OpenCreatorThanks()
 end)
 
 local mgrClose = CH.MakeButton(roomMgr, "RM_CLOSE", 80, 22)
@@ -556,16 +564,34 @@ CH.MakeSectionHeader(panelSettings, "RM_SECTION_SHARING", -6)
 local shareToggle = CH.MakeToggleButton(panelSettings, "RM_TOGGLE_SHARING", "shareEnabled")
 shareToggle:SetPoint("TOPLEFT", 4, -22)
 
+-- Receiving lever, separate from sharing. Flipping it off also drops anything
+-- already collected (party catalogs, half-finished transfers) so the Party tab
+-- doesn't keep offering houses that can no longer arrive.
+local recvToggle = CH.MakeToggleButton(panelSettings, "RM_TOGGLE_RECEIVING", "receiveEnabled")
+recvToggle:SetPoint("TOPLEFT", 4, -46)
+recvToggle:HookScript("OnClick", function()
+    if not ChamberlainDB.settings.receiveEnabled then
+        wipe(CH.partyCatalogs)
+        wipe(CH.pendingLayouts)
+        if CH.HideReceiveProgress then
+            CH.HideReceiveProgress()
+        end
+        if CH.RefreshPartyTab then
+            CH.RefreshPartyTab()
+        end
+    end
+end)
+
 local soundToggle = CH.MakeToggleButton(panelSettings, "RM_TOGGLE_ENTRY_SOUND", "entrySound")
-soundToggle:SetPoint("TOPLEFT", 4, -46)
+soundToggle:SetPoint("TOPLEFT", 4, -70)
 
 local roomTextToggle = CH.MakeToggleButton(panelSettings, "RM_TOGGLE_ROOM_DESCRIPTIONS", "showRoomText")
-roomTextToggle:SetPoint("TOPLEFT", 4, -70)
+roomTextToggle:SetPoint("TOPLEFT", 4, -94)
 
 -- Turn the gold room banner off entirely, for players who only want the map. It's
 -- personal and local, never shared. Flipping it off drops any banner that's up.
 local bannerToggle = CH.MakeToggleButton(panelSettings, "RM_TOGGLE_SHOW_BANNERS", "bannerEnabled")
-bannerToggle:SetPoint("TOPLEFT", 4, -94)
+bannerToggle:SetPoint("TOPLEFT", 4, -118)
 bannerToggle:HookScript("OnClick", function()
     if CH.OnBannerSettingChanged then
         CH.OnBannerSettingChanged()
@@ -575,12 +601,12 @@ end)
 -- Class-colored dots for party (and raid) members on the floor plan. Positions
 -- are read locally, so the others don't need the addon.
 local groupDotsToggle = CH.MakeToggleButton(panelSettings, "RM_TOGGLE_GROUP_ON_MAP", "showGroupDots")
-groupDotsToggle:SetPoint("TOPLEFT", 4, -118)
+groupDotsToggle:SetPoint("TOPLEFT", 4, -142)
 
 -- Banner fade-out: seconds before the room banner fades after it appears. 0 keeps
 -- it up until you leave the room.
 local bannerTimeoutLabel = panelSettings:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-bannerTimeoutLabel:SetPoint("TOPLEFT", 8, -146)
+bannerTimeoutLabel:SetPoint("TOPLEFT", 8, -170)
 bannerTimeoutLabel:SetText(CH.L["RM_BANNER_FADE_OUT"])
 
 local bannerSlider = CH.MakeSlider(panelSettings, 120, 0, 20, 1)
@@ -600,16 +626,16 @@ bannerSlider:SetScript("OnValueChanged", function(_, value)
     UpdateBannerTimeoutLabel(value)
 end)
 
-CH.MakeSep(panelSettings, -168)
-CH.MakeSectionHeader(panelSettings, "RM_SECTION_ROOM_NARRATION", -174)
+CH.MakeSep(panelSettings, -192)
+CH.MakeSectionHeader(panelSettings, "RM_SECTION_ROOM_NARRATION", -198)
 
 -- When on, your personal voices read rooms shared to you that carry no voice
 -- (your own rooms always use the per-room voice you set in the room dialog).
 local voiceToggle = CH.MakeToggleButton(panelSettings, "RM_TOGGLE_USE_DEFAULT_VOICES", "voiceDefaultsEnabled")
-voiceToggle:SetPoint("TOPLEFT", 4, -190)
+voiceToggle:SetPoint("TOPLEFT", 4, -214)
 
 local femLabel = panelSettings:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-femLabel:SetPoint("TOPLEFT", 8, -220)
+femLabel:SetPoint("TOPLEFT", 8, -244)
 femLabel:SetText(CH.L["RM_FEMININE"])
 
 local femVoice = CH.MakeVoiceDropdown(panelSettings, 150, "RM_VOICE_NONE", function()
@@ -617,7 +643,7 @@ local femVoice = CH.MakeVoiceDropdown(panelSettings, 150, "RM_VOICE_NONE", funct
 end, function(n)
     ChamberlainDB.settings.voiceFemale = n
 end)
-femVoice:SetPoint("TOPLEFT", 84, -216)
+femVoice:SetPoint("TOPLEFT", 84, -240)
 
 local femTest = CH.MakeButton(panelSettings, "RM_TEST", 44, 20)
 femTest:SetPoint("LEFT", femVoice, "RIGHT", 6, 0)
@@ -631,7 +657,7 @@ femTest:SetScript("OnClick", function()
 end)
 
 local malLabel = panelSettings:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-malLabel:SetPoint("TOPLEFT", 8, -246)
+malLabel:SetPoint("TOPLEFT", 8, -270)
 malLabel:SetText(CH.L["RM_MASCULINE"])
 
 local malVoice = CH.MakeVoiceDropdown(panelSettings, 150, "RM_VOICE_NONE", function()
@@ -639,7 +665,7 @@ local malVoice = CH.MakeVoiceDropdown(panelSettings, 150, "RM_VOICE_NONE", funct
 end, function(n)
     ChamberlainDB.settings.voiceMale = n
 end)
-malVoice:SetPoint("TOPLEFT", 84, -242)
+malVoice:SetPoint("TOPLEFT", 84, -266)
 
 local malTest = CH.MakeButton(panelSettings, "RM_TEST", 44, 20)
 malTest:SetPoint("LEFT", malVoice, "RIGHT", 6, 0)
@@ -653,23 +679,23 @@ malTest:SetScript("OnClick", function()
 end)
 
 local voiceNote = panelSettings:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-voiceNote:SetPoint("TOPLEFT", 8, -270)
+voiceNote:SetPoint("TOPLEFT", 8, -294)
 voiceNote:SetPoint("RIGHT", panelSettings, "RIGHT", -8, 0)
 voiceNote:SetJustifyH("LEFT")
 voiceNote:SetWordWrap(true)
 voiceNote:SetText(CH.L["RM_VOICE_NOTE"])
 voiceNote:SetTextColor(CH.RGBA(CH.COLORS.dim, 1))
 
-CH.MakeSep(panelSettings, -326)
-CH.MakeSectionHeader(panelSettings, "RM_SECTION_TRUSTED_BLOCKED", -332)
+CH.MakeSep(panelSettings, -350)
+CH.MakeSectionHeader(panelSettings, "RM_SECTION_TRUSTED_BLOCKED", -356)
 
 local blockDesc = panelSettings:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-blockDesc:SetPoint("TOPLEFT", 4, -348)
+blockDesc:SetPoint("TOPLEFT", 4, -372)
 blockDesc:SetText(CH.L["RM_TRUST_BLOCK_DESC"])
 blockDesc:SetTextColor(CH.RGBA(CH.COLORS.muted, 1))
 
 local blockScroll, blockScrollChild = CH.MakeScrollList(panelSettings, "ChamberlainBlockScroll")
-blockScroll:SetPoint("TOPLEFT", panelSettings, "TOPLEFT", 0, -364)
+blockScroll:SetPoint("TOPLEFT", panelSettings, "TOPLEFT", 0, -388)
 blockScroll:SetPoint("BOTTOMRIGHT", panelSettings, "BOTTOMRIGHT", -20, 0)
 
 local blockEmpty = blockScrollChild:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
@@ -759,6 +785,7 @@ end
 
 local function RefreshSettingsTab()
     shareToggle:Refresh()
+    recvToggle:Refresh()
     soundToggle:Refresh()
     roomTextToggle:Refresh()
     bannerToggle:Refresh()
