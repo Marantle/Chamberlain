@@ -135,8 +135,8 @@ release-wowi: release-check package notes
 	@test -n "$(WOWI_PROJECT)" || { echo "Error: X-WoWI-ID not set in $(ADDON).toc"; exit 1; }
 	@echo "Uploading $(ADDON)-$(VERSION).zip to WoWInterface..."
 	@COMPAT_ID=$$(curl -sf "https://api.wowinterface.com/addons/compatible.json" | \
-	  python -c "import json,sys; v='$(TOC_DISPLAY)'; d=json.load(sys.stdin); print(next((x['id'] for x in d if x.get('name')==v),''))"); \
-	test -n "$$COMPAT_ID" || { echo "Error: WoW $(TOC_DISPLAY) not found in WoWInterface API"; exit 1; }; \
+	  python -c "import json,sys; v='$(TOC_VERSION)'; d=json.load(sys.stdin); print(next((x['id'] for x in d if x.get('interface')==v),''))"); \
+	test -n "$$COMPAT_ID" || { echo "Error: interface $(TOC_VERSION) not found in WoWInterface API"; exit 1; }; \
 	curl -sf \
 	  -H "x-api-token: $(WOWI_API_TOKEN)" \
 	  -F "id=$(WOWI_PROJECT)" \
