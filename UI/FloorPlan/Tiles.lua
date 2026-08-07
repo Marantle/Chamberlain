@@ -255,18 +255,35 @@ function FP.Build()
     -- Anchors show on every floor they actually reach, not just the one they sit on,
     -- so the map matches how they fire: a floor marker (no fromFloor) triggers from
     -- anywhere, and a staircase connects two floors.
+
+    -- Another anchor pointing the opposite way, meaning this box is one landing of
+    -- a staircase rather than a lone floor switch. By direction, not by wizard,
+    -- since the data doesn't record which one built the box.
+    local function HasMate(zone)
+        for _, z in ipairs(h.zones) do
+            if z ~= zone and z.setFloor == zone.fromFloor and z.fromFloor == zone.setFloor then
+                return true
+            end
+        end
+        return false
+    end
+
     local function AnchorOnViewedFloor(zone)
         local f = zone.floor or 1
         if zone.setFloor and zone.fromFloor then
-            -- A staircase links fromFloor and setFloor. Show it on both so the pair
-            -- can be aligned from either floor. (Keyed off the linked floors, not
-            -- `floor`, since a landing now sits on the floor it fires from.)
-            return viewedFloor == zone.fromFloor or viewedFloor == zone.setFloor
+            -- Its own floor always. The floor it sends to only when a mate points
+            -- back, so a staircase pair can still be aligned from either floor
+            -- while a lone switch stays off the map of the floor it lands on.
+            if viewedFloor == zone.fromFloor then
+                return true
+            end
+            return viewedFloor == zone.setFloor and HasMate(zone)
         elseif zone.setFloor then
             return true -- floor marker: fires from any floor
-        elseif zone.floorDelta then
-            return viewedFloor == f or viewedFloor == f + zone.floorDelta
         end
+        -- Relative hops (floorDelta) and anything else sit on one floor and show
+        -- only there. A hop has no mate to align against, so it stays off the
+        -- floor it sends to.
         return viewedFloor == f
     end
 

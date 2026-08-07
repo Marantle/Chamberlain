@@ -1,5 +1,24 @@
 # Changelog
 
+## 3.5.0
+- The Floor pin now asks which floor it works from. It starts on the floor you are
+  standing on, so the pin fires only from that floor and the map shows it only
+  there. Step the selector down past floor 1 to get the old kind that works from
+  every floor. Saving is blocked while the pin would send you to the floor it
+  already works from, since that would never do anything. This also makes pins a
+  way to hand-build custom stairs: two pointing at each other work exactly like a
+  stair pair, and a single one covers a one-way trip, like a ladder up or a
+  balcony jump down.
+- The house map draws floor markers where they actually live. A lone pin or a
+  one-floor hop shows only on its own floor now, while a stair pair still shows on
+  both floors it connects, so the two ends can be lined up from either side.
+- Editing stairs got simpler. The edit window now shows the same two rows as the
+  pin: which floor the anchor works from and which floor it sends you to, instead
+  of the old behaviour menu. Any combination can be set directly, so turning a
+  landing between floors 1 and 2 into one between 2 and 3 no longer means deleting
+  it and starting over. The old "up one floor" and "down one floor" anchors still
+  work and read as from/to in the editor.
+
 ## 3.4.0
 - Added a credits button to Settings. Worth a minute when you have one.
 - Sharing now has a sibling switch, Receiving. Sharing is your houses going out,

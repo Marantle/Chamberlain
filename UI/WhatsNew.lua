@@ -18,6 +18,24 @@ local _, CH = ...
 -- (title, buttons) is still localized.
 CH.WHATS_NEW = {
     {
+        v = "3.5.0",
+        notes = {
+            "The Floor pin now asks which floor it works from. It starts on the floor "
+                .. "you are standing on, so it fires only from there and the map shows "
+                .. "it only there. Step the selector down past floor 1 to get the old "
+                .. "kind that works from every floor.",
+            "Pins can build custom stairs now. Two of them pointing at each other work "
+                .. "exactly like a stair pair, and a single one covers a one-way trip, "
+                .. "like a ladder up or a balcony jump down.",
+            "The house map draws floor markers where they actually live. A lone pin or "
+                .. "a one-floor hop shows only on its own floor now, while a stair pair "
+                .. "still shows on both floors it connects.",
+            "Editing stairs got simpler. The edit window shows the same two rows as "
+                .. "the pin, which floor it works from and which floor it sends you to, "
+                .. "and any combination can be set directly.",
+        },
+    },
+    {
         v = "3.4.0",
         notes = {
             "There is a small thank-you waiting in Settings, behind a From the creator "

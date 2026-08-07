@@ -73,6 +73,19 @@ local function HouseFloorCount()
     return (h and h.floorCount) or 1
 end
 
+-- Grow a window to fit however much hint text it carries, leaving room for the
+-- buttons below it. Recomputed on show, when layout is fully realized.
+local function FitToHint(frame, hint, hintTop)
+    local function fit()
+        local hh = hint:GetStringHeight()
+        if hh and hh > 1 then
+            frame:SetHeight(hintTop + hh + 52)
+        end
+    end
+    frame:SetScript("OnShow", fit)
+    fit()
+end
+
 local function BuildWizard()
     if wiz then
         return wiz
@@ -153,16 +166,7 @@ local function BuildWizard()
         wiz:Hide()
     end)
 
-    -- Grow the window to fit however much hint text there is, leaving room for the
-    -- buttons below it. Recomputed on show, when layout is fully realized.
-    local function FitHeight()
-        local hh = hint:GetStringHeight()
-        if hh and hh > 1 then
-            wiz:SetHeight(HINT_TOP + hh + 52)
-        end
-    end
-    wiz:SetScript("OnShow", FitHeight)
-    FitHeight()
+    FitToHint(wiz, hint, HINT_TOP)
 
     return wiz
 end
@@ -259,12 +263,17 @@ end
 
 -- ── Floor marker (single "go to floor N" anchor) ─────────────────────
 -- A simpler one-shot anchor than a staircase: stand somewhere, pick a floor, and
--- stepping there always sets that floor (from anywhere). Useful for a lift, a
--- balcoy drop, or any spot the stair pair can't cover. Keep these from sitting
--- directly above or below each other, or they'll fight over the floor.
+-- stepping there sets that floor. The works-from selector scopes it to a single
+-- starting floor, by default the one you're on. That's just a stair landing
+-- without the mate, so it rides the same fromFloor field the sharing blob
+-- already carries. Set to any floor instead, it fires from wherever you are,
+-- handy for a lift, a balcoy drop, or any spot the stair pair can't cover, but
+-- keep those from sitting directly above or below each other, or they'll fight
+-- over the floor.
 
 local marker
 local markerFloor = 1
+local markerFrom -- nil = fires from any floor
 local markerSpot -- captured { x, y, mapID }
 
 local function BuildMarker()
@@ -296,8 +305,29 @@ local function BuildMarker()
         CH.RefreshFloorMarker()
     end)
 
+    -- Works-from selector. Stepping below floor 1 lands on "any floor" (nil), so
+    -- the whole range sits on one pair of buttons.
+    local fromLabel = marker:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    fromLabel:SetPoint("TOPLEFT", 18, -72)
+    marker.fromLabel = fromLabel
+
+    local fLess = CH.MakeButton(marker, "-", 22, 20)
+    local fMore = CH.MakeButton(marker, "+", 22, 20)
+    fMore:SetPoint("TOPRIGHT", marker, "TOPRIGHT", -18, -70)
+    fLess:SetPoint("RIGHT", fMore, "LEFT", -4, 0)
+    fLess:SetScript("OnClick", function()
+        if markerFrom then
+            markerFrom = markerFrom > 1 and markerFrom - 1 or nil
+            CH.RefreshFloorMarker()
+        end
+    end)
+    fMore:SetScript("OnClick", function()
+        markerFrom = math.min(HouseFloorCount(), (markerFrom or 0) + 1)
+        CH.RefreshFloorMarker()
+    end)
+
     local spotBtn = CH.MakeButton(marker, "ST_MARK_THIS_SPOT", 150, 24)
-    spotBtn:SetPoint("TOPLEFT", 18, -84)
+    spotBtn:SetPoint("TOPLEFT", 18, -108)
     local spotState = marker:CreateFontString(nil, "OVERLAY", "GameFontDisable")
     spotState:SetPoint("LEFT", spotBtn, "RIGHT", 10, 0)
     marker.spotState = spotState
@@ -310,9 +340,10 @@ local function BuildMarker()
         CH.RefreshFloorMarker()
     end)
 
+    local HINT_TOP = 144
     local hint = marker:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    hint:SetPoint("TOPLEFT", 18, -120)
-    hint:SetPoint("TOPRIGHT", -18, -120)
+    hint:SetPoint("TOPLEFT", 18, -HINT_TOP)
+    hint:SetWidth(344) -- fixed width so the wrapped height is measurable
     hint:SetJustifyH("LEFT")
     hint:SetText(CH.L["ST_MARKER_HINT"])
 
@@ -327,6 +358,8 @@ local function BuildMarker()
         marker:Hide()
     end)
 
+    FitToHint(marker, hint, HINT_TOP)
+
     return marker
 end
 
@@ -335,8 +368,13 @@ function CH.RefreshFloorMarker()
         return
     end
     marker.floorLabel:SetText(string.format(CH.L["ST_SENDS_TO_FLOOR_X"], markerFloor))
+    marker.fromLabel:SetText(
+        markerFrom and string.format(CH.L["ST_WORKS_FROM_X"], markerFrom) or CH.L["ST_WORKS_FROM_ANY"]
+    )
     marker.spotState:SetText(markerSpot and CH.L["ST_READY"] or CH.L["ST_NOT_SET"])
-    marker.save:SetEnabled(markerSpot ~= nil)
+    -- Firing only from the floor it already sends to would never do anyhing, so
+    -- block that combination. Both floors sit right above the button.
+    marker.save:SetEnabled(markerSpot ~= nil and markerFrom ~= markerFloor)
 end
 
 function CH.SaveFloorMarker()
@@ -356,11 +394,14 @@ function CH.SaveFloorMarker()
         h.floorCount = markerFloor
     end
 
-    -- Absolute anchor with no fromFloor: fires from any floor. Walk onto it from
-    -- anywhere and it sets you to this floor.
+    -- Works from any floor: an absolute anchor with no fromFloor, walk onto it
+    -- from anywhere and it sets you to this floor. Scoped to one starting floor:
+    -- a lone stair landing, living on that floor and firing only from it.
     local z = AnchorBox(markerSpot)
     z.name = string.format(CH.L["ST_DEFAULT_TO_FLOOR_X"], markerFloor)
-    z.floor, z.setFloor = markerFloor, markerFloor
+    z.setFloor = markerFloor
+    z.floor = markerFrom or markerFloor
+    z.fromFloor = markerFrom
 
     table.insert(h.zones, z)
     h.owner = CH.currentHouseOwner or h.owner
@@ -387,62 +428,41 @@ function CH.OpenFloorMarkerWizard()
     if markerFloor < 1 then
         markerFloor = 1
     end
+    -- Scoped to the floor you're on by default. Save stays off until the
+    -- destination differs, so picking it is the natural next click.
+    markerFrom = markerFloor
     BuildMarker():Show()
     CH.RefreshFloorMarker()
 end
 
 -- ── Anchor editor (minimal) ──────────────────────────────────────────
 -- Stair anchors don't need the room dialog's yapper, description, voice, colour
--- and secret controls. This is a stripped editor: name, which floor it sits on,
--- and what it does. The floor plan's Edit button (via OpenRenameDialog) routes
--- anchors here instead of the full room dialog.
+-- and secret controls. This is a stripped editor: name, which floor the anchor
+-- works from, and where it sends you. The same two rows as the floor pin wizard,
+-- so creating and editing speak one language. A stair landing reads as from its
+-- own floor to its mate's, an old-style pin as from any floor. The floor plan's
+-- Edit button (via OpenRenameDialog) routes anchors here instead of the full
+-- room dialog.
 
 local editor
 local aeZone, aeGuid -- zone being edited and its house
-local aeFloor -- floor it sits on
-local aeSetFloor, aeFloorDelta -- current behaviour
-local aeFromFloor -- live pairing: the paired floor while it acts as a staircase (nil = one-way)
-local aeOrigSet, aeOrigFrom, aeOrigFloor -- the staircase's setFloor/fromFloor/floor at open, to restore it
+local aeFrom -- floor it works from (nil = any floor)
+local aeTo -- floor it sends you to
 
-local function AnchorEditorHouse()
-    return aeGuid and ChamberlainDB.houses[aeGuid]
-end
-
-local function AeLinkText()
-    -- A staircase landing links its own floor and its paired floor. Show that link
-    -- rather than a one-way "go to floor N", which for a landing would just restate
-    -- the floor it sits on. Choosing any one-way behaviour clears aeFromFloor, so
-    -- this falls through to the plain text below.
-    if aeFromFloor and aeSetFloor then
-        local a = math.min(aeFromFloor, aeSetFloor)
-        local b = math.max(aeFromFloor, aeSetFloor)
-        return string.format(CH.L["ST_LINK_STAIRS_X"], a, b)
-    end
-    if aeSetFloor then
-        return string.format(CH.L["ST_GO_TO_FLOOR_X"], aeSetFloor)
-    elseif aeFloorDelta == 1 then
-        return CH.L["ST_UP_ONE_FLOOR"]
-    elseif aeFloorDelta == -1 then
-        return CH.L["ST_DOWN_ONE_FLOOR"]
-    end
-    return CH.L["ST_NOT_STAIRS"]
+local function AeFloorCount()
+    local h = aeGuid and ChamberlainDB.houses[aeGuid]
+    return (h and h.floorCount) or 1
 end
 
 local function RefreshAnchorEditor()
     if not editor then
         return
     end
-    editor.floorLabel:SetText(string.format(CH.L["ST_ON_FLOOR_X"], aeFloor or 1))
-    editor.linkBtn:SetText(AeLinkText())
-    -- A paired staircase landing sits on a floor fixed by the staircase, so lock the
-    -- floor selector while it's paired. Convert it to a one-way anchor to move it.
-    local locked = aeFromFloor ~= nil
-    if editor.fMore then
-        editor.fMore:SetEnabled(not locked)
-    end
-    if editor.fLess then
-        editor.fLess:SetEnabled(not locked)
-    end
+    editor.fromLabel:SetText(aeFrom and string.format(CH.L["ST_WORKS_FROM_X"], aeFrom) or CH.L["ST_WORKS_FROM_ANY"])
+    editor.toLabel:SetText(string.format(CH.L["ST_SENDS_TO_FLOOR_X"], aeTo))
+    -- Same rule as the wizard: sending to the floor it already works from would
+    -- never do anything.
+    editor.save:SetEnabled(aeFrom ~= aeTo)
 end
 
 local function BuildAnchorEditor()
@@ -451,10 +471,8 @@ local function BuildAnchorEditor()
     end
     editor = CreateFrame("Frame", "ChamberlainAnchorEditor", UIParent, "BackdropTemplate")
     editor:SetSize(340, 196)
-    -- DIALOG (not FULLSCREEN_DIALOG) so the "Does" context menu, which renders just
-    -- above DIALOG, sits in front of this window instead of behind it. Matches the
-    -- room dialog, whose MenuUtil dropdowns work the same way. SetToplevel still
-    -- lifts it above the floor plan / room manager (also DIALOG) on show.
+    -- DIALOG strata to match the room dialog. SetToplevel lifts it above the
+    -- floor plan / room manager (also DIALOG) on show.
     editor:SetFrameStrata("DIALOG")
     editor:SetToplevel(true)
     editor:SetPoint("CENTER")
@@ -471,82 +489,46 @@ local function BuildAnchorEditor()
     end)
     editor.nameBox = nameBox
 
-    -- Floor selector
-    local floorLabel = editor:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    floorLabel:SetPoint("TOPLEFT", 20, -76)
-    editor.floorLabel = floorLabel
+    -- Works-from selector, same shape as the wizard's: stepping below floor 1
+    -- lands on "any floor" (nil).
+    local fromLabel = editor:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    fromLabel:SetPoint("TOPLEFT", 20, -76)
+    editor.fromLabel = fromLabel
     local fMore = CH.MakeButton(editor, "+", 22, 20)
     local fLess = CH.MakeButton(editor, "-", 22, 20)
-    editor.fMore, editor.fLess = fMore, fLess
     fMore:SetPoint("TOPRIGHT", editor, "TOPRIGHT", -18, -74)
     fLess:SetPoint("RIGHT", fMore, "LEFT", -4, 0)
     fLess:SetScript("OnClick", function()
-        aeFloor = math.max(1, (aeFloor or 1) - 1)
-        RefreshAnchorEditor()
+        if aeFrom then
+            aeFrom = aeFrom > 1 and aeFrom - 1 or nil
+            RefreshAnchorEditor()
+        end
     end)
     fMore:SetScript("OnClick", function()
-        local h = AnchorEditorHouse()
-        aeFloor = math.min((h and h.floorCount) or 1, (aeFloor or 1) + 1)
+        aeFrom = math.min(AeFloorCount(), (aeFrom or 0) + 1)
         RefreshAnchorEditor()
     end)
 
-    -- Behaviour dropdown
-    local linkLabel = editor:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    linkLabel:SetPoint("TOPLEFT", 20, -108)
-    linkLabel:SetText(CH.L["ST_DOES"])
-    local linkBtn = CH.MakeButton(editor, "ST_NOT_STAIRS", 150, 22)
-    linkBtn:SetPoint("LEFT", linkLabel, "RIGHT", 10, 0)
-    editor.linkBtn = linkBtn
-    linkBtn:SetScript("OnClick", function(self)
-        if not MenuUtil then
-            return
-        end
-        local h = AnchorEditorHouse()
-        local count = (h and h.floorCount) or 1
-        MenuUtil.CreateContextMenu(self, function(_, root)
-            root:CreateTitle(CH.L["ST_WHEN_STEPPED_ON"])
-            -- Staircase pairing, offered only for landings that came from the stairs
-            -- wizard (aeOrigFrom). Selecting it restores the link. Every one-way
-            -- option below clears aeFromFloor, so the pairing is an explicit choice.
-            if aeOrigFrom then
-                -- The two floors the staircase links are its original setFloor and
-                -- fromFloor, independent of the (possibly edited) "On floor".
-                local lo = math.min(aeOrigSet or aeOrigFloor or 1, aeOrigFrom)
-                local hi = math.max(aeOrigSet or aeOrigFloor or 1, aeOrigFrom)
-                root:CreateRadio(string.format(CH.L["ST_LINK_STAIRS_X"], lo, hi), function()
-                    return aeFromFloor ~= nil
-                end, function()
-                    -- Restore the original staircase: its floor, target, and pairing.
-                    aeFloor = aeOrigFloor or aeFloor
-                    aeSetFloor, aeFloorDelta, aeFromFloor = aeOrigSet, nil, aeOrigFrom
-                    RefreshAnchorEditor()
-                end)
-            end
-            root:CreateRadio(CH.L["ST_UP_ONE_FLOOR"], function()
-                return aeFloorDelta == 1
-            end, function()
-                aeSetFloor, aeFloorDelta, aeFromFloor = nil, 1, nil
-                RefreshAnchorEditor()
-            end)
-            root:CreateRadio(CH.L["ST_DOWN_ONE_FLOOR"], function()
-                return aeFloorDelta == -1
-            end, function()
-                aeSetFloor, aeFloorDelta, aeFromFloor = nil, -1, nil
-                RefreshAnchorEditor()
-            end)
-            for n = 1, count do
-                root:CreateRadio(string.format(CH.L["ST_GO_TO_FLOOR_X"], n), function()
-                    return aeSetFloor == n and not aeFromFloor
-                end, function()
-                    aeSetFloor, aeFloorDelta, aeFromFloor = n, nil, nil
-                    RefreshAnchorEditor()
-                end)
-            end
-        end)
+    -- Destination selector
+    local toLabel = editor:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    toLabel:SetPoint("TOPLEFT", 20, -108)
+    editor.toLabel = toLabel
+    local tMore = CH.MakeButton(editor, "+", 22, 20)
+    local tLess = CH.MakeButton(editor, "-", 22, 20)
+    tMore:SetPoint("TOPRIGHT", editor, "TOPRIGHT", -18, -106)
+    tLess:SetPoint("RIGHT", tMore, "LEFT", -4, 0)
+    tLess:SetScript("OnClick", function()
+        aeTo = math.max(1, aeTo - 1)
+        RefreshAnchorEditor()
+    end)
+    tMore:SetScript("OnClick", function()
+        aeTo = math.min(AeFloorCount(), aeTo + 1)
+        RefreshAnchorEditor()
     end)
 
     local save = CH.MakeButton(editor, "ST_SAVE", 100, 24)
     save:SetPoint("BOTTOMRIGHT", editor, "BOTTOM", -4, 12)
+    editor.save = save
     save:SetScript("OnClick", CH.SaveAnchorEdit)
     local cancel = CH.MakeButton(editor, "ST_CANCEL", 100, 24)
     cancel:SetPoint("BOTTOMLEFT", editor, "BOTTOM", 4, 12)
@@ -571,12 +553,13 @@ function CH.SaveAnchorEdit()
         return
     end
     z.name = name
-    z.floor = aeFloor or 1
-    z.setFloor = aeSetFloor
-    z.floorDelta = aeFloorDelta
-    -- aeFromFloor is the live pairing: set while it's a staircase, cleared the moment
-    -- a one-way behaviour is chosen. Persist it straight through.
-    z.fromFloor = aeFromFloor
+    z.setFloor = aeTo
+    z.fromFloor = aeFrom
+    z.floor = aeFrom or aeTo
+    -- Old relative hops fold into the from/to form on save. The engine still
+    -- reads floorDelta from old data and shared layouts, the editor just stops
+    -- producing it.
+    z.floorDelta = nil
     editor:Hide()
     CH.TouchHouse(aeGuid)
 end
@@ -584,11 +567,17 @@ end
 function CH.OpenAnchorEditor(zone, houseGUID)
     aeZone = zone
     aeGuid = houseGUID or CH.currentHouseGUID
-    aeFloor = zone.floor or 1
-    aeSetFloor = zone.setFloor
-    aeFloorDelta = zone.floorDelta
-    aeFromFloor = zone.fromFloor
-    aeOrigSet, aeOrigFrom, aeOrigFloor = zone.setFloor, zone.fromFloor, zone.floor or 1
+    -- Fold whatever shape the box has into the two rows. A relative hop reads as
+    -- from its own floor to the neighbouring one, which can collapse to from ==
+    -- to for a hop already clamped at the top or bottom of the house (a box that
+    -- fires as a no-op today, and the disabled Save surfaces that).
+    if zone.floorDelta then
+        aeFrom = zone.floor or 1
+        aeTo = math.max(1, math.min(AeFloorCount(), aeFrom + zone.floorDelta))
+    else
+        aeFrom = zone.fromFloor
+        aeTo = zone.setFloor or zone.floor or 1
+    end
     BuildAnchorEditor()
     editor.nameBox:SetText(zone.name or "")
     RefreshAnchorEditor()
