@@ -157,12 +157,12 @@ release-github: release-check package notes
 # skipped with a notice instead of failing. WoWInterface has no alpha/beta channel,
 # so non-release types skip it rather than push a prerelease as the live download.
 release-all: release-check
-	@if [ -n "$(CURSEFORGE_TOKEN)" ]; then $(MAKE) release; else echo "Skipping CurseForge (CURSEFORGE_TOKEN not set)"; fi
-	@if [ -n "$(WAGO_API_TOKEN)" ]; then $(MAKE) release-wago; else echo "Skipping Wago (WAGO_API_TOKEN not set)"; fi
+	@if [ -n "$(CURSEFORGE_TOKEN)" ]; then "$(MAKE)" release; else echo "Skipping CurseForge (CURSEFORGE_TOKEN not set)"; fi
+	@if [ -n "$(WAGO_API_TOKEN)" ]; then "$(MAKE)" release-wago; else echo "Skipping Wago (WAGO_API_TOKEN not set)"; fi
 	@if [ "$(RELEASE_TYPE)" != "release" ]; then echo "Skipping WoWInterface (no alpha/beta channel; RELEASE_TYPE=$(RELEASE_TYPE))"; \
-	  elif [ -n "$(WOWI_API_TOKEN)" ] && [ -n "$(WOWI_PROJECT)" ]; then $(MAKE) release-wowi; \
+	  elif [ -n "$(WOWI_API_TOKEN)" ] && [ -n "$(WOWI_PROJECT)" ]; then "$(MAKE)" release-wowi; \
 	  else echo "Skipping WoWInterface (WOWI_API_TOKEN or X-WoWI-ID not set)"; fi
-	@$(MAKE) release-github
+	@"$(MAKE)" release-github
 
 debug-release: package
 	@test -n "$(CURSEFORGE_TOKEN)" || { echo "Error: CURSEFORGE_TOKEN not set"; exit 1; }
