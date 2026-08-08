@@ -1,9 +1,9 @@
-## Interface: 120007
+## Interface: 120007, 120100
 ## Title: Chamberlain
 ## Notes: Names your housing rooms and announces them as you walk around your house.
 ## Category-enUS: Housing
 ## Category: Housing
-## Version: 3.5.0
+## Version: 3.5.1
 ## Author: Rothirr
 ## IconTexture: 133100
 ## X-Curse-Project-ID: 1573197

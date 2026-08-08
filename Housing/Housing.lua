@@ -8,6 +8,12 @@ CH.currentHouseGUID = nil
 CH.currentHouseOwner = nil
 CH.isOwnHouse = false
 
+-- 12.1 renames IsInsideOwnHouse to IsInsideOwnedHouse (the PTR carries both,
+-- live only the old one). Take whichever exists, drop the fallback once 12.1
+-- is the only client left. The stricter OwnedPlot variants don't matter here,
+-- IsInsideHouse is false on the lawn so this never runs out there.
+local isInsideOwn = C_Housing.IsInsideOwnedHouse or C_Housing.IsInsideOwnHouse
+
 -- The floor the player is currently on. There is no elevation API, so this is
 -- infered: it starts at 1 on entering a house and is changed by walking onto
 -- "anchor" zones placed at stair landings (see CheckZones). In-memory only;
@@ -247,7 +253,7 @@ function CH.CheckHousingState()
     end
 
     CH.hud:Show()
-    CH.isOwnHouse = C_Housing.IsInsideOwnHouse()
+    CH.isOwnHouse = isInsideOwn()
     CH.RefreshHUDMode()
     if CH.WarmUpHeadModel then
         CH.WarmUpHeadModel()

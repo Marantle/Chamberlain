@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.5.1
+- Ready for patch 12.1. Blizzard renames the check for standing in your own
+  house there, and the addon now works with both the old and the new name, so
+  nothing breaks on patch day. Flagged for the 12.1 client as well.
+
 ## 3.5.0
 - The Floor pin now asks which floor it works from. It starts on the floor you are
   standing on, so the pin fires only from that floor and the map shows it only
