@@ -29,6 +29,148 @@ local function AnchorGlyph(zone)
     return ""
 end
 
+-- A room's colour: its own, or a palette pick by zone index for rooms without one.
+function FP.ZoneColor(zone, i)
+    local c = zone.color or PALETTE[((i - 1) % #PALETTE) + 1]
+    return c[1], c[2], c[3]
+end
+
+-- Another anchor pointing the opposite way, meaning this box is one landing of
+-- a staircase rather than a lone floor switch. By direction, not by wizard,
+-- since the data doesn't record which one built the box.
+local function HasMate(h, zone)
+    for _, z in ipairs(h.zones) do
+        if z ~= zone and z.setFloor == zone.fromFloor and z.fromFloor == zone.setFloor then
+            return true
+        end
+    end
+    return false
+end
+
+-- Anchors show on every floor they actually reach, not just the one they sit on,
+-- so the map matches how they fire: a floor marker (no fromFloor) triggers from
+-- anywhere, and a staircase connects two floors.
+local function AnchorOnFloor(h, zone, floor)
+    if zone.setFloor and zone.fromFloor then
+        -- Its own floor always. The floor it sends to only when a mate points
+        -- back, so a staircase pair can still be aligned from either floor
+        -- while a lone switch stays off the map of the floor it lands on.
+        if floor == zone.fromFloor then
+            return true
+        end
+        return floor == zone.setFloor and HasMate(h, zone)
+    elseif zone.setFloor then
+        return true -- floor marker: fires from any floor
+    end
+    -- Relative hops (floorDelta) and anything else sit on one floor and show
+    -- only there. A hop has no mate to align against, so it stays off the
+    -- floor it sends to.
+    return floor == (zone.floor or 1)
+end
+
+-- A zone is drawn on a floor when it's visible to us (secret rooms hide from
+-- visitors), belongs on that floor, and isn't a stair anchor we've hidden. The
+-- floor plan asks about the floor it's viewing, the minimap about the active one.
+function FP.ZoneOnFloor(h, zone, floor)
+    if not FP.ZoneVisible(zone) then
+        return false
+    end
+    if CH.IsAnchor(zone) then
+        if not ChamberlainDB.settings.showStairsOnMap then
+            return false
+        end
+        return AnchorOnFloor(h, zone, floor)
+    end
+    return (zone.floor or 1) == floor
+end
+
+-- A room tile: border under fill, a round mask for circle rooms, a centred
+-- label. The floor plan adds mouse handling on top, the minimap draws them bare.
+function FP.MakeTile(parent)
+    local f = CreateFrame("Frame", nil, parent)
+
+    f.border = f:CreateTexture(nil, "BACKGROUND")
+    f.border:SetAllPoints()
+
+    f.fill = f:CreateTexture(nil, "BORDER")
+    f.fill:SetPoint("TOPLEFT", f, "TOPLEFT", 1, -1)
+    f.fill:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -1, 1)
+
+    -- A round alpha mask, off by default. Circle rooms switch it on (see
+    -- SetZoneRound) so the square tile draws as a disc. The box is square for a
+    -- circle, so the inscribed mask matches the room exactly.
+    f.mask = f:CreateMaskTexture()
+    f.mask:SetAllPoints(f)
+    f.mask:SetTexture(
+        "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask",
+        "CLAMPTOBLACKADDITIVE",
+        "CLAMPTOBLACKADDITIVE"
+    )
+    f.masked = false
+
+    f.label = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    f.label:SetAllPoints()
+    f.label:SetJustifyH("CENTER")
+    f.label:SetJustifyV("MIDDLE")
+    f.label:SetWordWrap(false)
+    return f
+end
+
+-- Toggle a pooled tile between a square room and a round one by masking its fill
+-- and border. Tracked on the frame so a rebuild doesn't stack masks, and so a
+-- pooled frame reused for a rectangle drops the mask again.
+local function SetZoneRound(f, round)
+    if round == f.masked then
+        return
+    end
+    f.masked = round
+    if round then
+        f.border:AddMaskTexture(f.mask)
+        f.fill:AddMaskTexture(f.mask)
+    else
+        f.border:RemoveMaskTexture(f.mask)
+        f.fill:RemoveMaskTexture(f.mask)
+    end
+end
+
+-- Paint a tile for its zone and set its label. Returns the room colour so the
+-- caller can keep it for tooltips.
+function FP.StyleTile(f, zone, i, selected)
+    local r, g, b = FP.ZoneColor(zone, i)
+    SetZoneRound(f, zone.shape == "circle")
+    -- Selected tiles get a fat ring: inset the fill by 3px (vs 1px normally)
+    -- so the border texture shows through as a thick band. The pool reuses
+    -- frames, so the unselected branch has to put the inset back to 1px.
+    f.fill:ClearAllPoints()
+    if selected then
+        f.fill:SetPoint("TOPLEFT", f, "TOPLEFT", 3, -3)
+        f.fill:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -3, 3)
+        -- Bright gold ring + brightened (not darkened) fill so the room lights up.
+        f.border:SetColorTexture(1, 0.82, 0.10, 1)
+        f.fill:SetColorTexture(r, g, b, 0.85)
+    else
+        f.fill:SetPoint("TOPLEFT", f, "TOPLEFT", 1, -1)
+        f.fill:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -1, 1)
+        if CH.IsAnchor(zone) then
+            -- Stair anchors get a cyan border so they read as connectors, not rooms.
+            f.border:SetColorTexture(0.40, 0.85, 1.00, 0.95)
+            f.fill:SetColorTexture(0.20, 0.45, 0.60, 0.45)
+        else
+            f.border:SetColorTexture(r, g, b, 0.85)
+            f.fill:SetColorTexture(r * 0.55, g * 0.55, b * 0.55, 0.50)
+        end
+    end
+    f.label:SetText(AnchorGlyph(zone) .. zone.name)
+    -- White label over the bright selected fill stays legible, otherwise the
+    -- room colour as before.
+    if selected then
+        f.label:SetTextColor(1, 1, 1, 1)
+    else
+        f.label:SetTextColor(r, g, b, 1)
+    end
+    return r, g, b
+end
+
 -- Zone frame pool: each entry has a fill texture, border texture, and label
 local zonePool = {}
 
@@ -81,32 +223,7 @@ local function GetZoneFrame(i)
         zonePool[i]:Show()
         return zonePool[i]
     end
-    local f = CreateFrame("Frame", nil, canvas)
-
-    f.border = f:CreateTexture(nil, "BACKGROUND")
-    f.border:SetAllPoints()
-
-    f.fill = f:CreateTexture(nil, "BORDER")
-    f.fill:SetPoint("TOPLEFT", f, "TOPLEFT", 1, -1)
-    f.fill:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -1, 1)
-
-    -- A round alpha mask, off by default. Circle rooms switch it on (see
-    -- SetZoneRound) so the square tile draws as a disc. The box is square for a
-    -- circle, so the inscribed mask matches the room exactly.
-    f.mask = f:CreateMaskTexture()
-    f.mask:SetAllPoints(f)
-    f.mask:SetTexture(
-        "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask",
-        "CLAMPTOBLACKADDITIVE",
-        "CLAMPTOBLACKADDITIVE"
-    )
-    f.masked = false
-
-    f.label = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    f.label:SetAllPoints()
-    f.label:SetJustifyH("CENTER")
-    f.label:SetJustifyV("MIDDLE")
-    f.label:SetWordWrap(false)
+    local f = FP.MakeTile(canvas)
 
     -- Tooltip on hover for small rooms where text is clipped
     f:EnableMouse(true)
@@ -185,26 +302,12 @@ local function GetZoneFrame(i)
     return f
 end
 
--- Toggle a pooled tile between a square room and a round one by masking its fill
--- and border. Tracked on the frame so a rebuild doesn't stack masks, and so a
--- pooled frame reused for a rectangle drops the mask again.
-local function SetZoneRound(f, round)
-    if round == f.masked then
-        return
-    end
-    f.masked = round
-    if round then
-        f.border:AddMaskTexture(f.mask)
-        f.fill:AddMaskTexture(f.mask)
-    else
-        f.border:RemoveMaskTexture(f.mask)
-        f.fill:RemoveMaskTexture(f.mask)
-    end
-end
-
 local lastBuiltGuid
 
 function FP.Build()
+    -- The minimap draws the same rooms and redraws them when this runs, whatever
+    -- the reason (edit, drag step, floor change), see UI/MinimapRooms.lua.
+    FP.minimapDirty = true
     -- pairs, not ipairs: frames are pooled in draw order, but a rebuild can leave
     -- the pool with holes, and ipairs would stop at the first one, leaving stale
     -- tiles (e.g. a just-deleted floor's rooms) visible. pairs hides every frame.
@@ -250,64 +353,13 @@ function FP.Build()
 
     local floorCount = FP.RefreshFloorControls(h)
     local viewedFloor = CH.fpViewedFloor
-    local showStairs = ChamberlainDB.settings.showStairsOnMap
-
-    -- Anchors show on every floor they actually reach, not just the one they sit on,
-    -- so the map matches how they fire: a floor marker (no fromFloor) triggers from
-    -- anywhere, and a staircase connects two floors.
-
-    -- Another anchor pointing the opposite way, meaning this box is one landing of
-    -- a staircase rather than a lone floor switch. By direction, not by wizard,
-    -- since the data doesn't record which one built the box.
-    local function HasMate(zone)
-        for _, z in ipairs(h.zones) do
-            if z ~= zone and z.setFloor == zone.fromFloor and z.fromFloor == zone.setFloor then
-                return true
-            end
-        end
-        return false
-    end
-
-    local function AnchorOnViewedFloor(zone)
-        local f = zone.floor or 1
-        if zone.setFloor and zone.fromFloor then
-            -- Its own floor always. The floor it sends to only when a mate points
-            -- back, so a staircase pair can still be aligned from either floor
-            -- while a lone switch stays off the map of the floor it lands on.
-            if viewedFloor == zone.fromFloor then
-                return true
-            end
-            return viewedFloor == zone.setFloor and HasMate(zone)
-        elseif zone.setFloor then
-            return true -- floor marker: fires from any floor
-        end
-        -- Relative hops (floorDelta) and anything else sit on one floor and show
-        -- only there. A hop has no mate to align against, so it stays off the
-        -- floor it sends to.
-        return viewedFloor == f
-    end
-
-    -- A zone is drawn when it's visible to us (secret rooms hide from visitors),
-    -- belongs on the floor we're viewing, and isn't a stair anchor we've hidden.
-    local function DrawZone(zone)
-        if not FP.ZoneVisible(zone) then
-            return false
-        end
-        if CH.IsAnchor(zone) then
-            if not showStairs then
-                return false
-            end
-            return AnchorOnViewedFloor(zone)
-        end
-        return (zone.floor or 1) == viewedFloor
-    end
 
     -- Count rooms we'll actually draw on this floor. A floor with no visible rooms
     -- shows the empty state, same as a house with none.
     local visibleCount = 0
     if h and h.zones then
         for _, zone in ipairs(h.zones) do
-            if DrawZone(zone) then
+            if FP.ZoneOnFloor(h, zone, viewedFloor) then
                 visibleCount = visibleCount + 1
             end
         end
@@ -351,10 +403,7 @@ function FP.Build()
     -- zone index rides on f.zoneIdx for selection and editing.
     local drawn = 0
     for i, zone in ipairs(h.zones) do
-        if DrawZone(zone) then
-            local c = zone.color or PALETTE[((i - 1) % #PALETTE) + 1]
-            local r, g, b = c[1], c[2], c[3]
-
+        if FP.ZoneOnFloor(h, zone, viewedFloor) then
             -- With X flipped, zone.maxX maps to the left canvas edge, zone.maxY to the top.
             local px, py = FP.WorldToCanvas(zone.maxX, zone.maxY)
             local zw = (zone.maxX - zone.minX) * k
@@ -371,38 +420,7 @@ function FP.Build()
             f:ClearAllPoints()
             f:SetPoint("TOPLEFT", canvas, "TOPLEFT", px, -py)
             f:SetSize(zw, zh)
-            SetZoneRound(f, zone.shape == "circle")
-            local anchor = CH.IsAnchor(zone)
-            -- Selected tiles get a fat ring: inset the fill by 3px (vs 1px normally)
-            -- so the border texture shows through as a thick band. The pool reuses
-            -- frames, so the unselected branch has to put the inset back to 1px.
-            f.fill:ClearAllPoints()
-            if i == selectedIdx then
-                f.fill:SetPoint("TOPLEFT", f, "TOPLEFT", 3, -3)
-                f.fill:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -3, 3)
-                -- Bright gold ring + brightened (not darkened) fill so the room lights up.
-                f.border:SetColorTexture(1, 0.82, 0.10, 1)
-                f.fill:SetColorTexture(r, g, b, 0.85)
-            else
-                f.fill:SetPoint("TOPLEFT", f, "TOPLEFT", 1, -1)
-                f.fill:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -1, 1)
-                if anchor then
-                    -- Stair anchors get a cyan border so they read as connectors, not rooms.
-                    f.border:SetColorTexture(0.40, 0.85, 1.00, 0.95)
-                    f.fill:SetColorTexture(0.20, 0.45, 0.60, 0.45)
-                else
-                    f.border:SetColorTexture(r, g, b, 0.85)
-                    f.fill:SetColorTexture(r * 0.55, g * 0.55, b * 0.55, 0.50)
-                end
-            end
-            f.label:SetText(AnchorGlyph(zone) .. zone.name)
-            -- White label over the bright selected fill stays legible, otherwise the
-            -- room colour as before.
-            if i == selectedIdx then
-                f.label:SetTextColor(1, 1, 1, 1)
-            else
-                f.label:SetTextColor(r, g, b, 1)
-            end
+            local r, g, b = FP.StyleTile(f, zone, i, i == selectedIdx)
             -- Store for tooltip and click selection
             f.zoneIdx = i
             f.zoneName = zone.name
@@ -456,6 +474,7 @@ end
 
 -- Called from RoomManager when zones change so the floor plan stays in sync
 function CH.RebuildFloorPlan()
+    FP.minimapDirty = true -- the map may be closed, the minimap still has to know
     if FP.win:IsShown() then
         FP.InvalidateFit() -- zones changed (create/delete/share): reframe to new bounds
         FP.Build()

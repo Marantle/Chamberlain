@@ -15,8 +15,28 @@ local _, CH = ...
 -- than the player's last-seen version are shown, so a release just appends a new
 -- block at the top. The changelog is authored in English and other locales fall
 -- back to it, so these are plain strings rather than CH.L keys; the window chrome
--- (title, buttons) is still localized.
+-- (title, buttons) is still localized. A block may also carry `toggles`, a list of
+-- { label key, settings key } pairs drawn as toggle buttons under its notes, plus
+-- an `onToggle` run after any of them flips.
 CH.WHATS_NEW = {
+    {
+        v = "3.6.0",
+        notes = {
+            "Rooms on the minimap. Indoors the game shows a still picture of a house "
+                .. "where the minimap was. Turn on Rooms on the minimap in Settings and "
+                .. "the rooms of your floor take its place, you in the middle, with the "
+                .. "zoom buttons setting how much of the house fits. Using an addon that "
+                .. "squares the minimap? Flip Square minimap too.",
+        },
+        -- Same buttons as Settings, so it can be tried straight from the note.
+        toggles = {
+            { "RM_TOGGLE_MINIMAP_ROOMS", "minimapRooms" },
+            { "RM_TOGGLE_MINIMAP_SQUARE", "minimapSquare" },
+        },
+        onToggle = function()
+            CH.RefreshMinimapRooms()
+        end,
+    },
     {
         v = "3.5.0",
         notes = {
@@ -125,7 +145,21 @@ local CONTENT_W = WIN_W - 46 -- frame minus side margins and the scrollbar
 
 local win, scrollChild
 local linePool = {}
+local togglePool = {} -- by settings key, each block's toggles are built once
 local shownThisSession = false
+
+local function AcquireToggle(block, labelKey, key)
+    local b = togglePool[key]
+    if not b then
+        b = CH.MakeToggleButton(scrollChild, labelKey, key)
+        if block.onToggle then
+            b:HookScript("OnClick", block.onToggle)
+        end
+        togglePool[key] = b
+    end
+    b:Refresh()
+    return b
+end
 
 local function AcquireLine(i)
     local fs = linePool[i]
@@ -202,6 +236,9 @@ local function Populate(blocks)
     for _, fs in ipairs(linePool) do
         fs:Hide()
     end
+    for _, b in pairs(togglePool) do
+        b:Hide()
+    end
     local y, i = -4, 0
     for _, block in ipairs(blocks) do
         i = i + 1
@@ -226,6 +263,13 @@ local function Populate(blocks)
             fs:SetText("|cffFFD700\226\128\162|r " .. line) -- gold bullet + note
             fs:Show()
             y = y - fs:GetStringHeight() - 6
+        end
+        for _, t in ipairs(block.toggles or {}) do
+            local b = AcquireToggle(block, t[1], t[2])
+            b:ClearAllPoints()
+            b:SetPoint("TOPLEFT", 12, y)
+            b:Show()
+            y = y - 24
         end
         y = y - 8
     end

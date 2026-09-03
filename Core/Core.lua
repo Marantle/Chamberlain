@@ -1,6 +1,6 @@
 local ADDON, CH = ...
 
-CH.VERSION = "3.5.1"
+CH.VERSION = "3.6.0"
 
 -- How often the zone ticker samples your position, in seconds. Drives stair
 -- detection and the per-room time stats both, so they stay in step if it changes.
@@ -139,6 +139,16 @@ events:SetScript("OnEvent", function(_, event, arg1)
         -- client, so it works even when nobody else runs the addon.
         if ChamberlainDB.settings.showGroupDots == nil then
             ChamberlainDB.settings.showGroupDots = true
+        end
+        -- Draw the active floor's rooms on the minimap in place of the still
+        -- house picture the game shows indoors. Off until asked for.
+        if ChamberlainDB.settings.minimapRooms == nil then
+            ChamberlainDB.settings.minimapRooms = false
+        end
+        -- Cut those rooms square rather than round, for addons that square the
+        -- minimap (Leatrix Plus and such). The shape can't be read back.
+        if ChamberlainDB.settings.minimapSquare == nil then
+            ChamberlainDB.settings.minimapSquare = false
         end
         -- Glue the build toolbox to the house map's right edge so they act as
         -- one window. Dragging the toolbox off flips this false; the « button

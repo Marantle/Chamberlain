@@ -1,5 +1,14 @@
 # Changelog
 
+## 3.6.0
+- Rooms on the minimap. Indoors the game swaps the minimap for a still picture of
+  a house. Turn on Rooms on the minimap in Settings and that picture makes way for
+  the rooms of the floor you are on, you in the middle and the rooms sliding past
+  as you walk, group members as dots. Same orientation as the house map. The
+  minimap zoom buttons and the mouse wheel set how much of the house fits in the
+  ring. If an addon squares your minimap, flip Square minimap too so the rooms
+  fill the corners. It does not turn with you when rotate minimap is on.
+
 ## 3.5.1
 - Ready for patch 12.1. Blizzard renames the check for standing in your own
   house there, and the addon now works with both the old and the new name, so

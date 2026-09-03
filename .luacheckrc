@@ -42,6 +42,8 @@ read_globals = {
     "PlaySound",
     "SOUNDKIT",
     "Minimap",
+    "MinimapBackdrop",
+    "hooksecurefunc",
     "UnitClass",
     "RAID_CLASS_COLORS",
     "ColorPickerFrame",

@@ -3,7 +3,7 @@
 ## Notes: Names your housing rooms and announces them as you walk around your house.
 ## Category-enUS: Housing
 ## Category: Housing
-## Version: 3.5.1
+## Version: 3.6.0
 ## Author: Rothirr
 ## IconTexture: 133100
 ## X-Curse-Project-ID: 1573197
@@ -52,3 +52,4 @@ UI\Stairs.lua
 UI\WhatsNew.lua
 UI\CreatorThanks.lua
 UI\Minimap.lua
+UI\MinimapRooms.lua

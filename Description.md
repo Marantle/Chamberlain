@@ -17,6 +17,11 @@ color, with a dot showing where you currently are. Hover a room to see its name
 and size if the label doesn't fit. The mouse wheel zooms and dragging an empty
 patch pans. The labels and your dot stay the same size.
 
+The rooms can take over the minimap too. Indoors the game puts a still picture of
+a house there, and with Rooms on the minimap turned on in Settings the rooms of
+your floor show in its place, you in the middle, zoomed with the usual minimap
+buttons. If another addon squares your minimap, turn on Square minimap as well.
+
 ## Floors
 
 A house with more than one floor can hold rooms on each, and a room upstairs won't
@@ -67,6 +72,7 @@ be turned off completely in the settings.
 - An optional entry sound (a map ping) when you walk in.
 - A house map draws your rooms to scale and shows where you and your party are.
 - Zoom and pan the house map with the mouse.
+- Rooms drawn on the minimap indoors, in place of the game's still house picture.
 - Edit rooms on the house map: move, resize, rename, recolor and so on.
 - A talking-head "Yapper" reads a room's description like an NPC, optionally spoken
   aloud by your computer narrator voices (TTS).

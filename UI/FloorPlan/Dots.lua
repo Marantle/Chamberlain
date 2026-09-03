@@ -11,7 +11,7 @@ local canvas = FP.canvas
 -- the atlas name ever stops resolving
 local BLIP_ATLAS = C_Texture.GetAtlasInfo("WhiteCircle-RaidBlips") and "WhiteCircle-RaidBlips" or nil
 
-local function SetBlip(tex, r, g, b)
+function FP.SetBlip(tex, r, g, b)
     if BLIP_ATLAS then
         tex:SetAtlas(BLIP_ATLAS)
         tex:SetVertexColor(r, g, b, 1)
@@ -20,18 +20,34 @@ local function SetBlip(tex, r, g, b)
     end
 end
 
--- Player dot: its own Frame, raised above the zone tiles so it renders on top
--- and receives the mouse for its tooltip.
-local dotFrame = CreateFrame("Frame", nil, canvas)
-dotFrame:SetSize(14, 14)
-dotFrame:SetFrameLevel(canvas:GetFrameLevel() + 10)
-dotFrame:Hide()
-local dot = dotFrame:CreateTexture(nil, "OVERLAY")
-dot:SetAllPoints()
-SetBlip(dot, 1, 0.85, 0) -- gold
-dotFrame.label = dotFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-dotFrame.label:SetPoint("CENTER")
-dotFrame.label:SetTextColor(0.05, 0.05, 0.05, 1)
+-- A blip: a small frame with a tinted circle and a one-letter label on top,
+-- raised above the room tiles. The floor plan adds a name tooltip, the minimap
+-- leaves them mouse-free.
+function FP.MakeBlip(parent, level)
+    local bf = CreateFrame("Frame", nil, parent)
+    bf:SetSize(14, 14)
+    bf:SetFrameLevel(level)
+    bf:Hide()
+    bf.tex = bf:CreateTexture(nil, "OVERLAY")
+    bf.tex:SetAllPoints()
+    bf.label = bf:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    bf.label:SetPoint("CENTER")
+    bf.label:SetTextColor(0.05, 0.05, 0.05, 1)
+    return bf
+end
+
+-- Tint a blip in a unit's class colour and letter it with their initial.
+function FP.PaintBlip(bf, unit)
+    local _, class = UnitClass(unit)
+    local cc = class and RAID_CLASS_COLORS[class]
+    FP.SetBlip(bf.tex, cc and cc.r or 0.8, cc and cc.g or 0.8, cc and cc.b or 0.8)
+    bf.unitName = UnitName(unit)
+    bf.label:SetText(CH.FirstChar(bf.unitName))
+end
+
+-- Player dot: receives the mouse for its tooltip.
+local dotFrame = FP.MakeBlip(canvas, canvas:GetFrameLevel() + 10)
+FP.SetBlip(dotFrame.tex, 1, 0.85, 0) -- gold until the class colour lands
 dotFrame:EnableMouse(true)
 dotFrame:SetScript("OnEnter", function(self)
     GameTooltip:SetOwner(self, "ANCHOR_CURSOR")
@@ -63,7 +79,7 @@ local markerB = MakeCornerMarker("B", 0.40, 0.90, 1.00)
 -- UnitPosition only returns coordinates for members in the same instance.
 local partyDots = {}
 
--- Unit tokens built once. The dot loop runs every frame, and rebuilding
+-- Unit tokens built once. The dot loops run every frame, and rebuilding
 -- "raid17" forty times a frame is needless string garbage.
 local partyUnits, raidUnits = {}, {}
 for i = 1, 4 do
@@ -73,19 +89,25 @@ for i = 1, 40 do
     raidUnits[i] = "raid" .. i
 end
 
+-- The unit tokens to draw and how many. party1-4 covers a 5-man, but in a raid
+-- those tokens only reach your own subgroup, so switch to raid units there. raidN
+-- includes the player, who already has the lettered dot, so callers skip them.
+-- Nothing at all while group dots are off.
+function FP.GroupUnits()
+    if not ChamberlainDB.settings.showGroupDots then
+        return partyUnits, 0
+    end
+    if IsInRaid() then
+        return raidUnits, GetNumGroupMembers()
+    end
+    return partyUnits, 4
+end
+
 local function GetPartyDot(i)
     if partyDots[i] then
         return partyDots[i]
     end
-    local pd = CreateFrame("Frame", nil, canvas)
-    pd:SetSize(14, 14)
-    pd:SetFrameLevel(canvas:GetFrameLevel() + 10)
-    pd:Hide()
-    pd.tex = pd:CreateTexture(nil, "OVERLAY")
-    pd.tex:SetAllPoints()
-    pd.label = pd:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    pd.label:SetPoint("CENTER")
-    pd.label:SetTextColor(0.05, 0.05, 0.05, 1)
+    local pd = FP.MakeBlip(canvas, canvas:GetFrameLevel() + 10)
     pd:EnableMouse(true)
     pd:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_CURSOR")
@@ -158,12 +180,7 @@ canvas:SetScript("OnUpdate", function()
     dotFrame:ClearAllPoints()
     dotFrame:SetPoint("CENTER", canvas, "TOPLEFT", px, -py)
     if not dotFrame.lettered then
-        dotFrame.label:SetText(CH.FirstChar(UnitName("player")))
-        local _, class = UnitClass("player")
-        local cc = class and RAID_CLASS_COLORS[class]
-        if cc then
-            SetBlip(dot, cc.r, cc.g, cc.b)
-        end
+        FP.PaintBlip(dotFrame, "player")
         dotFrame.lettered = true
     end
     dotFrame:Show()
@@ -186,15 +203,7 @@ canvas:SetScript("OnUpdate", function()
         markerB:Hide()
     end
 
-    -- party1-4 covers a 5-man, but in a raid those tokens only reach your own
-    -- subgroup, so switch to raid units there. raidN includes the player, who
-    -- already has the lettered dot above, so their slot is skipped.
-    local inRaid = IsInRaid()
-    local units = inRaid and raidUnits or partyUnits
-    local numUnits = 0
-    if ChamberlainDB.settings.showGroupDots then
-        numUnits = inRaid and GetNumGroupMembers() or 4
-    end
+    local units, numUnits = FP.GroupUnits()
     for i = 1, numUnits do
         local unit = units[i]
         local pd = GetPartyDot(i)
@@ -212,11 +221,7 @@ canvas:SetScript("OnUpdate", function()
             end
         end
         if upx then
-            local _, class = UnitClass(unit)
-            local cc = class and RAID_CLASS_COLORS[class]
-            SetBlip(pd.tex, cc and cc.r or 0.8, cc and cc.g or 0.8, cc and cc.b or 0.8)
-            pd.unitName = UnitName(unit)
-            pd.label:SetText(CH.FirstChar(pd.unitName))
+            FP.PaintBlip(pd, unit)
             pd:ClearAllPoints()
             pd:SetPoint("CENTER", canvas, "TOPLEFT", upx, -upy)
             pd:Show()
