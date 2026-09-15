@@ -21,8 +21,8 @@ function FP.SetBlip(tex, r, g, b)
 end
 
 -- A blip: a small frame with a tinted circle and a one-letter label on top,
--- raised above the room tiles. The floor plan adds a name tooltip, the minimap
--- leaves them mouse-free.
+-- raised above the room tiles. The floor plan adds a name tooltip and the
+-- minimap leaves them mouse-free.
 function FP.MakeBlip(parent, level)
     local bf = CreateFrame("Frame", nil, parent)
     bf:SetSize(14, 14)

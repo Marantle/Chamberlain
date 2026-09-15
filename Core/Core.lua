@@ -1,6 +1,6 @@
 local ADDON, CH = ...
 
-CH.VERSION = "3.6.0"
+CH.VERSION = "3.7.0"
 
 -- How often the zone ticker samples your position, in seconds. Drives stair
 -- detection and the per-room time stats both, so they stay in step if it changes.
@@ -176,6 +176,14 @@ events:SetScript("OnEvent", function(_, event, arg1)
         if ChamberlainDB.recentColors == nil then
             ChamberlainDB.recentColors = {}
         end
+        -- Stored house maps (Housing/Archive.lua), each with its own id so a
+        -- live map can say which entry it matches. Local only, never shared.
+        if ChamberlainDB.archive == nil then
+            ChamberlainDB.archive = {}
+        end
+        if ChamberlainDB.archiveNextId == nil then
+            ChamberlainDB.archiveNextId = 1
+        end
         -- Whether the "What's New" popup appears after an update. The popup's
         -- "Don't show again" button flips this off.
         if ChamberlainDB.settings.showUpdateNotes == nil then
@@ -272,9 +280,7 @@ SlashCmdList["CH"] = function(msg)
             if z.name:lower() == rest:lower() then
                 table.remove(h.zones, i)
                 CH.DropZoneStats(h, z.name)
-                h.updatedAt = GetServerTime()
-                CH.RebuildFloorPlan()
-                CH.QueueBroadcast(CH.currentHouseGUID)
+                CH.TouchHouse(CH.currentHouseGUID)
                 CH.Print(CH.L["CMD_DELETED_ROOM_X"], z.name)
                 return
             end
@@ -307,6 +313,8 @@ SlashCmdList["CH"] = function(msg)
         end
     elseif cmd == "floor" then
         CH.OpenFloorPlan()
+    elseif cmd == "archive" then
+        CH.OpenArchive()
     elseif cmd == "whatsnew" or cmd == "changes" then
         CH.OpenWhatsNew()
     elseif cmd == "fixer" then
@@ -325,6 +333,7 @@ SlashCmdList["CH"] = function(msg)
         print(CH.L["CMD_HELP_BUILD"])
         print(CH.L["CMD_HELP_MANAGE"])
         print(CH.L["CMD_HELP_FLOOR"])
+        print(CH.L["CMD_HELP_ARCHIVE"])
         print(CH.L["CMD_HELP_SETTINGS"])
         print(CH.L["CMD_HELP_DELETE"])
         print(CH.L["CMD_HELP_RESET"])

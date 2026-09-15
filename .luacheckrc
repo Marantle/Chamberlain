@@ -12,6 +12,7 @@ globals = {
 read_globals = {
     "C_Timer",
     "C_Housing",
+    "C_HousingBlueprint",
     "C_ChatInfo",
     "CreateFrame",
     "UIParent",
@@ -29,6 +30,7 @@ read_globals = {
     "LE_PARTY_CATEGORY_INSTANCE",
     "GetRealmName",
     "GetServerTime",
+    "date",
     "GetLocale",
     "CopyTable",
     "CreateColor",
@@ -55,6 +57,7 @@ read_globals = {
     "GetTime",
     "C_EncodingUtil",
     "wipe",
+    "bit",
     "print",
     "math",
     "string",

@@ -76,6 +76,27 @@ end)
 fpFixBtn:Hide()
 FP.fixBtn = fpFixBtn
 
+-- The other way an owned house comes up empty: its map was put away in the
+-- archive (before a reset or a blueprint swap). Points at the archive so the
+-- map can be brought back from here. Anchored in FP.Build, since it sits under
+-- the fixer nudge when that shows too.
+local fpArchiveHint = canvas:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+fpArchiveHint:SetWidth(280)
+fpArchiveHint:SetJustifyH("CENTER")
+fpArchiveHint:SetWordWrap(true)
+fpArchiveHint:SetText(CH.L["FP_ARCHIVE_HINT"])
+fpArchiveHint:SetTextColor(CH.RGBA(CH.COLORS.dim, 1))
+fpArchiveHint:Hide()
+FP.archiveHint = fpArchiveHint
+
+local fpArchiveBtn = CH.MakeButton(canvas, "FP_OPEN_ARCHIVE", 110, 22)
+fpArchiveBtn:SetPoint("TOP", fpArchiveHint, "BOTTOM", 0, -8)
+fpArchiveBtn:SetScript("OnClick", function()
+    CH.OpenArchive()
+end)
+fpArchiveBtn:Hide()
+FP.archiveBtn = fpArchiveBtn
+
 -- A house of yours that comes up with no rooms while other houses you own do have
 -- some is what a moved house looks like: the new neighborhood minted a new id, so
 -- every room is still parked under the old one. Suggest the repair instead of

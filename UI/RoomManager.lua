@@ -87,15 +87,21 @@ mgrScroll:SetPoint("TOPLEFT", panelMyRooms, "TOPLEFT", 0, -22)
 mgrScroll:SetPoint("BOTTOMRIGHT", panelMyRooms, "BOTTOMRIGHT", -20, 26)
 
 local btnExport = CH.MakeButton(panelMyRooms, "RM_EXPORT", 80, 20)
-btnExport:SetPoint("BOTTOMLEFT", panelMyRooms, "BOTTOM", -84, 2)
+btnExport:SetPoint("BOTTOMLEFT", panelMyRooms, "BOTTOM", -126, 2)
 btnExport:SetScript("OnClick", function()
     CH.OpenExportDialog("export")
 end)
 
 local btnImport = CH.MakeButton(panelMyRooms, "RM_IMPORT", 80, 20)
-btnImport:SetPoint("BOTTOMLEFT", panelMyRooms, "BOTTOM", 4, 2)
+btnImport:SetPoint("LEFT", btnExport, "RIGHT", 4, 0)
 btnImport:SetScript("OnClick", function()
     CH.OpenExportDialog("import")
+end)
+
+local btnArchive = CH.MakeButton(panelMyRooms, "RM_ARCHIVE", 80, 20)
+btnArchive:SetPoint("LEFT", btnImport, "RIGHT", 4, 0)
+btnArchive:SetScript("OnClick", function()
+    CH.OpenArchive()
 end)
 
 local mgrEmpty = mgrScrollChild:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
@@ -282,12 +288,7 @@ local function AddZoneRow(rowIdx, w, y, zone, zoneIdx, houseGUID, canDelete)
             if house then
                 local removed = table.remove(house.zones, zoneIdx)
                 CH.DropZoneStats(house, removed and removed.name)
-                house.updatedAt = GetServerTime()
-                PopulateRoomList()
-                if CH.RebuildFloorPlan then
-                    CH.RebuildFloorPlan()
-                end
-                CH.QueueBroadcast(houseGUID)
+                CH.TouchHouse(houseGUID)
             end
         end)
         row.editBtn:Show()

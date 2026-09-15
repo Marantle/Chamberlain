@@ -128,6 +128,23 @@ function CH.MigrateLegacyHouse(stableKey, owner)
     end
 end
 
+-- Rooms are map-bound: IsInZone rejects any zone whose stored mapID isn't the
+-- map you're standing on. A moved house can come back on a new interior map id,
+-- and so can one rebuilt from a blueprint, and then the rooms would draw on the
+-- plan but never fire a banner, which looks like the repair half-worked. Re-stamp
+-- them onto the map we're on now. A no-op when the id didn't change. Every zone
+-- in a house shares one map by design (the room dialog refuses corners on
+-- different maps), so stamping them all is safe. Only call this standing in the
+-- house the entry belongs to.
+function CH.StampHouseMap(h)
+    local _, _, mapID = CH.GetWorldPos()
+    if mapID then
+        for _, z in ipairs(h.zones or {}) do
+            z.mapID = mapID
+        end
+    end
+end
+
 -- Moving a house to another neighborhood mints a new stable key
 -- (neighborhoodGUID:plotID), and the owner name on the entry can go stale too, so
 -- the rooms saved under the old key are orphaned and the map comes up empty.
@@ -172,18 +189,7 @@ function CH.RepairHouseKey(oldKey)
         end
     end
 
-    -- Rooms are map-bound: IsInZone rejects any zone whose stored mapID isn't the
-    -- map you're standing on. A moved house can come back on a new interior map id,
-    -- and then the rooms would draw on the plan but never fire a banner, which looks
-    -- like the repair half-worked. Re-stamp them onto the map we're on now. A no-op
-    -- when the id didn't change. Every zone in a house shares one map by design (the
-    -- room dialog refuses corners on different maps), so stamping them all is safe.
-    local _, _, mapID = CH.GetWorldPos()
-    if mapID then
-        for _, z in ipairs(h.zones or {}) do
-            z.mapID = mapID
-        end
-    end
+    CH.StampHouseMap(h)
 
     -- Adopt the house actually being stood in. A move can change the owner name and
     -- the house name, so take both from the housing API rather than from the stale
@@ -196,6 +202,13 @@ function CH.RepairHouseKey(oldKey)
 
     ChamberlainDB.myHouses[newKey] = true
     ChamberlainDB.myHouses[oldKey] = nil
+    -- Stored maps follow the house since they are of the same rooms.
+    for _, e in ipairs(ChamberlainDB.archive) do
+        if e.house == oldKey then
+            e.house = newKey
+            e.owner = h.owner
+        end
+    end
     -- Drop the old floor memory instead of carrying it over. You are standing in
     -- this house right now, so the floor you walked in on (already recorded against
     -- the new key on entry) is the truth. Copying the old house's last floor would

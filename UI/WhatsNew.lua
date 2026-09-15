@@ -20,13 +20,28 @@ local _, CH = ...
 -- an `onToggle` run after any of them flips.
 CH.WHATS_NEW = {
     {
+        v = "3.7.0",
+        notes = {
+            "The Archive. Store the room map of your house under a name before you "
+                .. "reset the house or load another blueprint, and bring it back later. "
+                .. "Keep as many maps per house as you like and switch between them. "
+                .. "Archive is in the Rooms window and at /rooms archive, and the launcher "
+                .. "bar shows it while the house is empty and a stored map is waiting.",
+            "Stored maps stay on your computer. Sharing and export only ever send the map that is in the house.",
+            "Pick a blueprint when storing and the map takes its name. Save a full "
+                .. "layout or interior blueprint and it offers to store the map with it. "
+                .. "Load one and its map comes back. Reset the house and it asks whether "
+                .. "to store or clear the map that's still there.",
+        },
+    },
+    {
         v = "3.6.0",
         notes = {
             "Rooms on the minimap. Indoors the game shows a still picture of a house "
                 .. "where the minimap was. Turn on Rooms on the minimap in Settings and "
                 .. "the rooms of your floor take its place, you in the middle, with the "
-                .. "zoom buttons setting how much of the house fits. Using an addon that "
-                .. "squares the minimap? Flip Square minimap too.",
+                .. "zoom buttons setting how much of the house fits. If an addon squares "
+                .. "your minimap, flip Square minimap too.",
         },
         -- Same buttons as Settings, so it can be tried straight from the note.
         toggles = {
@@ -145,7 +160,7 @@ local CONTENT_W = WIN_W - 46 -- frame minus side margins and the scrollbar
 
 local win, scrollChild
 local linePool = {}
-local togglePool = {} -- by settings key, each block's toggles are built once
+local togglePool = {} -- by settings key so each block's toggles are built once
 local shownThisSession = false
 
 local function AcquireToggle(block, labelKey, key)

@@ -1,5 +1,28 @@
 # Changelog
 
+## 3.7.0
+- The Archive. Patch 12.1 lets you save your house to a blueprint, reset it and
+  load another, and the room map used to just sit there firing in a house it no
+  longer matched. Now you can store the map under a name (Archive in the Rooms
+  window or /rooms archive), and the archive keeps as many as you like per
+  house. The launcher bar grows an Archive button only while the house has no
+  rooms and a stored map is waiting for it. Restore brings one back as the live
+  map, and if the map in the house has edits that aren't stored yet it asks
+  whether to store them first. Store and clear empties the house's rooms after
+  storing, for the reset flow, and Clear rooms does it on its own. A map from
+  one of your other houses has a Here button that puts it into the house you're
+  standing in. The archive is local. Sharing and export read the live map and
+  nothing else, same as before.
+- Blueprints. When storing you can pick one of your house blueprints and the map
+  takes its name. Chamberlain also follows what the game does with blueprints.
+  Saving a full layout or interior blueprint offers to store the map with it.
+  Loading one brings that map back, asking about the current map first if it
+  has unstored edits. Resetting the house asks whether the map still in there
+  should be stored or cleared. On a client without blueprints the archive works
+  the same, just without the picker.
+- The house map points at the archive when the house is empty and a stored map
+  exists for it.
+
 ## 3.6.0
 - Rooms on the minimap. Indoors the game swaps the minimap for a still picture of
   a house. Turn on Rooms on the minimap in Settings and that picture makes way for

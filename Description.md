@@ -45,6 +45,24 @@ speak the description aloud in a voice you pick, kept on your machine and sent t
 one. A room marked secret stays off visitors' house maps and room lists, but its
 banner still fires when they walk in.
 
+## Archive
+
+Since patch 12.1 a house can be saved to a blueprint, reset and rebuilt from
+another one, and a room map made for the old layout would keep firing in the
+new. The Archive is where a map goes in the meantime. Store the map under a
+name, pick the blueprint it belongs with if you like and it takes that name, then
+clear the rooms or keep building. Restore brings a stored map back as the live
+one, and if the map in the house has edits you haven't stored it asks first. Keep
+as many maps per house as you want and switch between them, and a map from
+another house of yours can be put into the one you're standing in. The addon also
+watches the blueprint and reset actions themselves. When you save a blueprint of
+the full layout or the interior it offers to store the map alongside. Load one
+and the map stored with it comes back on its own. Reset the house and it asks
+what to do with the rooms still on the map.
+
+The archive lives on your computer and nothing gets it out of there. What your
+group receives, and what an export string holds, is the map in the house.
+
 ## Sharing
 
 If you're grouped with other Chamberlain users, party or raid, you can send
@@ -83,6 +101,8 @@ be turned off completely in the settings.
 - Time spent in each of your rooms is tracked and displayed on room tooltip.
 - Share layouts with your party or raid, or export them to a text string others
   can import, export is recommended for huge floor plans with lots of text.
+- An archive of stored maps per house, tied to your blueprints if you want, so
+  the rooms survive a reset or a blueprint swap.
 - Block players or houses that keep requesting your layout to harass you.
 - A minimap button and slash commands (/chamberlain, /rooms).
 

@@ -16,8 +16,8 @@ local _, CH = ...
 local FP = CH.FP
 
 -- Yards across the minimap at each zoom step (Minimap:GetZoom() runs 0 to 5).
--- The real minimap's steps don't matter with its picture gone, these are picked
--- so the widest shows a whole house and the tightest a single room.
+-- The real minimap's steps don't matter with its picture gone, so these are
+-- picked to show a whole house at the widest and a single room at the tightest.
 local YARDS_ACROSS = { 120, 100, 80, 65, 50, 35 }
 
 local overlay = CreateFrame("Frame", nil, Minimap)
@@ -33,8 +33,8 @@ bg:SetAllPoints()
 bg:SetColorTexture(0.025, 0.02, 0.015, 1)
 
 -- Round cut matching the stock minimap, put on every texture (labels can't be
--- masked, they hide near the rim instead). Left off for square minimaps, where
--- the frame's clipping does the job.
+-- masked so they hide near the rim instead). Left off for square minimaps,
+-- where the frame's clipping does the job.
 local rim = overlay:CreateMaskTexture()
 rim:SetAllPoints()
 rim:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
@@ -51,7 +51,7 @@ end
 local tiles, blips = {}, {}
 local me = FP.MakeBlip(overlay, overlay:GetFrameLevel() + 2)
 me:SetPoint("CENTER")
-me:Show() -- blips start hidden, this one never moves or goes away
+me:Show() -- blips start hidden but this one never moves or goes away
 
 local function MakeTile(i)
     local f = FP.MakeTile(overlay)
@@ -124,7 +124,7 @@ overlay:SetScript("OnUpdate", function()
         return
     end
     local w = Minimap:GetWidth()
-    local s = w / YARDS_ACROSS[math.min(Minimap:GetZoom(), 5) + 1]
+    local s = w / YARDS_ACROSS[Minimap:GetZoom() + 1]
     -- How far out from the centre a label or blip may sit and still clear the
     -- ring. Square minimaps clip at the edge instead.
     local reach = round and (w * 0.5 - 6) or math.huge
@@ -158,8 +158,8 @@ overlay:SetScript("OnUpdate", function()
         local bf = blips[i] or MakeBlip(i)
         local uy, ux = UnitPosition(unit)
         local ox, oy
-        -- UnitIsVisible keeps a friend standing in their own house off ours, all
-        -- houses share a map id and reuse similar coordinates.
+        -- UnitIsVisible keeps a friend standing in their own house off ours, since
+        -- all houses share a map id and reuse similar coordinates.
         if ux and UnitIsVisible(unit) and not UnitIsUnit(unit, "player") then
             ox, oy = (px - ux) * s, (uy - py) * s
             if math.sqrt(ox * ox + oy * oy) + 7 > reach then

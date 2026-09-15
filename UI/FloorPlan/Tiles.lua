@@ -69,7 +69,7 @@ local function AnchorOnFloor(h, zone, floor)
 end
 
 -- A zone is drawn on a floor when it's visible to us (secret rooms hide from
--- visitors), belongs on that floor, and isn't a stair anchor we've hidden. The
+-- visitors), belongs on that floor and isn't a stair anchor we've hidden. The
 -- floor plan asks about the floor it's viewing, the minimap about the active one.
 function FP.ZoneOnFloor(h, zone, floor)
     if not FP.ZoneVisible(zone) then
@@ -84,8 +84,9 @@ function FP.ZoneOnFloor(h, zone, floor)
     return (zone.floor or 1) == floor
 end
 
--- A room tile: border under fill, a round mask for circle rooms, a centred
--- label. The floor plan adds mouse handling on top, the minimap draws them bare.
+-- A room tile, with the border texture under the fill so the fill's inset shows
+-- it as an edge. The floor plan adds mouse handling on top and the minimap
+-- draws them bare.
 function FP.MakeTile(parent)
     local f = CreateFrame("Frame", nil, parent)
 
@@ -306,7 +307,7 @@ local lastBuiltGuid
 
 function FP.Build()
     -- The minimap draws the same rooms and redraws them when this runs, whatever
-    -- the reason (edit, drag step, floor change), see UI/MinimapRooms.lua.
+    -- the reason (edit, drag step, floor change). See UI/MinimapRooms.lua.
     FP.minimapDirty = true
     -- pairs, not ipairs: frames are pooled in draw order, but a rebuild can leave
     -- the pool with holes, and ipairs would stop at the first one, leaving stale
@@ -318,6 +319,8 @@ function FP.Build()
     FP.empty:Hide()
     FP.fixHint:Hide()
     FP.fixBtn:Hide()
+    FP.archiveHint:Hide()
+    FP.archiveBtn:Hide()
     -- NB: do NOT invalidate the fit here. The transform persists across builds and
     -- is only invalidated by the explicit reframe events (open, house change,
     -- canvas resize, reset, zone changes). Nulling it every build would make the
@@ -375,6 +378,13 @@ function FP.Build()
         local suggestFix = FP.FixerCandidate()
         FP.fixHint:SetShown(suggestFix)
         FP.fixBtn:SetShown(suggestFix)
+        -- Likewise only for a house with nothing in it, when the archive holds a
+        -- map for it. Goes under the fixer nudge if both apply.
+        local suggestArchive = CH.ArchiveWaiting(CH.currentHouseGUID)
+        FP.archiveHint:ClearAllPoints()
+        FP.archiveHint:SetPoint("TOP", suggestFix and FP.fixBtn or FP.empty, "BOTTOM", 0, -16)
+        FP.archiveHint:SetShown(suggestArchive)
+        FP.archiveBtn:SetShown(suggestArchive)
         FP.selectedIdx = nil
         FP.RefreshEditPanel()
         FP.PositionHandles()
@@ -474,7 +484,7 @@ end
 
 -- Called from RoomManager when zones change so the floor plan stays in sync
 function CH.RebuildFloorPlan()
-    FP.minimapDirty = true -- the map may be closed, the minimap still has to know
+    FP.minimapDirty = true -- the map may be closed but the minimap still has to know
     if FP.win:IsShown() then
         FP.InvalidateFit() -- zones changed (create/delete/share): reframe to new bounds
         FP.Build()

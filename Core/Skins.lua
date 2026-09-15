@@ -112,13 +112,17 @@ function CH.SkinWindow(f, titleKey, branded)
 
     f.title = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     f.title:SetPoint("LEFT", f, "TOPLEFT", 10, -13)
-    -- `branded` titles get the gold "Chamberlain" prefix; the key supplies the
-    -- localized tail. RM_WINDOW_TITLE bakes the brand into its own value, so it is
-    -- passed without branded.
-    local t = CH.L[titleKey]
-    f.title:SetText(branded and ("|cffFFD700Chamberlain|r  " .. t) or t)
+    CH.SetWindowTitle(f, titleKey, branded)
 
     return f
+end
+
+-- `branded` titles get the gold "Chamberlain" prefix and the key supplies the
+-- localized tail. RM_WINDOW_TITLE bakes the brand into its own value, so it is
+-- passed without branded. Also used by dialogs whose title changes with the job.
+function CH.SetWindowTitle(f, titleKey, branded)
+    local t = CH.L[titleKey]
+    f.title:SetText(branded and ("|cffFFD700Chamberlain|r  " .. t) or t)
 end
 
 -- Slim scrollbar: hides the arrow buttons, stretches the bar over their
@@ -154,6 +158,18 @@ function CH.SkinScrollBar(scroll)
     thumb:SetTexture("Interface/Buttons/WHITE8X8")
     thumb:SetVertexColor(CH.RGBA(CH.COLORS.frame, 0.7))
     thumb:SetSize(6, 36)
+end
+
+-- One-line hover tooltip on a button, looked up by locale key.
+function CH.Tip(btn, key)
+    btn:HookScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_TOP")
+        GameTooltip:SetText(CH.L[key], 1, 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    btn:HookScript("OnLeave", function()
+        GameTooltip:Hide()
+    end)
 end
 
 -- Small square color button with a bronze border (the picker swatches in the
@@ -202,12 +218,11 @@ function CH.MakeToggleButton(parent, labelKey, key)
     return b
 end
 
--- Dropdown button for picking a TTS voice by NAME, built on a MenuUtil context
--- menu. noneLabel shows when nothing is picked. getName() returns the stored name
--- or nil. setName(name) stores the choice. Returns the button. Call :Refresh() to
--- resync its label, for example when a panel opens. The button shows a compacted
--- name from CH.ShortVoiceName while the menu lists the full OS names.
-function CH.MakeVoiceDropdown(parent, w, noneKey, getName, setName)
+-- Dropdown button over a MenuUtil context menu. getLabel() returns the text for
+-- the current pick, or nil to show noneKey. fill(root, btn) adds the menu's
+-- entries and calls btn:Refresh() after a pick. Returns the button. Call
+-- :Refresh() to resync its label, for example when a panel opens.
+function CH.MakeMenuButton(parent, w, noneKey, getLabel, fill)
     local btn = CH.MakeButton(parent, noneKey, w, 22)
     local fs = btn:GetFontString()
     if fs then
@@ -215,38 +230,49 @@ function CH.MakeVoiceDropdown(parent, w, noneKey, getName, setName)
         fs:SetWordWrap(false)
     end
     function btn:Refresh()
-        self:SetText(CH.ShortVoiceName(getName()) or CH.L[noneKey])
+        self:SetText(getLabel() or CH.L[noneKey])
     end
     btn:SetScript("OnClick", function(self)
         if not MenuUtil then
             return
         end
         MenuUtil.CreateContextMenu(self, function(_, root)
-            root:CreateRadio(CH.L[noneKey], function()
-                return getName() == nil
-            end, function()
-                setName(nil)
-                self:Refresh()
-            end)
-            local voices = CH.GetVoices()
-            if #voices == 0 then
-                root:CreateButton(CH.L["SKIN_NO_VOICES"]):SetEnabled(false)
-            end
-            for _, v in ipairs(voices) do
-                local n = v.name
-                root:CreateRadio(n, function()
-                    return getName() == n
-                end, function()
-                    setName(n)
-                    self:Refresh()
-                end)
-            end
+            fill(root, self)
         end)
     end)
     -- No Refresh() here: this runs in the main chunk before ADDON_LOADED sets up
     -- ChamberlainDB. The button shows noneLabel until the caller refreshes it (the
     -- settings tab does on open), matching how MakeToggleButton defers.
     return btn
+end
+
+-- Voice picker by NAME. getName() returns the stored name or nil. setName(name)
+-- stores the choice. The button shows a compacted name from CH.ShortVoiceName
+-- while the menu lists the full OS names.
+function CH.MakeVoiceDropdown(parent, w, noneKey, getName, setName)
+    return CH.MakeMenuButton(parent, w, noneKey, function()
+        return CH.ShortVoiceName(getName())
+    end, function(root, btn)
+        root:CreateRadio(CH.L[noneKey], function()
+            return getName() == nil
+        end, function()
+            setName(nil)
+            btn:Refresh()
+        end)
+        local voices = CH.GetVoices()
+        if #voices == 0 then
+            root:CreateButton(CH.L["SKIN_NO_VOICES"]):SetEnabled(false)
+        end
+        for _, v in ipairs(voices) do
+            local n = v.name
+            root:CreateRadio(n, function()
+                return getName() == n
+            end, function()
+                setName(n)
+                btn:Refresh()
+            end)
+        end
+    end)
 end
 
 -- Horizontal slider over [minV, maxV] in whole steps of `step`, skinned to match
@@ -329,8 +355,8 @@ function CH.PushRecentColor(c)
     end
 end
 
--- Stamp a house as changed and push that change everywhere it shows: the floor
--- plan, the room list, and the party broadcast. Saves repeating the same lines
+-- Stamp a house as changed and push that change to the floor plan, the room
+-- list, the launcher and the party broadcast. Saves repeating the same lines
 -- after every edit (create, resize, rename, delete). guid may be nil, in which
 -- case only the open windows refresh.
 function CH.TouchHouse(guid)
@@ -343,6 +369,10 @@ function CH.TouchHouse(guid)
     end
     if CH.RefreshMyRoomsTab then
         CH.RefreshMyRoomsTab()
+    end
+    -- The launcher's Archive button depends on whether this house has rooms.
+    if guid and guid == CH.currentHouseGUID and CH.RefreshHUDMode then
+        CH.RefreshHUDMode()
     end
     if guid and CH.QueueBroadcast then
         CH.QueueBroadcast(guid)
