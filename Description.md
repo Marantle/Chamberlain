@@ -88,6 +88,10 @@ be turned off completely in the settings.
   toolbox.
 - A gold banner shows the room's name on entry and fades on exit.
 - An optional entry sound (a map ping) when you walk in.
+- Give a room one of 45 background loops from the game itself, a tavern or rain
+  on the roof, and it fades in when you walk in. A small bannerless room makes a
+  sound spot, so the fireplace crackles inside the great hall. Visitors with
+  your shared map hear it too.
 - A house map draws your rooms to scale and shows where you and your party are.
 - Zoom and pan the house map with the mouse.
 - Rooms drawn on the minimap indoors, in place of the game's still house picture.

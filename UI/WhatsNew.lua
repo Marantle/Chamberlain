@@ -20,6 +20,20 @@ local _, CH = ...
 -- an `onToggle` run after any of them flips.
 CH.WHATS_NEW = {
     {
+        v = "3.8.0",
+        notes = {
+            "Room ambience. Edit a room and pick an Ambience for it from 45 of the game's "
+                .. "own loops, a crowded tavern or a slow river for instance. It fades in as "
+                .. "you walk in and visitors with your shared map hear it too.",
+            "Untick Banner on a small room to make a sound spot, a fire by the hearth or "
+                .. "a fountain in the corner, that plays on top of the room around it.",
+        },
+        toggles = { { "RM_TOGGLE_AMBIENCE", "ambienceEnabled" } },
+        onToggle = function()
+            CH.RefreshHudSound()
+        end,
+    },
+    {
         v = "3.7.0",
         notes = {
             "The Archive. Store the room map of your house under a name before you "

@@ -54,27 +54,50 @@ end)
 -- Stairs are placed from the HUD (where you stand); the floor plan only manages
 -- structure (floors) and the map view, so the only stair control here is whether
 -- they're drawn. Checked by default, and the setting persists.
-local stairsCheck = CreateFrame("CheckButton", nil, fp, "UICheckButtonTemplate")
-stairsCheck:SetSize(22, 22)
+-- A "show this kind of thing on the map" checkbox over a settings key. The
+-- label is parented to the check so the pair shows and hides as one.
+local function MakeMapCheck(key, labelKey, titleKey, bodyKey)
+    local check = CreateFrame("CheckButton", nil, fp, "UICheckButtonTemplate")
+    check:SetSize(22, 22)
+    check.label = check:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    check.label:SetText(CH.L[labelKey])
+    check:Hide()
+    check:SetScript("OnClick", function(self)
+        ChamberlainDB.settings[key] = self:GetChecked() and true or false
+        FP.Build()
+    end)
+    check:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_TOP")
+        GameTooltip:SetText(CH.L[titleKey], unpack(CH.COLORS.tipGold))
+        GameTooltip:AddLine(CH.L[bodyKey], 0.8, 0.8, 0.8, true)
+        GameTooltip:Show()
+    end)
+    check:SetScript("OnLeave", function()
+        GameTooltip:Hide()
+    end)
+    return check
+end
+
+local stairsCheck =
+    MakeMapCheck("showStairsOnMap", "FP_SHOW_STAIRS", "FP_SHOW_STAIRS_TT_TITLE", "FP_SHOW_STAIRS_TT_BODY")
 stairsCheck:SetPoint("LEFT", removeFloorBtn, "RIGHT", 16, 0)
-local stairsCheckLabel = fp:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-stairsCheckLabel:SetPoint("LEFT", stairsCheck, "RIGHT", 2, 0)
-stairsCheckLabel:SetText(CH.L["FP_SHOW_STAIRS"])
-stairsCheck:Hide()
-stairsCheckLabel:Hide()
-stairsCheck:SetScript("OnClick", function(self)
-    ChamberlainDB.settings.showStairsOnMap = self:GetChecked() and true or false
-    FP.Build()
-end)
-stairsCheck:SetScript("OnEnter", function(self)
-    GameTooltip:SetOwner(self, "ANCHOR_TOP")
-    GameTooltip:SetText(CH.L["FP_SHOW_STAIRS_TT_TITLE"], unpack(CH.COLORS.tipGold))
-    GameTooltip:AddLine(CH.L["FP_SHOW_STAIRS_TT_BODY"], 0.8, 0.8, 0.8, true)
-    GameTooltip:Show()
-end)
-stairsCheck:SetScript("OnLeave", function()
-    GameTooltip:Hide()
-end)
+stairsCheck.label:SetPoint("LEFT", stairsCheck, "RIGHT", 2, 0)
+
+-- Bannerless rooms, the sound spots. They pile up over the real rooms on a map
+-- that uses a lot of them. The bottom row is full on a multi-floor house so
+-- this one sits in the map's corner, label to its left.
+local spotsCheck = MakeMapCheck("showSpotsOnMap", "FP_SHOW_SPOTS", "FP_SHOW_SPOTS_TT_TITLE", "FP_SHOW_SPOTS_TT_BODY")
+spotsCheck:SetPoint("BOTTOMRIGHT", canvas, "BOTTOMRIGHT", -2, 2)
+spotsCheck:SetFrameLevel(canvas:GetFrameLevel() + 20)
+spotsCheck.label:SetPoint("RIGHT", spotsCheck, "LEFT", -2, 0)
+
+local function HasSpots(h)
+    for _, zone in ipairs(h.zones) do
+        if zone.noBanner and FP.ZoneVisible(zone) then
+            return true
+        end
+    end
+end
 
 local function SetViewedFloor(n)
     local h = FP.CurrentHouse()
@@ -245,8 +268,9 @@ function FP.RefreshFloorControls(h)
     removeFloorBtn:SetShown(CH.isOwnHouse and h ~= nil and floorCount > 1)
     -- The Show stairs toggle appears whenever the house has stairs to show/hide.
     stairsCheck:SetShown(floorCount > 1)
-    stairsCheckLabel:SetShown(floorCount > 1)
     stairsCheck:SetChecked(ChamberlainDB.settings.showStairsOnMap)
+    spotsCheck:SetShown(h ~= nil and h.zones ~= nil and HasSpots(h))
+    spotsCheck:SetChecked(ChamberlainDB.settings.showSpotsOnMap)
     return floorCount
 end
 

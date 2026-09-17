@@ -41,11 +41,35 @@ btnSettings:SetScript("OnClick", function()
     CH.ToggleSettings()
 end)
 
+-- Quick mute for room ambience, the same switch as the one in Settings. Only
+-- on the bar in a house whose map has a sound somewhere.
+local btnSound = CH.MakeButton(hud, "HUD_SOUND", 56, 22)
+
+local function RefreshSound()
+    btnSound:SetText(CH.L[ChamberlainDB.settings.ambienceEnabled and "HUD_SOUND" or "HUD_MUTED"])
+end
+CH.RefreshHudSound = RefreshSound
+
+btnSound:SetScript("OnClick", function()
+    ChamberlainDB.settings.ambienceEnabled = not ChamberlainDB.settings.ambienceEnabled
+    RefreshSound()
+    CH.RefreshSettingsTab()
+end)
+
+local function HasAmbience(h)
+    for _, z in ipairs(h.zones) do
+        if z.ambience then
+            return true
+        end
+    end
+end
+
 CH.Tip(btnBuild, "HUD_TT_BUILD")
 CH.Tip(btnRooms, "HUD_TT_ROOMS")
 CH.Tip(btnMap, "HUD_TT_MAP")
 CH.Tip(btnArchive, "HUD_TT_ARCHIVE")
 CH.Tip(btnSettings, "HUD_TT_SETTINGS")
+CH.Tip(btnSound, "HUD_TT_SOUND")
 
 -- Lay the visible buttons left to right under the header and size the bar to fit.
 local function Layout(buttons)
@@ -68,24 +92,28 @@ function CH.RefreshHUDMode()
         hud:Hide()
         return
     end
-    for _, b in ipairs({ btnBuild, btnRooms, btnMap, btnArchive, btnSettings }) do
+    for _, b in ipairs({ btnBuild, btnRooms, btnMap, btnArchive, btnSettings, btnSound }) do
         b:Hide()
     end
     local guid = CH.currentHouseGUID
     local h = guid and ChamberlainDB.houses[guid]
+    local buttons
     if CH.isOwnHouse then
         if CH.ArchiveWaiting(guid) then
-            Layout({ btnBuild, btnMap, btnRooms, btnArchive, btnSettings })
+            buttons = { btnBuild, btnMap, btnRooms, btnArchive, btnSettings }
         else
-            Layout({ btnBuild, btnMap, btnRooms, btnSettings })
+            buttons = { btnBuild, btnMap, btnRooms, btnSettings }
         end
+    elseif h and h.zones and #h.zones > 0 then
+        buttons = { btnRooms, btnMap, btnSettings }
     else
-        if h and h.zones and #h.zones > 0 then
-            Layout({ btnRooms, btnMap, btnSettings })
-        else
-            Layout({ btnRooms, btnSettings })
-        end
+        buttons = { btnRooms, btnSettings }
     end
+    if h and h.zones and HasAmbience(h) then
+        buttons[#buttons + 1] = btnSound
+        RefreshSound()
+    end
+    Layout(buttons)
     hud:Show()
 end
 

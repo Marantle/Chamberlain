@@ -1,5 +1,24 @@
 # Changelog
 
+## 3.8.0
+- Room ambience. The room dialog has an Ambience menu with 45 of the game's own
+  background loops, from a crowded tavern to a slow river. It fades in when you
+  walk into the room and out again when you leave. Test plays the pick while
+  you choose. Its volume follows the Ambience slider in the game's sound
+  options, and Room ambience in Settings turns it off for you alone. In a house
+  whose map has sounds the launcher bar gets a Sound button that mutes and
+  unmutes with one click.
+- Banner checkbox in the room dialog. Untick it and the room shows no banner
+  and stops counting as the room you're in. That makes a sound spot. Put a small
+  room over the fireplace with the fire ambience and tick Secret so visitors
+  don't see it on the map. The great hall around it keeps its banner and its
+  time count while the fire crackles on top. Once a house has any, the house
+  map gets a Sound spots checkbox in its corner that takes them off the map and
+  the minimap.
+- Both travel with sharing and export strings. Someone on an older version gets
+  the map as before but hears nothing, and the bannerless rooms show a banner
+  for them, so give those a name that reads fine.
+
 ## 3.7.0
 - The Archive. Patch 12.1 lets you save your house to a blueprint, reset it and
   load another, and the room map used to just sit there firing in a house it no

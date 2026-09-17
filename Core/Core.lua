@@ -1,6 +1,6 @@
 local ADDON, CH = ...
 
-CH.VERSION = "3.7.0"
+CH.VERSION = "3.8.0"
 
 -- How often the zone ticker samples your position, in seconds. Drives stair
 -- detection and the per-room time stats both, so they stay in step if it changes.
@@ -119,6 +119,11 @@ events:SetScript("OnEvent", function(_, event, arg1)
         if ChamberlainDB.settings.bannerEnabled == nil then
             ChamberlainDB.settings.bannerEnabled = true
         end
+        -- Room ambience, in your own house and in houses shared to you. Personal
+        -- and local like the banner switch.
+        if ChamberlainDB.settings.ambienceEnabled == nil then
+            ChamberlainDB.settings.ambienceEnabled = true
+        end
         -- Personal text-to-speech defaults (local only, voiceFemale/voiceMale stay
         -- nil until the player picks them). When enabled, these read rooms shared
         -- to you that have no voice of their own. See CH.ResolveZoneVoice.
@@ -160,6 +165,10 @@ events:SetScript("OnEvent", function(_, event, arg1)
         -- "Show stairs" checkbox to hide them for a cleaner map.
         if ChamberlainDB.settings.showStairsOnMap == nil then
             ChamberlainDB.settings.showStairsOnMap = true
+        end
+        -- Same for the bannerless sound spots, "Sound spots" on the map.
+        if ChamberlainDB.settings.showSpotsOnMap == nil then
+            ChamberlainDB.settings.showSpotsOnMap = true
         end
         -- Whether the floor plan was open last time. Restored on login only when
         -- standing inside a house (see CH.RestoreFloorPlan); outside a house it

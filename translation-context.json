@@ -42,6 +42,8 @@
     { "match": "FP_", "context": "A label or button in the Floor Plan / house map window." },
     { "match": "FIX_", "context": "Text in the house fixer, a repair dialog opened with /rooms fixer. Moving a house in WoW gives it a new internal id and owner name, orphaning the saved rooms, and this re-points a saved house at the one the player is standing in." },
     { "match": "AR_", "context": "Text in the Archive window. The player stores copies of a house's room map there under a name (optionally tied to a housing blueprint), restores one as the live map, renames or deletes them or clears the rooms from the house." },
+    { "match": "AMB_CAT_", "context": "A category heading in the room dialog's ambience menu, grouping background sounds." },
+    { "match": "AMB_", "context": "The name of a looping background sound a room can play, picked from a menu. A short noun phrase describing the place or the sound." },
     { "match": "ST_", "context": "Text in the stairs and floor-marker setup windows." },
     { "match": "SHARE_", "context": "A message about sharing house layouts with your group, printed to chat." },
     { "match": "SUI_", "context": "A button or prompt in the layout-sharing dialogs." },

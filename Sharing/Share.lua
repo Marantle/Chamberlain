@@ -561,6 +561,10 @@ local function DeserializeLayout(b64)
                 useOwnerHead = z.oh == true or nil,
                 rpText = type(z.t) == "string" and string.sub(z.t, 1, 500) or nil,
                 secret = z.se == true or nil,
+                noBanner = z.nb == true or nil,
+                -- An index past the end comes from a newer version with more
+                -- sounds than ours, so that room stays quiet here.
+                ambience = type(z.am) == "number" and CH.AMBIENCE[z.am] and z.am or nil,
                 -- Room shape (3.0.0): only "circle" so far. Anything else, or absent
                 -- from older blobs, is a rectangle. Geometry still rides in x1..y2.
                 shape = z.sh == "circle" and "circle" or nil,
@@ -617,6 +621,8 @@ function CH.ExportLayout(houseGUID)
             sp = z.speaker, -- custom speaker name (overrides head name)
             oh = z.useOwnerHead, -- show the house owner's character when present
             se = z.secret, -- hidden from visitors' floor plan and room list, banner still fires
+            nb = z.noBanner, -- no banner on entry (3.8.0, older clients still show one)
+            am = z.ambience, -- index into CH.AMBIENCE (3.8.0)
             fl = z.floor, -- which floor the room is on (2.4.0; appended, old clients ignore)
             sf = z.setFloor, -- absolute stair anchor: stepping on sets this floor
             fd = z.floorDelta, -- relative stair anchor: +1/-1 from current floor

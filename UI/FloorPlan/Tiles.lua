@@ -75,6 +75,9 @@ function FP.ZoneOnFloor(h, zone, floor)
     if not FP.ZoneVisible(zone) then
         return false
     end
+    if zone.noBanner and not ChamberlainDB.settings.showSpotsOnMap then
+        return false
+    end
     if CH.IsAnchor(zone) then
         if not ChamberlainDB.settings.showStairsOnMap then
             return false

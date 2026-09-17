@@ -5,7 +5,7 @@ local _, CH = ...
 -- ─────────────────────────────────────────────────────────────────────
 
 local dialog = CreateFrame("Frame", "ChamberlainNameDialog", UIParent, "BackdropTemplate")
-dialog:SetSize(376, 414)
+dialog:SetSize(376, 442)
 dialog:SetFrameStrata("DIALOG")
 dialog:SetToplevel(true) -- clicking/showing lifts it above other windows, like the rest
 dialog:SetPoint("CENTER")
@@ -18,6 +18,7 @@ local renameHouseGUID = nil -- house the renamed zone belongs to (nil = current)
 local pendingColor = nil -- color for the room being named; nil = default gold
 local pendingHeadID = nil -- talking-head index for the room; nil/1 = default
 local pendingVoice = nil -- TTS voice NAME for the room; nil = silent. Local-only.
+local pendingAmbience = nil -- index into CH.AMBIENCE, nil = none
 
 -- Which floor the room sits on, and whether it doubles as a stair anchor.
 -- pendingSetFloor / pendingFloorDelta are mutually exclusive and both nil for an
@@ -167,50 +168,55 @@ local function BuildHeadPicker()
     end
 end
 
--- "Use my head when I'm home": flags the room to show the house owner's own
--- character (when the owner is present) instead of a curated head.
-local ownerCheck = CreateFrame("CheckButton", nil, dialog, "UICheckButtonTemplate")
-ownerCheck:SetSize(24, 24)
-ownerCheck:SetPoint("TOPLEFT", 22, -120)
-local ownerCheckLabel = dialog:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-ownerCheckLabel:SetPoint("LEFT", ownerCheck, "RIGHT", 2, 0)
-ownerCheckLabel:SetText(CH.L["RD_USE_MY_HEAD"])
+-- The checkboxes on the row under the heads.
+local function MakeCheck(x, labelKey, titleKey, leadKey, ...)
+    local check = CreateFrame("CheckButton", nil, dialog, "UICheckButtonTemplate")
+    check:SetSize(24, 24)
+    check:SetPoint("TOPLEFT", x, -120)
+    local label = dialog:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    label:SetPoint("LEFT", check, "RIGHT", 2, 0)
+    label:SetText(CH.L[labelKey])
+    local fineKeys = { ... }
+    check:HookScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText(CH.L[titleKey], unpack(CH.COLORS.tipGold))
+        GameTooltip:AddLine(CH.L[leadKey], 1, 1, 1, true)
+        GameTooltip:AddLine(" ")
+        for _, k in ipairs(fineKeys) do
+            GameTooltip:AddLine(CH.L[k], 0.8, 0.8, 0.8, true)
+        end
+        GameTooltip:Show()
+    end)
+    check:HookScript("OnLeave", function()
+        GameTooltip:Hide()
+    end)
+    return check
+end
 
--- Spell out the limits on hover so they aren't a surprise: it follows the
--- character you tick it on (not your account), and visitors need to be grouped
--- with you and nearby to see it.
-ownerCheck:HookScript("OnEnter", function(self)
-    GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-    GameTooltip:SetText(CH.L["RD_USE_MY_HEAD"], unpack(CH.COLORS.tipGold))
-    GameTooltip:AddLine(CH.L["RD_USE_MY_HEAD_TT1"], 1, 1, 1, true)
-    GameTooltip:AddLine(" ")
-    GameTooltip:AddLine(CH.L["RD_USE_MY_HEAD_TT2"], 0.8, 0.8, 0.8, true)
-    GameTooltip:AddLine(CH.L["RD_USE_MY_HEAD_TT3"], 0.8, 0.8, 0.8, true)
-    GameTooltip:Show()
-end)
-ownerCheck:HookScript("OnLeave", function()
-    GameTooltip:Hide()
-end)
+-- "Use my head when I'm home": flags the room to show the house owner's own
+-- character (when the owner is present) instead of a curated head. The tooltip
+-- spells out the limits so they aren't a surprise: it follows the character you
+-- tick it on (not your account), and visitors need to be grouped with you and
+-- nearby to see it.
+local ownerCheck =
+    MakeCheck(22, "RD_USE_MY_HEAD", "RD_USE_MY_HEAD", "RD_USE_MY_HEAD_TT1", "RD_USE_MY_HEAD_TT2", "RD_USE_MY_HEAD_TT3")
 
 -- "Secret": keeps the room off visitors' floor plans and room lists, while still
 -- sharing it so the banner and yapper fire when they walk in.
-local secretCheck = CreateFrame("CheckButton", nil, dialog, "UICheckButtonTemplate")
-secretCheck:SetSize(24, 24)
-secretCheck:SetPoint("TOPLEFT", 232, -120)
-local secretCheckLabel = dialog:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-secretCheckLabel:SetPoint("LEFT", secretCheck, "RIGHT", 2, 0)
-secretCheckLabel:SetText(CH.L["RD_SECRET"])
-secretCheck:HookScript("OnEnter", function(self)
-    GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-    GameTooltip:SetText(CH.L["RD_SECRET_TT_TITLE"], unpack(CH.COLORS.tipGold))
-    GameTooltip:AddLine(CH.L["RD_SECRET_TT1"], 1, 1, 1, true)
-    GameTooltip:AddLine(" ")
-    GameTooltip:AddLine(CH.L["RD_SECRET_TT2"], 0.8, 0.8, 0.8, true)
-    GameTooltip:Show()
-end)
-secretCheck:HookScript("OnLeave", function()
-    GameTooltip:Hide()
-end)
+local secretCheck = MakeCheck(212, "RD_SECRET", "RD_SECRET_TT_TITLE", "RD_SECRET_TT1", "RD_SECRET_TT2")
+
+-- "Banner": unticked, walking in shows nothing and the room stops counting as
+-- the room you're in. With Secret and an ambience that makes a sound-only
+-- spot, a hearth or a fountain, laid over a real room.
+local bannerCheck = MakeCheck(
+    290,
+    "RD_BANNER",
+    "RD_BANNER_TT_TITLE",
+    "RD_BANNER_TT1",
+    "RD_BANNER_TT2",
+    "RD_BANNER_TT3",
+    "RD_BANNER_TT4"
+)
 
 -- Append a grey "(?)" to a field label and show an explanatory tooltip on hover.
 -- FontStrings take no mouse events, so an invisible button is laid over the label
@@ -322,13 +328,13 @@ speakerBox:HookScript("OnTextChanged", UpdateSpeakerHint)
 -- rest of the addon. InputScrollFrameTemplate ships the newer MinimalScrollBar
 -- that CH.SkinScrollBar can't style.
 local descLabel = dialog:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-descLabel:SetPoint("TOPLEFT", 24, -234)
+descLabel:SetPoint("TOPLEFT", 24, -262)
 descLabel:SetText(CH.L["RD_DESCRIPTION"])
 
 local DESC_MAX = 500
 local descScroll = CreateFrame("ScrollFrame", "ChamberlainDescScroll", dialog, "UIPanelScrollFrameTemplate")
 descScroll:SetSize(320, 104)
-descScroll:SetPoint("TOPLEFT", 28, -250)
+descScroll:SetPoint("TOPLEFT", 28, -278)
 CH.SkinScrollBar(descScroll)
 
 local descBg = descScroll:CreateTexture(nil, "BACKGROUND")
@@ -495,12 +501,68 @@ voiceInfo:SetScript("OnLeave", function()
     GameTooltip:Hide()
 end)
 
+-- Ambience picker: one of the game's own ambience loops for the room, stored
+-- and shared as an index into CH.AMBIENCE. Test plays the pick until stopped.
+local ambienceLabel = dialog:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+ambienceLabel:SetPoint("TOPLEFT", 24, -234)
+ambienceLabel:SetText(CH.L["RD_AMBIENCE"])
+
+local previewing = false
+local ambienceTest = CH.MakeButton(dialog, "RD_TEST", 72, 22)
+
+local function SetPreviewing(on)
+    previewing = on
+    CH.PreviewAmbience(on and pendingAmbience or nil)
+    ambienceTest:SetText(on and CH.L["RD_STOP_TEST"] or CH.L["RD_TEST"])
+end
+
+local function PickAmbience(btn, index)
+    pendingAmbience = index
+    btn:Refresh()
+    if previewing then
+        SetPreviewing(index ~= nil)
+    end
+end
+
+local ambienceBtn = CH.MakeMenuButton(dialog, 198, "RD_AMBIENCE_NONE", function()
+    return pendingAmbience and CH.L[CH.AMBIENCE[pendingAmbience].key]
+end, function(root, btn)
+    root:CreateTitle(CH.L["RD_AMBIENCE_PICK"])
+    root:CreateRadio(CH.L["RD_AMBIENCE_NONE"], function()
+        return pendingAmbience == nil
+    end, function()
+        PickAmbience(btn, nil)
+    end)
+    for _, cat in ipairs(CH.AMBIENCE_CATS) do
+        local sub = root:CreateButton(CH.L[cat])
+        for i, sound in ipairs(CH.AMBIENCE) do
+            if sound.cat == cat then
+                sub:CreateRadio(CH.L[sound.key], function()
+                    return pendingAmbience == i
+                end, function()
+                    PickAmbience(btn, i)
+                end)
+            end
+        end
+    end
+end)
+ambienceBtn:SetPoint("LEFT", ambienceLabel, "RIGHT", 8, 0)
+ambienceTest:SetPoint("LEFT", ambienceBtn, "RIGHT", 6, 0)
+
+ambienceTest:SetScript("OnClick", function()
+    if not previewing and not pendingAmbience then
+        CH.Print(CH.L["RD_PICK_AMBIENCE"])
+        return
+    end
+    SetPreviewing(not previewing)
+end)
+
 -- ── Floor row (multi-floor houses only) ──────────────────────────────
 -- A "Floor N" dropdown that scopes the room to a floor, plus a "Stairs"
 -- dropdown that turns the room into a stair anchor (absolute "Go to floor N" or
 -- relative "Up/Down one"). Hidden entirely on single-floor houses. The dialog
 -- grows by one row when it's shown so nothing overlaps the description box.
-local DIALOG_BASE_H = 414
+local DIALOG_BASE_H = 442
 local FLOOR_ROW_H = 30
 
 local floorRow = CreateFrame("Frame", nil, dialog)
@@ -618,6 +680,7 @@ local function CloseDialog()
         CH.StopSpeaking()
     end -- don't keep narrating after the dialog closes
     SetTesting(false)
+    SetPreviewing(false)
     dialog:Hide()
     renameTarget = nil
     renameHouseGUID = nil
@@ -648,6 +711,9 @@ function CH.OpenRenameDialog(zone, houseGUID)
     speakerBox:SetText(zone.speaker or "")
     ownerCheck:SetChecked(zone.useOwnerHead)
     secretCheck:SetChecked(zone.secret)
+    bannerCheck:SetChecked(not zone.noBanner)
+    pendingAmbience = zone.ambience
+    ambienceBtn:Refresh()
     SetPendingVoice(zone.voice)
     UpdateMainSwatch()
     RefreshHistorySwatches()
@@ -690,6 +756,8 @@ local function ConfirmZone()
             end
             renameTarget.rpText = GetDescText()
             renameTarget.secret = secretCheck:GetChecked() or nil
+            renameTarget.noBanner = not bannerCheck:GetChecked() or nil
+            renameTarget.ambience = pendingAmbience
             renameTarget.voice = pendingVoice -- local-only; not shared
             renameTarget.floor = pendingFloor or 1
             renameTarget.setFloor = pendingSetFloor

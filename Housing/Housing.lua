@@ -242,6 +242,7 @@ function CH.CheckHousingState()
         CH.HideBanner(0.8)
         CH.HideTalkingHead()
         CH.SetBannerRoom(nil)
+        CH.UpdateAmbience(nil, nil)
         currentZone = nil
         currentAnchor = nil
         CH.activeFloor = 1
@@ -433,17 +434,26 @@ function CH.CheckZones()
 
     -- 2. Room pass: smallest matching room wins, scoped to the active floor.
     -- Standing on a named anchor, the anchor itself provides the banner.
-    local found = nil
-    local foundArea = math.huge
+    -- Bannerless rooms run their own smallest-wins beside it. They only bring
+    -- a sound, so a hearth inside the great hall must not take the hall's place
+    -- as the room you're in.
+    local found, spot = nil, nil
+    local foundArea, spotArea = math.huge, math.huge
     for _, zone in ipairs(h.zones) do
         if IsInZone(zone, x, y, mapID) and (zone.floor or 1) == CH.activeFloor and not CH.IsAnchor(zone) then
             local area = CH.ZoneArea(zone)
-            if area < foundArea then
+            if zone.noBanner then
+                if area < spotArea then
+                    spot = zone
+                    spotArea = area
+                end
+            elseif area < foundArea then
                 found = zone
                 foundArea = area
             end
         end
     end
+    CH.UpdateAmbience(found and found.ambience, spot and spot.ambience)
     -- A named anchor (one with a real name, not a bare floor switch) shows its
     -- own banner, the "Stairs Up" live confirmation, but only if no smaller room
     -- on this floor overlaps it.
