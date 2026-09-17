@@ -187,6 +187,7 @@ function CH.RepairHouseKey(oldKey)
         if (old.floorCount or 1) > (h.floorCount or 1) then
             h.floorCount = old.floorCount
         end
+        h.ambience = h.ambience or old.ambience
     end
 
     CH.StampHouseMap(h)
@@ -453,7 +454,10 @@ function CH.CheckZones()
             end
         end
     end
-    CH.UpdateAmbience(found and found.ambience, spot and spot.ambience)
+    -- room, then floor, then house
+    local amb = h.ambience
+    local bed = found and found.ambience or amb and (amb.floors and amb.floors[CH.activeFloor] or amb.house)
+    CH.UpdateAmbience(bed, spot and spot.ambience)
     -- A named anchor (one with a real name, not a bare floor switch) shows its
     -- own banner, the "Stairs Up" live confirmation, but only if no smaller room
     -- on this floor overlaps it.

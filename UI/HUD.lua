@@ -57,6 +57,9 @@ btnSound:SetScript("OnClick", function()
 end)
 
 local function HasAmbience(h)
+    if h.ambience then
+        return true
+    end
     for _, z in ipairs(h.zones) do
         if z.ambience then
             return true

@@ -58,24 +58,67 @@ CH.AMBIENCE = {
 -- Menu order for the categories. Not wire data, free to change.
 CH.AMBIENCE_CATS = { "AMB_CAT_ROOMS", "AMB_CAT_WATER", "AMB_CAT_WEATHER", "AMB_CAT_OUTSIDE" }
 
+-- House and floor sounds live on the house entry as
+-- h.ambience = { house = index, floors = { [floor] = index } }, nil while
+-- there are none. floor nil sets the whole house.
+function CH.SetHouseAmbience(guid, floor, index)
+    local h = ChamberlainDB.houses[guid]
+    local amb = h.ambience or {}
+    if floor then
+        amb.floors = amb.floors or {}
+        amb.floors[floor] = index
+        if not next(amb.floors) then
+            amb.floors = nil
+        end
+    else
+        amb.house = index
+    end
+    h.ambience = next(amb) and amb or nil
+    CH.TouchHouse(guid)
+end
+
 local FADE_MS = 1500
 
 -- room is the tone of the room you stand in, spot the bannerless room laid
 -- over it (a hearth, a fountain), preview the dialog's Test buton.
 local slots = { room = {}, spot = {}, preview = {} }
 
+-- The API has no loop flag and won't say how long a file is. The first time
+-- through a sound gets timed, which leaves a short gap before the restart is
+-- noticed. After that the next copy starts OVERLAP seconds early and the old
+-- tail fades out under it. Per session, so a length that came out wrong
+-- because the sound device dropped doesn't stick around.
+local OVERLAP = 0.3
+local lengths = {}
+
 local function Start(slot)
     local willPlay, handle = PlaySoundFile(CH.AMBIENCE[slot.index].id, "Ambience")
     -- nil when the client refuses (sound off), so the ticker won't keep asking
     slot.handle = willPlay and handle or nil
+    slot.started = GetTime()
+end
+
+local function Loop(slot)
+    local played = GetTime() - slot.started
+    local len = lengths[slot.index]
+    if len then
+        if played >= len - OVERLAP then
+            StopSound(slot.handle, OVERLAP * 1000)
+            Start(slot)
+        end
+    elseif not C_Sound.IsPlaying(slot.handle) then
+        -- the shortest file is 3 seconds, anything under 1 got cut off
+        if played > 1 then
+            lengths[slot.index] = played
+        end
+        Start(slot)
+    end
 end
 
 local function SetSlot(slot, index)
     if slot.index == index then
-        -- The API has no loop flag, so a file that ran out is started again
-        -- from here.
-        if slot.handle and not C_Sound.IsPlaying(slot.handle) then
-            Start(slot)
+        if slot.handle then
+            Loop(slot)
         end
         return
     end

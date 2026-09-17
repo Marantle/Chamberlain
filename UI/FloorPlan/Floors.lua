@@ -91,6 +91,34 @@ spotsCheck:SetPoint("BOTTOMRIGHT", canvas, "BOTTOMRIGHT", -2, 2)
 spotsCheck:SetFrameLevel(canvas:GetFrameLevel() + 20)
 spotsCheck.label:SetPoint("RIGHT", spotsCheck, "LEFT", -2, 0)
 
+-- Background sound for the whole house and for the floor on view, own house
+-- only. The label never changes and the radios in the menu show what is set.
+local ambienceBtn = CH.MakeMenuButton(fp, 80, "FP_AMBIENCE", function() end, function(root)
+    local guid = CH.currentHouseGUID
+    local h = FP.CurrentHouse()
+    local house = root:CreateButton(CH.L["FP_AMBIENCE_HOUSE"])
+    CH.FillAmbienceMenu(house, function()
+        return h.ambience and h.ambience.house
+    end, function(index)
+        CH.SetHouseAmbience(guid, nil, index)
+    end)
+    if (h.floorCount or 1) == 1 then
+        return
+    end
+    local floor = CH.fpViewedFloor
+    local sub = root:CreateButton(string.format(CH.L["FP_AMBIENCE_FLOOR_X"], floor))
+    CH.FillAmbienceMenu(sub, function()
+        local amb = h.ambience
+        return amb and amb.floors and amb.floors[floor]
+    end, function(index)
+        CH.SetHouseAmbience(guid, floor, index)
+    end)
+end)
+ambienceBtn:SetPoint("TOPLEFT", canvas, "TOPLEFT", 4, -4)
+ambienceBtn:SetFrameLevel(canvas:GetFrameLevel() + 20)
+ambienceBtn:Hide()
+CH.Tip(ambienceBtn, "FP_TT_AMBIENCE")
+
 local function HasSpots(h)
     for _, zone in ipairs(h.zones) do
         if zone.noBanner and FP.ZoneVisible(zone) then
@@ -187,6 +215,10 @@ DoRemoveTopFloor = function()
             CH.DropZoneStats(h, removed and removed.name)
         end
     end
+    -- the setter rebuilds the map, no need for that on a house without sounds
+    if h.ambience then
+        CH.SetHouseAmbience(CH.currentHouseGUID, count, nil)
+    end
     h.floorCount = count - 1
     h.updatedAt = GetServerTime()
     if (CH.activeFloor or 1) > h.floorCount and CH.SetActiveFloor then
@@ -264,6 +296,7 @@ function FP.RefreshFloorControls(h)
         moveBtn:Hide()
     end
     addFloorBtn:SetShown(CH.isOwnHouse and h ~= nil)
+    ambienceBtn:SetShown(CH.isOwnHouse and h ~= nil)
     -- Removing the top floor only makes sense once there are 2+ floors.
     removeFloorBtn:SetShown(CH.isOwnHouse and h ~= nil and floorCount > 1)
     -- The Show stairs toggle appears whenever the house has stairs to show/hide.

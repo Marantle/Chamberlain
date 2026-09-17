@@ -1,6 +1,6 @@
 local ADDON, CH = ...
 
-CH.VERSION = "3.8.0"
+CH.VERSION = "3.9.0"
 
 -- How often the zone ticker samples your position, in seconds. Drives stair
 -- detection and the per-room time stats both, so they stay in step if it changes.

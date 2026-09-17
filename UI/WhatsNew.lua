@@ -20,6 +20,14 @@ local _, CH = ...
 -- an `onToggle` run after any of them flips.
 CH.WHATS_NEW = {
     {
+        v = "3.9.0",
+        notes = {
+            "Ambience for the whole house and for each floor. The Ambience button is in "
+                .. "the top left corner of your house map. A room's own sound plays "
+                .. "instead of the floor's, and the floor's instead of the house's.",
+        },
+    },
+    {
         v = "3.8.0",
         notes = {
             "Room ambience. Edit a room and pick an Ambience for it from 45 of the game's "

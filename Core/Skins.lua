@@ -275,6 +275,29 @@ function CH.MakeVoiceDropdown(parent, w, noneKey, getName, setName)
     end)
 end
 
+-- The ambience list as radios under a menu or a submenu. None sits on top with
+-- a submenu per category under it. get() returns the picked CH.AMBIENCE index
+-- or nil. set(index) stores it.
+function CH.FillAmbienceMenu(desc, get, set)
+    desc:CreateRadio(CH.L["RD_AMBIENCE_NONE"], function()
+        return get() == nil
+    end, function()
+        set(nil)
+    end)
+    for _, cat in ipairs(CH.AMBIENCE_CATS) do
+        local sub = desc:CreateButton(CH.L[cat])
+        for i, sound in ipairs(CH.AMBIENCE) do
+            if sound.cat == cat then
+                sub:CreateRadio(CH.L[sound.key], function()
+                    return get() == i
+                end, function()
+                    set(i)
+                end)
+            end
+        end
+    end
+end
+
 -- Horizontal slider over [minV, maxV] in whole steps of `step`, skinned to match
 -- the addon: a dark track with a thin gold thumb. The caller sets the value with
 -- :SetValue and reads changes with an OnValueChanged handler. `w` is the bar width.

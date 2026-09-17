@@ -528,23 +528,11 @@ local ambienceBtn = CH.MakeMenuButton(dialog, 198, "RD_AMBIENCE_NONE", function(
     return pendingAmbience and CH.L[CH.AMBIENCE[pendingAmbience].key]
 end, function(root, btn)
     root:CreateTitle(CH.L["RD_AMBIENCE_PICK"])
-    root:CreateRadio(CH.L["RD_AMBIENCE_NONE"], function()
-        return pendingAmbience == nil
-    end, function()
-        PickAmbience(btn, nil)
+    CH.FillAmbienceMenu(root, function()
+        return pendingAmbience
+    end, function(index)
+        PickAmbience(btn, index)
     end)
-    for _, cat in ipairs(CH.AMBIENCE_CATS) do
-        local sub = root:CreateButton(CH.L[cat])
-        for i, sound in ipairs(CH.AMBIENCE) do
-            if sound.cat == cat then
-                sub:CreateRadio(CH.L[sound.key], function()
-                    return pendingAmbience == i
-                end, function()
-                    PickAmbience(btn, i)
-                end)
-            end
-        end
-    end
 end)
 ambienceBtn:SetPoint("LEFT", ambienceLabel, "RIGHT", 8, 0)
 ambienceTest:SetPoint("LEFT", ambienceBtn, "RIGHT", 6, 0)

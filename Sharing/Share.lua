@@ -427,12 +427,14 @@ function CH.ApplyLayout(houseGUID, data, senderName)
         existing.owner = data.owner or existing.owner
         existing.ownerGUID = data.ownerGUID or existing.ownerGUID
         existing.floorCount = data.floorCount or existing.floorCount or 1
+        existing.ambience = data.ambience
     else
         ChamberlainDB.houses[houseGUID] = {
             owner = data.owner,
             ownerGUID = data.ownerGUID,
             updatedAt = data.timestamp,
             floorCount = data.floorCount or 1,
+            ambience = data.ambience,
             zones = data.zones,
         }
     end
@@ -516,6 +518,21 @@ end
 
 local IMPORT_MAX_BYTES = 200000 -- reject absurdly large blobs before deserializing
 
+-- The house and floor ambience off a decoded payload, in the h.ambience shape,
+-- or nil when it carries none. Anything that isn't an index we know drops out.
+local function ReadHouseAmbience(payload)
+    local amb = { house = CH.AMBIENCE[payload.ha] and payload.ha or nil }
+    if type(payload.fa) == "table" then
+        for n, index in ipairs(payload.fa) do
+            if CH.AMBIENCE[index] then
+                amb.floors = amb.floors or {}
+                amb.floors[n] = index
+            end
+        end
+    end
+    return next(amb) and amb or nil
+end
+
 -- Decode a base64 blob (the bytes inside a "CHB1:" string, or a reassembled BLOB
 -- transfer) into a validated { guid, owner, timestamp, zones } table, or nil.
 -- Shared by string import and the over-the-wire blob receive.
@@ -587,6 +604,7 @@ local function DeserializeLayout(b64)
         ownerGUID = type(payload.oguid) == "string" and payload.oguid or nil,
         timestamp = type(payload.ts) == "number" and payload.ts or GetServerTime(),
         floorCount = type(payload.fc) == "number" and payload.fc or 1,
+        ambience = ReadHouseAmbience(payload),
         zones = zones,
     }
 end
@@ -605,6 +623,18 @@ function CH.ExportLayout(houseGUID)
         fc = h.floorCount or 1,
         zones = {},
     }
+    -- House and floor ambience (3.9.0). fa is one index per floor with 0 for
+    -- none, a plain array so nothing rides on how CBOR treats sparse keys.
+    local amb = h.ambience
+    if amb then
+        payload.ha = amb.house
+        if amb.floors then
+            payload.fa = {}
+            for n = 1, payload.fc do
+                payload.fa[n] = amb.floors[n] or 0
+            end
+        end
+    end
     for _, z in ipairs(h.zones) do
         payload.zones[#payload.zones + 1] = {
             n = z.name,

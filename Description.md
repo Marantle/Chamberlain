@@ -45,6 +45,24 @@ speak the description aloud in a voice you pick, kept on your machine and sent t
 one. A room marked secret stays off visitors' house maps and room lists, but its
 banner still fires when they walk in.
 
+## Ambience
+
+A room can have a background sound. Edit the room and pick one from the Ambience
+menu. There are 45 loops from the game itself, like a crowded tavern or a slow
+river. It fades in when you enter and fades out again when you leave.
+
+For a fireplace or a fountain, drop a small room on it, give it the sound and
+untick Banner. A room without a banner doesn't count as the room you're in, so
+the hall around it keeps its banner and its own sound while the fire crackles on
+top. Tick Secret too and visitors won't see it on their map.
+
+The whole house and each floor can have a sound as well, from the Ambience button
+on the house map. A room's own sound plays instead of the floor's, and the floor's
+instead of the house's.
+
+Visitors with your shared map hear all of it. The sound follows the game's
+Ambience volume, and the Sound button on the Chamberlain bar mutes it.
+
 ## Archive
 
 Since patch 12.1 a house can be saved to a blueprint, reset and rebuilt from
@@ -88,10 +106,9 @@ be turned off completely in the settings.
   toolbox.
 - A gold banner shows the room's name on entry and fades on exit.
 - An optional entry sound (a map ping) when you walk in.
-- Give a room one of 45 background loops from the game itself, a tavern or rain
-  on the roof, and it fades in when you walk in. A small bannerless room makes a
-  sound spot, so the fireplace crackles inside the great hall. Visitors with
-  your shared map hear it too.
+- Background sound for a room, a floor or the whole house, from 45 of the game's
+  own ambience loops. A small room without a banner puts a crackling fire inside
+  the great hall. Visitors with your shared map hear it too.
 - A house map draws your rooms to scale and shows where you and your party are.
 - Zoom and pan the house map with the mouse.
 - Rooms drawn on the minimap indoors, in place of the game's still house picture.
