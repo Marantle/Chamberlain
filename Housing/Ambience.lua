@@ -60,7 +60,15 @@ CH.AMBIENCE_CATS = { "AMB_CAT_ROOMS", "AMB_CAT_WATER", "AMB_CAT_WEATHER", "AMB_C
 
 -- House and floor sounds live on the house entry as
 -- h.ambience = { house = index, floors = { [floor] = index } }, nil while
--- there are none. floor nil sets the whole house.
+-- there are none. floor nil means the whole house.
+function CH.GetHouseAmbience(guid, floor)
+    local amb = ChamberlainDB.houses[guid].ambience
+    if floor then
+        return amb and amb.floors and amb.floors[floor]
+    end
+    return amb and amb.house
+end
+
 function CH.SetHouseAmbience(guid, floor, index)
     local h = ChamberlainDB.houses[guid]
     local amb = h.ambience or {}

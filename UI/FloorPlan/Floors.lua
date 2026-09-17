@@ -91,28 +91,35 @@ spotsCheck:SetPoint("BOTTOMRIGHT", canvas, "BOTTOMRIGHT", -2, 2)
 spotsCheck:SetFrameLevel(canvas:GetFrameLevel() + 20)
 spotsCheck.label:SetPoint("RIGHT", spotsCheck, "LEFT", -2, 0)
 
--- Background sound for the whole house and for the floor on view, own house
--- only. The label never changes and the radios in the menu show what is set.
-local ambienceBtn = CH.MakeMenuButton(fp, 80, "FP_AMBIENCE", function() end, function(root)
-    local guid = CH.currentHouseGUID
-    local h = FP.CurrentHouse()
-    local house = root:CreateButton(CH.L["FP_AMBIENCE_HOUSE"])
-    CH.FillAmbienceMenu(house, function()
-        return h.ambience and h.ambience.house
-    end, function(index)
-        CH.SetHouseAmbience(guid, nil, index)
-    end)
-    if (h.floorCount or 1) == 1 then
-        return
+-- One line of the ambience menu, the whole house when floor is nil. What is
+-- set shows in gold after the label, so the menu reads as an overview before
+-- anything is opened.
+local function AddAmbienceEntry(root, guid, label, floor)
+    local function get()
+        return CH.GetHouseAmbience(guid, floor)
     end
-    local floor = CH.fpViewedFloor
-    local sub = root:CreateButton(string.format(CH.L["FP_AMBIENCE_FLOOR_X"], floor))
-    CH.FillAmbienceMenu(sub, function()
-        local amb = h.ambience
-        return amb and amb.floors and amb.floors[floor]
-    end, function(index)
+    local picked = CH.AMBIENCE[get()]
+    if picked then
+        label = label .. "  |cffFFD700" .. CH.L[picked.key] .. "|r"
+    end
+    CH.FillAmbienceMenu(root:CreateButton(label), get, function(index)
         CH.SetHouseAmbience(guid, floor, index)
     end)
+end
+
+-- Background sound for the whole house and for each floor, own house only. The
+-- button's own label never changes.
+local ambienceBtn = CH.MakeMenuButton(fp, 80, "FP_AMBIENCE", function() end, function(root)
+    local guid = CH.currentHouseGUID
+    AddAmbienceEntry(root, guid, CH.L["FP_AMBIENCE_HOUSE"])
+    -- one floor is the whole house, no point offering it twice
+    local count = FP.CurrentHouse().floorCount or 1
+    if count == 1 then
+        return
+    end
+    for floor = 1, count do
+        AddAmbienceEntry(root, guid, string.format(CH.L["FP_AMBIENCE_FLOOR_X"], floor), floor)
+    end
 end)
 ambienceBtn:SetPoint("TOPLEFT", canvas, "TOPLEFT", 4, -4)
 ambienceBtn:SetFrameLevel(canvas:GetFrameLevel() + 20)

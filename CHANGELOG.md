@@ -3,10 +3,10 @@
 ## 3.9.0
 - Ambience for the whole house and per floor. In your own house the house map
   has an Ambience button in its top left corner. Whole house sets a sound that
-  plays everywhere indoors, and on a house with several floors the floor you're
-  looking at can have its own. A room's own ambience wins over the floor's and
-  the floor's wins over the house's. Sound spots still play on top of whichever
-  it is.
+  plays everywhere indoors, and on a house with several floors the menu lists
+  each floor so it can have its own. A room's own ambience wins over the
+  floor's and the floor's wins over the house's. Sound spots still play on top
+  of whichever it is.
 - Both are shared and exported with the map and stored with it in the Archive.
   Older versions ignore them.
 - The short pause when a looping ambience started over is covered up. The first

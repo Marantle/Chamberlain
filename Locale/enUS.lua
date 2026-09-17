@@ -356,7 +356,7 @@ L["FP_AMBIENCE"] = "Ambience"
 L["FP_AMBIENCE_HOUSE"] = "Whole house"
 L["FP_AMBIENCE_FLOOR_X"] = "Floor %d"
 L["FP_TT_AMBIENCE"] =
-    "Pick a background sound for the whole house or for the floor you're looking at. A floor's sound replaces the house's. A room's own sound replaces both."
+    "Pick a background sound for the whole house or for one floor. A floor's sound replaces the house's. A room's own sound replaces both."
 L["FP_SHOW_SPOTS"] = "Sound spots"
 L["FP_SHOW_SPOTS_TT_TITLE"] = "Show rooms without a banner"
 L["FP_SHOW_SPOTS_TT_BODY"] =

@@ -284,8 +284,14 @@ function CH.FillAmbienceMenu(desc, get, set)
     end, function()
         set(nil)
     end)
+    -- the category holding the current pick goes gold so it can be found again
+    local picked = CH.AMBIENCE[get()]
     for _, cat in ipairs(CH.AMBIENCE_CATS) do
-        local sub = desc:CreateButton(CH.L[cat])
+        local label = CH.L[cat]
+        if picked and picked.cat == cat then
+            label = "|cffFFD700" .. label .. "|r"
+        end
+        local sub = desc:CreateButton(label)
         for i, sound in ipairs(CH.AMBIENCE) do
             if sound.cat == cat then
                 sub:CreateRadio(CH.L[sound.key], function()
