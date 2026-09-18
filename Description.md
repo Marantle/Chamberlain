@@ -48,8 +48,9 @@ banner still fires when they walk in.
 ## Ambience and music
 
 A room can have a background sound. Edit the room and pick one from the Ambience
-menu. There are 45 loops from the game itself, like a crowded tavern or a slow
-river. It fades in when you enter and fades out again when you leave.
+menu. There are over a hundred loops from the game itself, like a crowded tavern
+or a slow river, and darker ones like Naxxramas. The menu sorts them into short
+categories. It fades in when you enter and fades out again when you leave.
 
 For a fireplace or a fountain, drop a small room on it, give it the sound and
 untick Banner. A room without a banner doesn't count as the room you're in, so
@@ -119,9 +120,10 @@ be turned off completely in the settings.
   toolbox.
 - A gold banner shows the room's name on entry and fades on exit.
 - An optional entry sound (a map ping) when you walk in.
-- Background sound for a room, a floor or the whole house, from 45 of the game's
-  own ambience loops. A small room without a banner puts a crackling fire inside
-  the great hall. Visitors with your shared map hear it too.
+- Background sound for a room, a floor or the whole house, from over a hundred
+  of the game's own ambience loops. A small room without a banner puts a
+  crackling fire inside the great hall. Visitors with your shared map hear it
+  too.
 - Music for a room, a floor or the whole house, from the game's own tracks.
   Search for one and click it to hear it before you pick.
 - A laugh, a bell or a murloc when you walk into a room.

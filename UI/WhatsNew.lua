@@ -20,6 +20,16 @@ local _, CH = ...
 -- an `onToggle` run after any of them flips.
 CH.WHATS_NEW = {
     {
+        v = "3.11.0",
+        notes = {
+            "78 more ambience loops for your rooms. Naxxramas and Frostmourne are in, so "
+                .. "are a dozen cities and the Darkmoon Faire. The Ambience menu is split "
+                .. "into short categories now.",
+            "Click a sound in the Ambience menu and it plays while the menu stays open, "
+                .. "so you can compare a few before you settle on one.",
+        },
+    },
+    {
         v = "3.10.0",
         notes = {
             "Music. Give a room, a floor or the whole house a track from the game's own "

@@ -1,5 +1,18 @@
 # Changelog
 
+## 3.11.0
+- 78 more ambience loops, 123 in all. Most of them are haunted. Naxxramas is in
+  wing by wing, so are Icecrown Citadel and Frostmourne, and the spirit world
+  you hear when you're dead. The rest is daylight forests and beaches, a dozen
+  cities and the Darkmoon Faire.
+- The Ambience menu is sorted into fifteen short categories now, none longer
+  than twelve. Rooms that already have a sound keep it.
+- Clicking a sound in the Ambience menu plays it and the menu stays open, so you
+  can click through a few and compare. The room's own ambience goes quiet while
+  you listen. Click anywhere else and the menu closes and the sound stops.
+- Someone on an older version hears nothing in a room that uses one of the new
+  loops, with no error, until they update.
+
 ## 3.10.0
 - Music. A room, a floor or the whole house can have a track from the game's
   own music, about 6900 of them. It plays in place of the music the game would

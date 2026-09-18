@@ -513,18 +513,22 @@ AddFieldHelp(ambienceLabel, "RD_AMBIENCE_TT_TITLE", "RD_AMBIENCE_TT1", "RD_AMBIE
 local previewing = false
 local ambienceTest = CH.MakeButton(dialog, "RD_TEST", 72, 22)
 
-local function SetPreviewing(on)
+local function MarkPreviewing(on)
     previewing = on
-    CH.PreviewAmbience(on and pendingAmbience or nil)
     ambienceTest:SetText(on and CH.L["RD_STOP_TEST"] or CH.L["RD_TEST"])
 end
 
+local function SetPreviewing(on)
+    MarkPreviewing(on)
+    CH.PreviewAmbience(on and pendingAmbience or nil)
+end
+
+-- The open menu plays what gets clicked in it, so this only keeps the Test
+-- button's label honest. Closing the menu ends the preview.
 local function PickAmbience(btn, index)
     pendingAmbience = index
     btn:Refresh()
-    if previewing then
-        SetPreviewing(index ~= nil)
-    end
+    MarkPreviewing(index ~= nil)
 end
 
 local ambienceBtn = CH.MakeMenuButton(dialog, 176, "RD_AMBIENCE_NONE", function()
@@ -536,6 +540,8 @@ end, function(root, btn)
     end, function(index)
         PickAmbience(btn, index)
     end)
+end, function()
+    SetPreviewing(false)
 end)
 ambienceBtn:SetPoint("LEFT", ambienceLabel, "RIGHT", 8, 0)
 ambienceTest:SetPoint("LEFT", ambienceBtn, "RIGHT", 6, 0)

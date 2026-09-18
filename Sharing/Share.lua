@@ -213,6 +213,7 @@ end
 -- id), 0 on the wire for none.
 local PATCH_TYPE = { ambience = "AMB", music = "MUS" }
 local PATCH_KIND = { AMB = "ambience", MUS = "music" }
+local lastSentNotice = 0
 
 -- quiet skips the chat line, for the second patch of a save that sends two.
 -- plays rides behind a room's music pick. See ReadRoomMusic.
@@ -233,7 +234,11 @@ function CH.SendSoundPatch(houseGUID, kind, baseTs, target, value, quiet, plays)
             plays or ""
         )
     )
-    if not quiet then
+    -- The map's ambience menu stays open for comparing and every click in it is
+    -- a change that goes out, so the line would stack up in chat.
+    local now = GetTime()
+    if not quiet and now - lastSentNotice > 10 then
+        lastSentNotice = now
         CH.Print(CH.L["SHARE_SOUND_SENT"])
     end
 end

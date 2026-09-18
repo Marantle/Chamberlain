@@ -24,8 +24,8 @@ CH.AMBIENCE = {
     { id = 2057626, key = "AMB_RAIN_HEAVY_WIDE", cat = "AMB_CAT_WEATHER" },
     { id = 2182419, key = "AMB_THUNDERSTORM", cat = "AMB_CAT_WEATHER" },
     { id = 538985, key = "AMB_SNOW", cat = "AMB_CAT_WEATHER" },
-    { id = 537422, key = "AMB_TAVERN", cat = "AMB_CAT_ROOMS" }, -- 17
-    { id = 537423, key = "AMB_TAVERN_CROWDED", cat = "AMB_CAT_ROOMS" },
+    { id = 537422, key = "AMB_TAVERN", cat = "AMB_CAT_CROWDS" }, -- 17
+    { id = 537423, key = "AMB_TAVERN_CROWDED", cat = "AMB_CAT_CROWDS" },
     { id = 537374, key = "AMB_DINING_ROOM", cat = "AMB_CAT_ROOMS" },
     { id = 537376, key = "AMB_GREAT_HALL", cat = "AMB_CAT_ROOMS" },
     { id = 537377, key = "AMB_GUEST_CHAMBERS", cat = "AMB_CAT_ROOMS" },
@@ -33,30 +33,127 @@ CH.AMBIENCE = {
     { id = 537380, key = "AMB_BACKSTAGE", cat = "AMB_CAT_ROOMS" },
     { id = 537381, key = "AMB_OLD_TOWER", cat = "AMB_CAT_ROOMS" },
     { id = 537398, key = "AMB_ARCANE_LIBRARY", cat = "AMB_CAT_ROOMS" },
-    { id = 537372, key = "AMB_STABLES", cat = "AMB_CAT_ROOMS" },
-    { id = 537332, key = "AMB_BLACKSMITH", cat = "AMB_CAT_ROOMS" },
-    { id = 537371, key = "AMB_GREAT_FORGE", cat = "AMB_CAT_ROOMS" },
-    { id = 537356, key = "AMB_CRYPT", cat = "AMB_CAT_ROOMS" },
+    { id = 537372, key = "AMB_STABLES", cat = "AMB_CAT_WORK" },
+    { id = 537332, key = "AMB_BLACKSMITH", cat = "AMB_CAT_WORK" },
+    { id = 537371, key = "AMB_GREAT_FORGE", cat = "AMB_CAT_WORK" },
+    { id = 537356, key = "AMB_CRYPT", cat = "AMB_CAT_DUNGEON" },
     { id = 537355, key = "AMB_CATHEDRAL", cat = "AMB_CAT_ROOMS" },
-    { id = 537412, key = "AMB_JAIL", cat = "AMB_CAT_ROOMS" },
-    { id = 537349, key = "AMB_PRISON", cat = "AMB_CAT_ROOMS" },
-    { id = 537350, key = "AMB_SEWERS", cat = "AMB_CAT_ROOMS" },
-    { id = 537340, key = "AMB_CAVE_COLD", cat = "AMB_CAT_ROOMS" },
-    { id = 537343, key = "AMB_CAVE_WARM", cat = "AMB_CAT_ROOMS" },
-    { id = 537405, key = "AMB_SHIP", cat = "AMB_CAT_ROOMS" },
+    { id = 537412, key = "AMB_JAIL", cat = "AMB_CAT_DUNGEON" },
+    { id = 537349, key = "AMB_PRISON", cat = "AMB_CAT_DUNGEON" },
+    { id = 537350, key = "AMB_SEWERS", cat = "AMB_CAT_DUNGEON" },
+    { id = 537340, key = "AMB_CAVE_COLD", cat = "AMB_CAT_DUNGEON" },
+    { id = 537343, key = "AMB_CAVE_WARM", cat = "AMB_CAT_DUNGEON" },
+    { id = 537405, key = "AMB_SHIP", cat = "AMB_CAT_WORK" },
     { id = 537410, key = "AMB_ROOM_SMALL", cat = "AMB_CAT_ROOMS" },
     { id = 537382, key = "AMB_ROOM_LARGE", cat = "AMB_CAT_ROOMS" },
     { id = 537383, key = "AMB_ROOM_LARGE_2", cat = "AMB_CAT_ROOMS" },
     { id = 538994, key = "AMB_FOREST_NIGHT", cat = "AMB_CAT_OUTSIDE" }, -- 40
     { id = 538990, key = "AMB_ENCHANTED_NIGHT", cat = "AMB_CAT_OUTSIDE" },
-    { id = 538996, key = "AMB_SCARY_NIGHT", cat = "AMB_CAT_OUTSIDE" },
+    { id = 538996, key = "AMB_SCARY_NIGHT", cat = "AMB_CAT_HAUNTED_OUT" },
     { id = 539046, key = "AMB_CITY_NIGHT_GILNEAS", cat = "AMB_CAT_OUTSIDE" },
     { id = 537413, key = "AMB_CITY_NIGHT", cat = "AMB_CAT_OUTSIDE" },
-    { id = 537411, key = "AMB_CITY_DAY", cat = "AMB_CAT_OUTSIDE" },
+    { id = 537411, key = "AMB_CITY_DAY", cat = "AMB_CAT_TOWNS" },
+    -- 3.11.0, appended
+    { id = 537392, key = "AMB_NAXX_ENTRANCE", cat = "AMB_CAT_HAUNTED" }, -- 46
+    { id = 537394, key = "AMB_NAXX_PLAGUE", cat = "AMB_CAT_HAUNTED" },
+    { id = 537391, key = "AMB_NAXX_KNIGHTS", cat = "AMB_CAT_HAUNTED" },
+    { id = 537395, key = "AMB_NAXX_SPIDERS", cat = "AMB_CAT_HAUNTED" },
+    { id = 537390, key = "AMB_NAXX_ABOMINATIONS", cat = "AMB_CAT_HAUNTED" },
+    { id = 537393, key = "AMB_FROST_WYRM_LAIR", cat = "AMB_CAT_HAUNTED" },
+    { id = 537373, key = "AMB_KARA_DEMONS", cat = "AMB_CAT_HAUNTED" },
+    { id = 537379, key = "AMB_KARA_NETHERSPITE", cat = "AMB_CAT_HAUNTED" },
+    { id = 537375, key = "AMB_KARA_FACADE", cat = "AMB_CAT_HAUNTED" },
+    { id = 537326, key = "AMB_AUCH_SHADOW", cat = "AMB_CAT_HAUNTED" },
+    { id = 537323, key = "AMB_AUCH_DEMON", cat = "AMB_CAT_HAUNTED" },
+    { id = 537329, key = "AMB_BLACKROCK_JAIL", cat = "AMB_CAT_DUNGEON" }, -- 57
+    { id = 537365, key = "AMB_ICECROWN", cat = "AMB_CAT_SCOURGE" }, -- 58
+    { id = 537366, key = "AMB_PLAGUEWORKS", cat = "AMB_CAT_SCOURGE" },
+    { id = 537367, key = "AMB_CRIMSON_HALL", cat = "AMB_CAT_SCOURGE" },
+    { id = 537368, key = "AMB_FROSTMOURNE", cat = "AMB_CAT_SCOURGE" },
+    { id = 537369, key = "AMB_FORGE_OF_SOULS", cat = "AMB_CAT_SCOURGE" },
+    { id = 537431, key = "AMB_ULDUAR_FROZEN", cat = "AMB_CAT_SCOURGE" },
+    { id = 537436, key = "AMB_YOGG_BRAIN", cat = "AMB_CAT_SCOURGE" },
+    { id = 537414, key = "AMB_STRATHOLME", cat = "AMB_CAT_PLAGUE" },
+    { id = 537399, key = "AMB_STRATHOLME_OLD", cat = "AMB_CAT_PLAGUE" },
+    { id = 594426, key = "AMB_SCOURGE_LANDS", cat = "AMB_CAT_SCOURGE" },
+    { id = 1725215, key = "AMB_NECROPOLIS_OUT", cat = "AMB_CAT_PLAGUE" },
+    { id = 1725216, key = "AMB_NECROPOLIS_IN", cat = "AMB_CAT_PLAGUE" },
+    { id = 538967, key = "AMB_SPIRIT_WORLD", cat = "AMB_CAT_BEYOND" }, -- 70
+    { id = 795737, key = "AMB_GRAVEYARD_CRYPT", cat = "AMB_CAT_PLAGUE" },
+    { id = 539115, key = "AMB_PLAGUELANDS_NIGHT", cat = "AMB_CAT_PLAGUE" },
+    { id = 539049, key = "AMB_PLAGUED_FOREST", cat = "AMB_CAT_PLAGUE" },
+    { id = 1282880, key = "AMB_NIGHTMARE", cat = "AMB_CAT_BEYOND" },
+    { id = 594453, key = "AMB_WHISPER_GULCH", cat = "AMB_CAT_BEYOND" },
+    { id = 3562886, key = "AMB_REVENDRETH", cat = "AMB_CAT_BEYOND" },
+    { id = 3489393, key = "AMB_MALDRAXXUS", cat = "AMB_CAT_BEYOND" },
+    { id = 3561137, key = "AMB_MAW", cat = "AMB_CAT_BEYOND" },
+    { id = 594483, key = "AMB_GHOSTLANDS_NIGHT", cat = "AMB_CAT_HAUNTED_OUT" }, -- 79
+    { id = 539003, key = "AMB_DEADWIND_NIGHT", cat = "AMB_CAT_HAUNTED_OUT" },
+    { id = 539139, key = "AMB_HAUNTED_WASTE", cat = "AMB_CAT_HAUNTED_OUT" },
+    { id = 539051, key = "AMB_EERIE_STORM_FOREST", cat = "AMB_CAT_HAUNTED_OUT" },
+    { id = 539089, key = "AMB_EERIE_WOODS", cat = "AMB_CAT_HAUNTED_OUT" },
+    { id = 539028, key = "AMB_DARK_ENCHANTED", cat = "AMB_CAT_HAUNTED_OUT" },
+    { id = 1724741, key = "AMB_DRUSTVAR_FOREST", cat = "AMB_CAT_HAUNTED_OUT" },
+    { id = 1724739, key = "AMB_DRUSTVAR_CLEARING", cat = "AMB_CAT_HAUNTED_OUT" },
+    { id = 539103, key = "AMB_MARSH_NIGHT", cat = "AMB_CAT_HAUNTED_OUT" },
+    { id = 917985, key = "AMB_SHADOWMOON_SWAMP", cat = "AMB_CAT_HAUNTED_OUT" },
+    { id = 539131, key = "AMB_BIRDSONG_FOREST", cat = "AMB_CAT_BRIGHT" }, -- 89
+    { id = 539047, key = "AMB_HIGH_FOREST", cat = "AMB_CAT_BRIGHT" },
+    { id = 539126, key = "AMB_CLEANSED_FOREST", cat = "AMB_CAT_BRIGHT" },
+    { id = 539095, key = "AMB_BREEZY_DAY", cat = "AMB_CAT_BRIGHT" },
+    { id = 539056, key = "AMB_GRASSLANDS", cat = "AMB_CAT_BRIGHT" },
+    { id = 948412, key = "AMB_NAGRAND", cat = "AMB_CAT_FARLANDS" },
+    { id = 594528, key = "AMB_EVERSONG", cat = "AMB_CAT_FARLANDS" },
+    { id = 591729, key = "AMB_FOUR_WINDS", cat = "AMB_CAT_FARLANDS" },
+    { id = 621873, key = "AMB_SPRING_ROAD", cat = "AMB_CAT_FARLANDS" },
+    { id = 591674, key = "AMB_JADE_FOREST", cat = "AMB_CAT_FARLANDS" },
+    { id = 1250632, key = "AMB_VALSHARAH", cat = "AMB_CAT_FARLANDS" },
+    { id = 1350008, key = "AMB_SURAMAR_FOREST", cat = "AMB_CAT_FARLANDS" },
+    { id = 3502681, key = "AMB_ARDENWEALD", cat = "AMB_CAT_FARLANDS" }, -- 101
+    { id = 3190869, key = "AMB_BASTION", cat = "AMB_CAT_FARLANDS" },
+    { id = 1849036, key = "AMB_STORMSONG", cat = "AMB_CAT_FARLANDS" },
+    { id = 1724074, key = "AMB_TIRAGARDE", cat = "AMB_CAT_FARLANDS" },
+    { id = 539048, key = "AMB_BEACH", cat = "AMB_CAT_BRIGHT" },
+    { id = 539016, key = "AMB_COAST", cat = "AMB_CAT_BRIGHT" },
+    { id = 1827835, key = "AMB_JUNGLE_BEACH", cat = "AMB_CAT_BRIGHT" },
+    { id = 539097, key = "AMB_JUNGLE", cat = "AMB_CAT_BRIGHT" },
+    { id = 1853185, key = "AMB_BORALUS", cat = "AMB_CAT_TOWNS" }, -- 109
+    { id = 1838478, key = "AMB_BORALUS_HARBOR", cat = "AMB_CAT_TOWNS" },
+    { id = 5633429, key = "AMB_DORNOGAL", cat = "AMB_CAT_TOWNS" },
+    { id = 5673242, key = "AMB_SILVERMOON", cat = "AMB_CAT_TOWNS" },
+    { id = 537408, key = "AMB_SILVERMOON_OLD", cat = "AMB_CAT_TOWNS" },
+    { id = 537351, key = "AMB_DARNASSUS", cat = "AMB_CAT_TOWNS" },
+    { id = 537426, key = "AMB_THUNDER_BLUFF", cat = "AMB_CAT_TOWNS" },
+    { id = 537401, key = "AMB_ORGRIMMAR", cat = "AMB_CAT_TOWNS" },
+    { id = 537357, key = "AMB_DWARVEN_DISTRICT", cat = "AMB_CAT_TOWNS" },
+    { id = 537358, key = "AMB_EXODAR", cat = "AMB_CAT_TOWNS" },
+    { id = 537370, key = "AMB_IRONFORGE", cat = "AMB_CAT_TOWNS" },
+    { id = 539123, key = "AMB_DARKMOON_FAIRE", cat = "AMB_CAT_CROWDS" }, -- 120
+    { id = 539055, key = "AMB_DARKMOON_ISLAND", cat = "AMB_CAT_CROWDS" },
+    { id = 839843, key = "AMB_ARENA_CROWD", cat = "AMB_CAT_CROWDS" },
+    { id = 1010572, key = "AMB_CROWD_CELEBRATING", cat = "AMB_CAT_CROWDS" },
 }
 
--- Menu order for the categories. Not wire data, free to change.
-CH.AMBIENCE_CATS = { "AMB_CAT_ROOMS", "AMB_CAT_WATER", "AMB_CAT_WEATHER", "AMB_CAT_OUTSIDE" }
+-- Menu order for the categories. Not wire data, free to change, and so is the
+-- cat of an entry. Keep a category to a dozen or so since a longer menu is a
+-- chore to read.
+CH.AMBIENCE_CATS = {
+    "AMB_CAT_ROOMS",
+    "AMB_CAT_CROWDS",
+    "AMB_CAT_WORK",
+    "AMB_CAT_DUNGEON",
+    "AMB_CAT_WATER",
+    "AMB_CAT_WEATHER",
+    "AMB_CAT_BRIGHT",
+    "AMB_CAT_FARLANDS",
+    "AMB_CAT_OUTSIDE",
+    "AMB_CAT_TOWNS",
+    "AMB_CAT_HAUNTED",
+    "AMB_CAT_SCOURGE",
+    "AMB_CAT_PLAGUE",
+    "AMB_CAT_BEYOND",
+    "AMB_CAT_HAUNTED_OUT",
+}
 
 -- House and floor sounds live on the house entry, one table per kind, kind
 -- being "ambience" (an index into CH.AMBIENCE) or "music" (a file id):
@@ -318,6 +415,10 @@ end
 function CH.UpdateAmbience(room, spot, musicID, sting, plays)
     if not ChamberlainDB.settings.ambienceEnabled then
         room, spot, musicID, sting = nil, nil, nil, nil
+    end
+    -- a sound being tried out is heard alone and the room's own come back after
+    if slots.preview.file then
+        room, spot = nil, nil
     end
     SetSlot(slots.room, AmbienceFile(room))
     SetSlot(slots.spot, AmbienceFile(spot))

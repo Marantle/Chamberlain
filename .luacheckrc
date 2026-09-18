@@ -73,6 +73,7 @@ read_globals = {
     "table",
     "ipairs",
     "MenuUtil",
+    "MenuResponse",
     "C_VoiceChat",
     "GetBuildInfo",
     "Enum",

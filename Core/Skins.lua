@@ -221,8 +221,9 @@ end
 -- Dropdown button over a MenuUtil context menu. getLabel() returns the text for
 -- the current pick, or nil to show noneKey. fill(root, btn) adds the menu's
 -- entries and calls btn:Refresh() after a pick. Returns the button. Call
--- :Refresh() to resync its label, for example when a panel opens.
-function CH.MakeMenuButton(parent, w, noneKey, getLabel, fill)
+-- :Refresh() to resync its label, for example when a panel opens. onClose, if
+-- given, runs once when the whole menu goes away, not when a submenu folds.
+function CH.MakeMenuButton(parent, w, noneKey, getLabel, fill, onClose)
     local btn = CH.MakeButton(parent, noneKey, w, 22)
     local fs = btn:GetFontString()
     if fs then
@@ -236,9 +237,12 @@ function CH.MakeMenuButton(parent, w, noneKey, getLabel, fill)
         if not MenuUtil then
             return
         end
-        MenuUtil.CreateContextMenu(self, function(_, root)
+        local menu = MenuUtil.CreateContextMenu(self, function(_, root)
             fill(root, self)
         end)
+        if menu and onClose then
+            menu:SetClosedCallback(onClose)
+        end
     end)
     -- No Refresh() here: this runs in the main chunk before ADDON_LOADED sets up
     -- ChamberlainDB. The button shows noneLabel until the caller refreshes it (the
@@ -275,6 +279,21 @@ function CH.MakeVoiceDropdown(parent, w, noneKey, getName, setName)
     end)
 end
 
+-- A radio closes the menu unless its handler answers Refresh, which also moves
+-- the dot. That keeps the ambience menu open while you click through sounds.
+local function PickAndPlay(set, index)
+    set(index)
+    CH.PreviewAmbience(index)
+    return MenuResponse.Refresh
+end
+
+-- MakeMenuButton's onClose for a menu filled by CH.FillAmbienceMenu. The closed
+-- callback hands over the menu frame, which must not reach PreviewAmbience as
+-- an index.
+function CH.StopAmbiencePreview()
+    CH.PreviewAmbience(nil)
+end
+
 -- The ambience list as radios under a menu or a submenu. None sits on top with
 -- a submenu per category under it. get() returns the picked CH.AMBIENCE index
 -- or nil. set(index) stores it.
@@ -282,7 +301,7 @@ function CH.FillAmbienceMenu(desc, get, set)
     desc:CreateRadio(CH.L["RD_AMBIENCE_NONE"], function()
         return get() == nil
     end, function()
-        set(nil)
+        return PickAndPlay(set, nil)
     end)
     -- the category holding the current pick goes gold so it can be found again
     local picked = CH.AMBIENCE[get()]
@@ -297,7 +316,7 @@ function CH.FillAmbienceMenu(desc, get, set)
                 sub:CreateRadio(CH.L[sound.key], function()
                     return get() == i
                 end, function()
-                    set(i)
+                    return PickAndPlay(set, i)
                 end)
             end
         end

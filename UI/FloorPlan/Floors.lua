@@ -122,7 +122,7 @@ end
 
 -- A button over the map's top left whose menu lists the whole house and then
 -- each floor, own house only. The button's own label never changes.
-local function MakeSoundButton(labelKey, tipKey, addEntry)
+local function MakeSoundButton(labelKey, tipKey, addEntry, onClose)
     local btn = CH.MakeMenuButton(fp, 80, labelKey, function() end, function(root)
         local guid = CH.currentHouseGUID
         addEntry(root, guid, CH.L["FP_AMBIENCE_HOUSE"])
@@ -134,14 +134,14 @@ local function MakeSoundButton(labelKey, tipKey, addEntry)
         for floor = 1, count do
             addEntry(root, guid, string.format(CH.L["FP_AMBIENCE_FLOOR_X"], floor), floor)
         end
-    end)
+    end, onClose)
     btn:SetFrameLevel(canvas:GetFrameLevel() + 20)
     btn:Hide()
     CH.Tip(btn, tipKey)
     return btn
 end
 
-local ambienceBtn = MakeSoundButton("FP_AMBIENCE", "FP_TT_AMBIENCE", AddAmbienceEntry)
+local ambienceBtn = MakeSoundButton("FP_AMBIENCE", "FP_TT_AMBIENCE", AddAmbienceEntry, CH.StopAmbiencePreview)
 ambienceBtn:SetPoint("TOPLEFT", canvas, "TOPLEFT", 4, -4)
 local musicBtn = MakeSoundButton("FP_MUSIC", "FP_TT_MUSIC", AddMusicEntry)
 musicBtn:SetPoint("LEFT", ambienceBtn, "RIGHT", 4, 0)
