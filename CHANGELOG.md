@@ -1,5 +1,37 @@
 # Changelog
 
+## 3.10.0
+- Music. A room, a floor or the whole house can have a track from the game's
+  own music, about 6900 of them. It plays in place of the music the game would
+  play and the game's comes back when you walk out. The room dialog has a Music
+  button and the house map a Music menu beside Ambience. Both open a search
+  window. Type a zone or a city, click a track to hear it and press Use this
+  track. Click anywhere outside the window to close it. Same order as
+  ambience, a room's track over the floor's over the house's, and a bannerless
+  room with a track takes the music while you stand in it. Silence is a pick
+  too, always on top of the list. It turns the music off wherever you set it,
+  the game's own and any the house has set, so the crypt can be quiet while the
+  hall above plays on. The Sound button mutes the music as well, and Room
+  ambience in Settings is now called House sounds since it covers all of it.
+- Room sounds. A room can also play a short game sound as you walk in. The
+  room's picker has a Fun sound effects tab with a list of them, from a ghost's
+  laugh to a murloc. Any other game sound works too if you type its file number
+  into that tab's search box. Plays sets whether the pick loops or runs one to
+  five times each time you walk in. A pick with a count and any sound that
+  isn't music play over the music that is already on. Only the number of the
+  track or sound and how often it plays are saved and shared, so none of this
+  adds much to a shared map, and older versions ignore it.
+- Sound changes reach your group right away. Pick another ambience or track
+  while grouped and everyone who has your latest map hears it change, so you
+  can turn the great hall to a thunderstorm mid scene. A chat line tells you it
+  went out. That only happens from the owner of the house, and only when sound
+  is all that changed. Rename the room in the same save and the group gets the
+  usual newer map to pull. A friend whose copy of the map is older, or who runs
+  an older version, is left alone and sees a newer map on offer like before. If
+  a house has sounds and your game sound or the Ambience, Music or Effects
+  volume is off or at zero, Chamberlain says so once per session in chat so a
+  quiet house doesn't look like a bug.
+
 ## 3.9.0
 - Ambience for the whole house and per floor. In your own house the house map
   has an Ambience button in its top left corner. Whole house sets a sound that

@@ -16,7 +16,10 @@ WOWI_PROJECT   := $(shell grep "^\#\# X-WoWI-ID:" $(ADDON).toc | awk '{print $$3
 # zip didn't contain.) Pull every .lua line the .toc references, drop CRLF, and
 # convert the backslash paths to forward slashes (\134 is octal for backslash).
 SRC_LUA        := $(shell grep -vE '^[[:space:]]*\#' $(ADDON).toc | grep -iE '\.lua[[:space:]]*$$' | tr -d '\r' | tr '\134' '/')
-SRC_FILES      := $(SRC_LUA) $(ADDON).toc
+# The .toc doesn't list sound files since the code plays them by path.
+# Everything in Media ships, so that can't drift either.
+SRC_MEDIA      := $(wildcard Media/*)
+SRC_FILES      := $(SRC_LUA) $(SRC_MEDIA) $(ADDON).toc
 DIST_FILES     := $(SRC_FILES)
 SRC_DIRS       := Core Housing UI Sharing Locale
 RELEASE_TYPE   ?= alpha

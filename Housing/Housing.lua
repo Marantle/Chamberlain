@@ -188,6 +188,7 @@ function CH.RepairHouseKey(oldKey)
             h.floorCount = old.floorCount
         end
         h.ambience = h.ambience or old.ambience
+        h.music = h.music or old.music
     end
 
     CH.StampHouseMap(h)
@@ -243,7 +244,7 @@ function CH.CheckHousingState()
         CH.HideBanner(0.8)
         CH.HideTalkingHead()
         CH.SetBannerRoom(nil)
-        CH.UpdateAmbience(nil, nil)
+        CH.UpdateAmbience()
         currentZone = nil
         currentAnchor = nil
         CH.activeFloor = 1
@@ -454,10 +455,18 @@ function CH.CheckZones()
             end
         end
     end
-    -- room, then floor, then house
-    local amb = h.ambience
-    local bed = found and found.ambience or amb and (amb.floors and amb.floors[CH.activeFloor] or amb.house)
-    CH.UpdateAmbience(bed, spot and spot.ambience)
+    -- There is one music slot, so a bannerless room with a track (a stage, a
+    -- music box) takes it from the room around it. A pick with musicPlays set
+    -- is a sound laid over the music and leaves the slot to the floor or house.
+    local source = spot and spot.music and spot or found
+    local musicID, sting, plays
+    if source and source.musicPlays then
+        sting, plays = source.music, source.musicPlays
+        musicID = CH.ResolveSound(h, "music", nil)
+    else
+        musicID = CH.ResolveSound(h, "music", source)
+    end
+    CH.UpdateAmbience(CH.ResolveSound(h, "ambience", found), spot and spot.ambience, musicID, sting, plays)
     -- A named anchor (one with a real name, not a bare floor switch) shows its
     -- own banner, the "Stairs Up" live confirmation, but only if no smaller room
     -- on this floor overlaps it.

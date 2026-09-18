@@ -152,6 +152,7 @@ function CH.ArchiveStore(houseKey, name, blueprint)
         savedAt = savedAt,
         floorCount = h.floorCount or 1,
         ambience = h.ambience and CopyTable(h.ambience) or nil,
+        music = h.music and CopyTable(h.music) or nil,
         zones = CopyTable(h.zones),
         stats = h.stats and CopyTable(h.stats) or nil,
         blueprint = blueprint and { code = blueprint.code, name = blueprint.name } or nil,
@@ -174,6 +175,7 @@ function CH.ArchiveClear(houseKey)
     h.zones = {}
     h.floorCount = 1
     h.ambience = nil
+    h.music = nil
     h.stats = nil
     AfterSwap(houseKey, nil)
     CH.Print(CH.L["AR_CLEARED"])
@@ -206,6 +208,7 @@ function CH.ArchiveRestore(id, houseKey)
     h.zones = CopyTable(e.zones)
     h.floorCount = e.floorCount or 1
     h.ambience = e.ambience and CopyTable(e.ambience) or nil
+    h.music = e.music and CopyTable(e.music) or nil
     h.stats = e.stats and CopyTable(e.stats) or nil
     -- Standing in the house, re-stamp the rooms onto the map we're on. A house
     -- rebuilt from a blueprint may come back on a new interior map id, another

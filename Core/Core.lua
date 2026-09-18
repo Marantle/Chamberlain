@@ -1,6 +1,6 @@
 local ADDON, CH = ...
 
-CH.VERSION = "3.9.0"
+CH.VERSION = "3.10.0"
 
 -- How often the zone ticker samples your position, in seconds. Drives stair
 -- detection and the per-room time stats both, so they stay in step if it changes.
@@ -119,8 +119,9 @@ events:SetScript("OnEvent", function(_, event, arg1)
         if ChamberlainDB.settings.bannerEnabled == nil then
             ChamberlainDB.settings.bannerEnabled = true
         end
-        -- Room ambience, in your own house and in houses shared to you. Personal
-        -- and local like the banner switch.
+        -- House sounds: ambience, music and room sounds, in your own house and in
+        -- houses shared to you. Personal and local like the banner switch. The
+        -- key kept its name from when ambience was all there was.
         if ChamberlainDB.settings.ambienceEnabled == nil then
             ChamberlainDB.settings.ambienceEnabled = true
         end

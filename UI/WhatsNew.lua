@@ -20,6 +20,21 @@ local _, CH = ...
 -- an `onToggle` run after any of them flips.
 CH.WHATS_NEW = {
     {
+        v = "3.10.0",
+        notes = {
+            "Music. Give a room, a floor or the whole house a track from the game's own "
+                .. "music and it plays in place of the usual music while you're there. "
+                .. "Music is in the room dialog and on the house map. Search, click a "
+                .. "track to hear it and press Use this track. The Sound button on the "
+                .. "Chamberlain bar mutes it along with the ambience, in any house.",
+            "Silence is one of the picks, for a room that should have no music. A room "
+                .. "can also play a laugh, a bell or a murloc as you walk in, from the "
+                .. "Fun sound effects tab.",
+            "Change an ambience or a track while grouped and everyone who has your map "
+                .. "hears it right away, so the weather can turn mid scene.",
+        },
+    },
+    {
         v = "3.9.0",
         notes = {
             "Ambience for the whole house and for each floor. The Ambience button is in "

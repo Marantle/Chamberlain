@@ -84,7 +84,8 @@ L["HUD_TT_ARCHIVE"] = "Open the archive: stored maps of this house, to put one a
 L["HUD_TT_SETTINGS"] = "Open Chamberlain settings."
 L["HUD_SOUND"] = "Sound"
 L["HUD_MUTED"] = "|cffdd5555Muted|r"
-L["HUD_TT_SOUND"] = "Mute or unmute room ambience. Same switch as Room ambience in Settings."
+L["HUD_TT_SOUND"] =
+    "Mute or unmute the ambience, music and sounds Chamberlain plays in this house. Same switch as House sounds in Settings."
 
 -- ── Build toolbox (UI/Toolbox.lua) ───────────────────────────────────
 L["TB_TITLE"] = "Build"
@@ -161,12 +162,22 @@ L["RD_BANNER"] = "Banner"
 L["RD_BANNER_TT_TITLE"] = "Room banner"
 L["RD_BANNER_TT1"] = "Shows the banner when you walk into this room. Untick for a room with no banner."
 L["RD_BANNER_TT2"] = "For a spot that only brings a sound, like a fireplace or a fountain."
-L["RD_BANNER_TT3"] = "Give it an ambience and tick Secret to keep it off visitors' maps."
+L["RD_BANNER_TT3"] = "Give it an ambience or a sound and tick Secret to keep it off visitors' maps."
 L["RD_BANNER_TT4"] = "The bigger room around it keeps its own banner and sound."
 L["RD_AMBIENCE"] = "Ambience:"
 L["RD_AMBIENCE_NONE"] = "None"
 L["RD_AMBIENCE_PICK"] = "Sound of the room"
 L["RD_PICK_AMBIENCE"] = "Pick an ambience to test."
+L["RD_MUSIC"] = "Music:"
+L["RD_AMBIENCE_TT_TITLE"] = "Ambience"
+L["RD_AMBIENCE_TT1"] = "A background loop that plays while you're in this room, like a tavern or rain."
+L["RD_AMBIENCE_TT2"] =
+    "It plays over the music and follows the game's Ambience volume. Visitors with your map hear it too."
+L["RD_MUSIC_TT_TITLE"] = "Music or a sound"
+L["RD_MUSIC_TT1"] =
+    "A track from the game's music that plays here in place of the usual music, or Silence for no music at all."
+L["RD_MUSIC_TT2"] =
+    "The Fun sound effects tab has laughs, bells and the like, played once or a few times as you walk in. Visitors with your map hear it too."
 L["RD_CUSTOM_ID"] = "Custom ID:"
 L["RD_CUSTOM_ID_TT_TITLE"] = "Custom ID"
 L["RD_CUSTOM_ID_TT1"] =
@@ -250,7 +261,9 @@ L["RM_SECTION_MAPS"] = "Maps"
 L["RM_TOGGLE_ENTRY_SOUND"] = "Entry sound"
 L["RM_TOGGLE_ROOM_DESCRIPTIONS"] = "Room descriptions"
 L["RM_TOGGLE_SHOW_BANNERS"] = "Room banners"
-L["RM_TOGGLE_AMBIENCE"] = "Room ambience"
+L["RM_TOGGLE_AMBIENCE"] = "House sounds"
+L["RM_TT_AMBIENCE"] =
+    "Ambience, music and room sounds set for a house, yours or one shared to you. Off means you hear the game as it is. The Sound button on the Chamberlain bar is the same switch."
 L["RM_TOGGLE_GROUP_ON_MAP"] = "Group members on map"
 L["RM_TOGGLE_MINIMAP_ROOMS"] = "Rooms on the minimap"
 L["RM_TOGGLE_MINIMAP_SQUARE"] = "Square minimap"
@@ -357,6 +370,9 @@ L["FP_AMBIENCE_HOUSE"] = "Whole house"
 L["FP_AMBIENCE_FLOOR_X"] = "Floor %d"
 L["FP_TT_AMBIENCE"] =
     "Pick a background sound for the whole house or for one floor. A floor's sound replaces the house's. A room's own sound replaces both."
+L["FP_MUSIC"] = "Music"
+L["FP_TT_MUSIC"] =
+    "Pick music for the whole house or for one floor. It plays in place of the game's own music, and Silence at the top of the list turns music off. A floor's track replaces the house's. A room's own track replaces both."
 L["FP_SHOW_SPOTS"] = "Sound spots"
 L["FP_SHOW_SPOTS_TT_TITLE"] = "Show rooms without a banner"
 L["FP_SHOW_SPOTS_TT_BODY"] =
@@ -492,6 +508,73 @@ L["SUI_CLOSE"] = "Close"
 L["SUI_NO_EXPORT"] = "No rooms to export for this house."
 L["SUI_COPY_HINT"] = "Press Ctrl+C to copy the layout string."
 L["SUI_PASTE_HINT"] = "Paste a layout string and click Import."
+
+-- ── Music picker (UI/MusicPicker.lua) ────────────────────────────────
+L["MP_TITLE"] = "Music and sounds"
+L["MP_SEARCH_HINT"] = "Try stormwind or tavern"
+L["MP_SEARCH_HINT_SOUNDS"] = "Try laugh or bell, or type a sound's file number"
+L["MP_EMPTY_HINT"] = "Type to search the game's music. Click a track to hear it."
+L["MP_EMPTY_HINT_SOUNDS"] = "Click a sound to hear it. Any other game sound works by its file number."
+L["MP_TAB_MUSIC"] = "Music"
+L["MP_TAB_SOUNDS"] = "Fun sound effects"
+L["MP_CUSTOM_X"] = "Sound %d"
+L["MP_SILENCE"] = "Silence (no music)"
+L["MP_LOOPS"] = "Loops"
+L["MP_PLAYS_ONCE"] = "Plays once"
+L["MP_PLAYS_X"] = "Plays %d times"
+L["MP_TT_PLAYS"] =
+    "Loops keeps it going while you're in the room. The Plays choices run it that often whenever you walk in, on top of the music."
+L["MP_FOUND_X"] = "%d found"
+L["MP_FIRST_X"] = "Showing the first %d. Type more to narrow it down."
+L["MP_USE"] = "Use this track"
+L["MP_NONE"] = "Clear"
+L["MP_TT_NONE"] =
+    "Removes the pick. The floor's or the house's music plays here again, or the game's own. For no music at all pick Silence at the top of the Music tab."
+
+-- ── Room sound list (Housing/Ambience.lua) ───────────────────────────
+L["SFX_CAT_LAUGHS"] = "Laughs"
+L["SFX_CAT_SPOOKY"] = "Screams and spooks"
+L["SFX_CAT_HOUSE"] = "Bells, doors and weather"
+L["SFX_CAT_FUN"] = "Fun"
+L["SFX_LAUGH_GHOST_WOMAN"] = "Ghost woman laughing"
+L["SFX_LAUGH_GHOST_MAN"] = "Ghost man laughing"
+L["SFX_LAUGH_GIRL"] = "Girl laughing"
+L["SFX_LAUGH_BOY"] = "Boy laughing"
+L["SFX_LAUGH_LICH_KING"] = "Lich King's laugh"
+L["SFX_LAUGH_IMP"] = "Imp cackle"
+L["SFX_LAUGH_DEMON"] = "Demon lord's laugh"
+L["SFX_SCREAM_WOMAN"] = "Woman's scream"
+L["SFX_SCREAMS_DISTANT"] = "Screams far off"
+L["SFX_BANSHEE"] = "Banshee"
+L["SFX_SPIRIT_MOANS"] = "Spirit moans"
+L["SFX_OLD_GOD_WHISPER"] = "Old god's whisper"
+L["SFX_HEARTBEAT"] = "Heartbeat"
+L["SFX_WOLF_HOWL"] = "Wolf howl"
+L["SFX_BELL"] = "Bell toll"
+L["SFX_BELL_TOWER"] = "Tower bell"
+L["SFX_GONG"] = "Gong"
+L["SFX_DOOR"] = "Wooden doors opening"
+L["SFX_GLASS"] = "Glass breaking"
+L["SFX_THUNDERCLAP"] = "Thunderclap"
+L["SFX_THUNDER_DISTANT"] = "Distant thunder"
+L["SFX_MURLOC"] = "Murloc"
+L["SFX_SHEEP"] = "Sheep"
+L["SFX_PEON"] = "Peon, ready to work"
+L["SFX_CHEER"] = "Cheer"
+L["SFX_FIREWORK"] = "Firework"
+L["SFX_LEVEL_UP"] = "Level up"
+L["SFX_QUEST_COMPLETE"] = "Quest complete"
+L["SFX_READY_CHECK"] = "Ready check"
+L["SFX_RAID_WARNING"] = "Raid warning"
+
+-- ── Room sounds in chat (Housing/Ambience.lua, Sharing/Share.lua) ─────
+L["SND_MUTED_AMBIENCE"] =
+    "This house has room sounds but your game sound or Ambience volume is off or at zero. Turn it up under Options, Audio to hear them."
+L["SND_MUTED_MUSIC"] =
+    "This house has its own music but your game sound or Music volume is off or at zero. Turn it up under Options, Audio to hear it."
+L["SND_MUTED_SFX"] =
+    "This room has a sound of its own but your game sound or Effects volume is off or at zero. Turn it up under Options, Audio to hear it."
+L["SHARE_SOUND_SENT"] = "Sound change sent to your group. Group members who have your latest map hear it right away."
 
 -- ── Room ambience (Housing/Ambience.lua) ─────────────────────────────
 L["AMB_CAT_ROOMS"] = "Rooms"

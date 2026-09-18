@@ -609,6 +609,7 @@ ambienceToggle:SetPoint("TOPLEFT", 4, -164)
 ambienceToggle:HookScript("OnClick", function()
     CH.RefreshHudSound()
 end)
+CH.Tip(ambienceToggle, "RM_TT_AMBIENCE")
 
 -- Banner fade-out: seconds before the room banner fades after it appears. 0 keeps
 -- it up until you leave the room.

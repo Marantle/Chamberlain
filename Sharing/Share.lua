@@ -202,6 +202,42 @@ function CH.SendDecline(houseGUID)
     Send("LAYOUT_DECLINE|" .. (houseGUID or ""))
 end
 
+-- A sound change from the owner as a patch on the map the group already holds,
+-- so they hear it right away without pulling the whole layout again (3.10.0).
+-- target is "H" for the house, "F<n>" a floor or "R<n>" the nth room. Rooms
+-- have no id of their own and n only means the same room while both sides hold
+-- the same version, which is what baseTs is for. A client applies the patch
+-- only to a copy stamped baseTs and then stamps it with the new time. Anyone
+-- else sees a newer catalog two seconds later and pulls the map as before.
+-- kind is "ambience" (the value an index into CH.AMBIENCE) or "music" (a file
+-- id), 0 on the wire for none.
+local PATCH_TYPE = { ambience = "AMB", music = "MUS" }
+local PATCH_KIND = { AMB = "ambience", MUS = "music" }
+
+-- quiet skips the chat line, for the second patch of a save that sends two.
+-- plays rides behind a room's music pick. See ReadRoomMusic.
+function CH.SendSoundPatch(houseGUID, kind, baseTs, target, value, quiet, plays)
+    if not ChamberlainDB.myHouses[houseGUID] or not CanSend() then
+        return
+    end
+    local h = ChamberlainDB.houses[houseGUID]
+    Send(
+        string.format(
+            "%s|%s|%d|%d|%s|%d|%s",
+            PATCH_TYPE[kind],
+            houseGUID,
+            baseTs or 0,
+            h.updatedAt,
+            target,
+            value or 0,
+            plays or ""
+        )
+    )
+    if not quiet then
+        CH.Print(CH.L["SHARE_SOUND_SENT"])
+    end
+end
+
 -- Live owner presence: house key -> GUID of whoever announced they own it now.
 -- Saved name/GUID can't track the owner onto an alt. Runtime only, wiped on roster.
 CH.liveOwners = CH.liveOwners or {}
@@ -428,6 +464,7 @@ function CH.ApplyLayout(houseGUID, data, senderName)
         existing.ownerGUID = data.ownerGUID or existing.ownerGUID
         existing.floorCount = data.floorCount or existing.floorCount or 1
         existing.ambience = data.ambience
+        existing.music = data.music
     else
         ChamberlainDB.houses[houseGUID] = {
             owner = data.owner,
@@ -435,6 +472,7 @@ function CH.ApplyLayout(houseGUID, data, senderName)
             updatedAt = data.timestamp,
             floorCount = data.floorCount or 1,
             ambience = data.ambience,
+            music = data.music,
             zones = data.zones,
         }
     end
@@ -518,19 +556,53 @@ end
 
 local IMPORT_MAX_BYTES = 200000 -- reject absurdly large blobs before deserializing
 
--- The house and floor ambience off a decoded payload, in the h.ambience shape,
--- or nil when it carries none. Anything that isn't an index we know drops out.
-local function ReadHouseAmbience(payload)
-    local amb = { house = CH.AMBIENCE[payload.ha] and payload.ha or nil }
-    if type(payload.fa) == "table" then
-        for n, index in ipairs(payload.fa) do
-            if CH.AMBIENCE[index] then
-                amb.floors = amb.floors or {}
-                amb.floors[n] = index
+-- True when a sound value off the wire is one we can play, an ambience index
+-- we have or a music id in the list. A newer version may know more than we do
+-- and those stay quiet here.
+local KNOWN = {
+    ambience = function(v)
+        return CH.AMBIENCE[v] ~= nil
+    end,
+    music = function(v)
+        return CH.MusicPath(v) ~= nil
+    end,
+}
+
+-- A room's music pick off the wire as id, plays. A room may carry any game file
+-- by id, so there is no list to check it against, only that it is a whole
+-- positive number. plays is 1 to 5, 0 for a loop laid over the
+-- music or nil for a listed track that takes the music slot. A file that isn't
+-- in the list never gets the slot.
+local function ReadRoomMusic(id, plays)
+    if id == CH.SILENCE then
+        return id
+    end
+    if not CH.IsFileID(id) then
+        return
+    end
+    if type(plays) ~= "number" or plays < 0 or plays > 5 or plays % 1 ~= 0 then
+        plays = nil
+    end
+    if not plays and not KNOWN.music(id) then
+        plays = 0
+    end
+    return id, plays
+end
+
+-- The house and floor sounds of one kind off a decoded payload, in the
+-- h.ambience shape, or nil when it carries none.
+local function ReadHouseSound(kind, house, floors)
+    local known = KNOWN[kind]
+    local set = { house = known(house) and house or nil }
+    if type(floors) == "table" then
+        for n, v in ipairs(floors) do
+            if known(v) then
+                set.floors = set.floors or {}
+                set.floors[n] = v
             end
         end
     end
-    return next(amb) and amb or nil
+    return next(set) and set or nil
 end
 
 -- Decode a base64 blob (the bytes inside a "CHB1:" string, or a reassembled BLOB
@@ -564,6 +636,7 @@ local function DeserializeLayout(b64)
             if type(z.c) == "table" and type(z.c[1]) == "number" then
                 color = { z.c[1], z.c[2], z.c[3] }
             end
+            local music, musicPlays = ReadRoomMusic(z.mu, z.mn)
             zones[#zones + 1] = {
                 name = string.sub(z.n, 1, 48),
                 mapID = z.m,
@@ -579,9 +652,9 @@ local function DeserializeLayout(b64)
                 rpText = type(z.t) == "string" and string.sub(z.t, 1, 500) or nil,
                 secret = z.se == true or nil,
                 noBanner = z.nb == true or nil,
-                -- An index past the end comes from a newer version with more
-                -- sounds than ours, so that room stays quiet here.
-                ambience = type(z.am) == "number" and CH.AMBIENCE[z.am] and z.am or nil,
+                ambience = KNOWN.ambience(z.am) and z.am or nil,
+                music = music,
+                musicPlays = musicPlays,
                 -- Room shape (3.0.0): only "circle" so far. Anything else, or absent
                 -- from older blobs, is a rectangle. Geometry still rides in x1..y2.
                 shape = z.sh == "circle" and "circle" or nil,
@@ -604,7 +677,8 @@ local function DeserializeLayout(b64)
         ownerGUID = type(payload.oguid) == "string" and payload.oguid or nil,
         timestamp = type(payload.ts) == "number" and payload.ts or GetServerTime(),
         floorCount = type(payload.fc) == "number" and payload.fc or 1,
-        ambience = ReadHouseAmbience(payload),
+        ambience = ReadHouseSound("ambience", payload.ha, payload.fa),
+        music = ReadHouseSound("music", payload.hm, payload.fm),
         zones = zones,
     }
 end
@@ -623,15 +697,19 @@ function CH.ExportLayout(houseGUID)
         fc = h.floorCount or 1,
         zones = {},
     }
-    -- House and floor ambience (3.9.0). fa is one index per floor with 0 for
-    -- none, a plain array so nothing rides on how CBOR treats sparse keys.
-    local amb = h.ambience
-    if amb then
-        payload.ha = amb.house
-        if amb.floors then
-            payload.fa = {}
-            for n = 1, payload.fc do
-                payload.fa[n] = amb.floors[n] or 0
+    -- House and floor sounds: ha/fa ambience (3.9.0), hm/fm music (3.10.0).
+    -- The floor one is a value per floor with 0 for none, a plain array so
+    -- nothing rides on how CBOR treats sparse keys.
+    for kind, keys in pairs({ ambience = { "ha", "fa" }, music = { "hm", "fm" } }) do
+        local set = h[kind]
+        if set then
+            payload[keys[1]] = set.house
+            if set.floors then
+                local floors = {}
+                for n = 1, payload.fc do
+                    floors[n] = set.floors[n] or 0
+                end
+                payload[keys[2]] = floors
             end
         end
     end
@@ -653,6 +731,8 @@ function CH.ExportLayout(houseGUID)
             se = z.secret, -- hidden from visitors' floor plan and room list, banner still fires
             nb = z.noBanner, -- no banner on entry (3.8.0, older clients still show one)
             am = z.ambience, -- index into CH.AMBIENCE (3.8.0)
+            mu = z.music, -- music or sound file id (3.10.0)
+            mn = z.musicPlays, -- times it plays on walking in, 0 loops, nil a music track
             fl = z.floor, -- which floor the room is on (2.4.0; appended, old clients ignore)
             sf = z.setFloor, -- absolute stair anchor: stepping on sets this floor
             fd = z.floorDelta, -- relative stair anchor: +1/-1 from current floor
@@ -759,7 +839,7 @@ function CH.HandleMessage(prefix, payload, _, fullSender)
     end
     if
         not ChamberlainDB.settings.receiveEnabled
-        and (msgType == "CATALOG" or msgType == "BLOBSTART" or msgType == "BLOB")
+        and (msgType == "CATALOG" or msgType == "BLOBSTART" or msgType == "BLOB" or PATCH_KIND[msgType])
     then
         Debug("recv dropped (receiving off):", msgType, "from", sender)
         return
@@ -899,6 +979,43 @@ function CH.HandleMessage(prefix, payload, _, fullSender)
             CH.ReceiveLayout(guid, data, sender)
         else
             CH.Print(CH.L["SHARE_DECODE_FAILED_X"], sender)
+        end
+    elseif PATCH_KIND[msgType] then
+        -- See CH.SendSoundPatch. Dropped unless we hold this exact version of
+        -- the map, and never applied to a house of our own.
+        local kind = PATCH_KIND[msgType]
+        local guid = parts[2]
+        local baseTs, newTs = tonumber(parts[3]), tonumber(parts[4])
+        local where, n = (parts[5] or ""):match("^(%a)(%d*)$")
+        local value = tonumber(parts[6])
+        local h = guid and ChamberlainDB.houses[guid]
+        if not h or not newTs or not value or ChamberlainDB.myHouses[guid] or h.updatedAt ~= baseTs then
+            return
+        end
+        if ChamberlainDB.blocks.players[sender] then
+            return
+        end
+        n = tonumber(n)
+        if where == "R" then
+            local zone = h.zones[n]
+            if not zone then
+                return
+            end
+            if kind == "music" then
+                zone.music, zone.musicPlays = ReadRoomMusic(value, tonumber(parts[7]))
+            else
+                zone.ambience = KNOWN.ambience(value) and value or nil
+            end
+        elseif where == "H" or (where == "F" and n) then
+            CH.StoreHouseSound(h, kind, n, KNOWN[kind](value) and value or nil)
+        else
+            return
+        end
+        h.updatedAt = newTs
+        Debug(msgType, "applied:", guid, parts[5], value, "from", sender)
+        -- the mute button shows only in a house that has a sound somewhere
+        if guid == CH.currentHouseGUID then
+            CH.RefreshHUDMode()
         end
     elseif msgType == "LAYOUT_DECLINE" then
         -- The holder said no (or no longer has it). Declines are broadcast, so

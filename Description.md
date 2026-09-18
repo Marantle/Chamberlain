@@ -45,7 +45,7 @@ speak the description aloud in a voice you pick, kept on your machine and sent t
 one. A room marked secret stays off visitors' house maps and room lists, but its
 banner still fires when they walk in.
 
-## Ambience
+## Ambience and music
 
 A room can have a background sound. Edit the room and pick one from the Ambience
 menu. There are 45 loops from the game itself, like a crowded tavern or a slow
@@ -60,8 +60,21 @@ The whole house and each floor can have a sound as well, from the Ambience butto
 on the house map. A room's own sound plays instead of the floor's, and the floor's
 instead of the house's.
 
-Visitors with your shared map hear all of it. The sound follows the game's
-Ambience volume, and the Sound button on the Chamberlain bar mutes it.
+Music works the same way. A room, a floor or the house can have a track from the
+game's own music, picked in a search window where a click plays it first. It
+takes the place of the game's music while you're there, and Silence is one of
+the picks for a room that should have none.
+
+A room can also play a short game sound as you walk in, once or a few times. The
+picker has a list of laughs, screams and bells, so the nursery can greet you
+with a ghost's laugh. Any other game sound works by its file number, the
+FileDataID that sites like wago.tools list for every file in the game.
+
+Visitors with your shared map hear all of it, and when you change a sound while
+grouped they hear the change right away. Ambience follows the game's Ambience
+volume, music the Music volume and a room's own sound the Effects volume. The
+Sound button on the Chamberlain bar mutes all of it, in your house or anyone
+else's, and the game sounds the way it normally does.
 
 ## Archive
 
@@ -109,6 +122,9 @@ be turned off completely in the settings.
 - Background sound for a room, a floor or the whole house, from 45 of the game's
   own ambience loops. A small room without a banner puts a crackling fire inside
   the great hall. Visitors with your shared map hear it too.
+- Music for a room, a floor or the whole house, from the game's own tracks.
+  Search for one and click it to hear it before you pick.
+- A laugh, a bell or a murloc when you walk into a room.
 - A house map draws your rooms to scale and shows where you and your party are.
 - Zoom and pan the house map with the mouse.
 - Rooms drawn on the minimap indoors, in place of the game's still house picture.
