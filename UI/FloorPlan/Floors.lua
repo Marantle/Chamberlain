@@ -116,7 +116,7 @@ local function AddMusicEntry(root, guid, label, floor)
     root:CreateButton(label, function()
         CH.OpenMusicPicker(id, function(picked)
             CH.SetHouseSound(guid, "music", floor, picked)
-        end)
+        end, ChamberlainDB.houses[guid])
     end)
 end
 

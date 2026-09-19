@@ -1,6 +1,6 @@
 local ADDON, CH = ...
 
-CH.VERSION = "3.11.0"
+CH.VERSION = "3.12.0"
 
 -- How often the zone ticker samples your position, in seconds. Drives stair
 -- detection and the per-room time stats both, so they stay in step if it changes.
@@ -48,6 +48,15 @@ CH.HEADS = {
 -- ─────────────────────────────────────────────────────────────────────
 -- Events
 -- ─────────────────────────────────────────────────────────────────────
+
+-- Before 3.12.0 a room's sound on entry sat in the music field with its play
+-- count beside it. It has fields of its own now, so a room can have both.
+local function SplitRoomSound(z)
+    if z.musicPlays then
+        z.sfx, z.sfxPlays = z.music, z.musicPlays
+        z.music, z.musicPlays = nil, nil
+    end
+end
 
 local events = CreateFrame("Frame")
 events:RegisterEvent("ADDON_LOADED")
@@ -226,7 +235,13 @@ events:SetScript("OnEvent", function(_, event, arg1)
                     if z.floor == nil then
                         z.floor = 1
                     end
+                    SplitRoomSound(z)
                 end
+            end
+        end
+        for _, entry in ipairs(ChamberlainDB.archive) do
+            for _, z in ipairs(entry.zones) do
+                SplitRoomSound(z)
             end
         end
         C_ChatInfo.RegisterAddonMessagePrefix("CH")

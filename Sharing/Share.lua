@@ -209,14 +209,15 @@ end
 -- the same version, which is what baseTs is for. A client applies the patch
 -- only to a copy stamped baseTs and then stamps it with the new time. Anyone
 -- else sees a newer catalog two seconds later and pulls the map as before.
--- kind is "ambience" (the value an index into CH.AMBIENCE) or "music" (a file
--- id), 0 on the wire for none.
-local PATCH_TYPE = { ambience = "AMB", music = "MUS" }
-local PATCH_KIND = { AMB = "ambience", MUS = "music" }
+-- kind is "ambience" (the value an index into CH.AMBIENCE), "music" or "sfx"
+-- (a file id each, sfx for rooms only and new in 3.12.0), 0 on the wire for
+-- none. A client that doesn't know a type skips it and pulls the map.
+local PATCH_TYPE = { ambience = "AMB", music = "MUS", sfx = "SFX" }
+local PATCH_KIND = { AMB = "ambience", MUS = "music", SFX = "sfx" }
 local lastSentNotice = 0
 
--- quiet skips the chat line, for the second patch of a save that sends two.
--- plays rides behind a room's music pick. See ReadRoomMusic.
+-- quiet skips the chat line, for the later patches of a save that sends a few.
+-- plays rides behind a room's sound. See ReadRoomSounds.
 function CH.SendSoundPatch(houseGUID, kind, baseTs, target, value, quiet, plays)
     if not ChamberlainDB.myHouses[houseGUID] or not CanSend() then
         return
@@ -573,25 +574,58 @@ local KNOWN = {
     end,
 }
 
--- A room's music pick off the wire as id, plays. A room may carry any game file
--- by id, so there is no list to check it against, only that it is a whole
--- positive number. plays is 1 to 5, 0 for a loop laid over the
--- music or nil for a listed track that takes the music slot. A file that isn't
--- in the list never gets the slot.
-local function ReadRoomMusic(id, plays)
-    if id == CH.SILENCE then
-        return id
+-- The sound on entry came in this version. Before it a room's sound sat in the
+-- music field, mu, with its play count in mn behind it.
+local SFX_MIN_VERSION = "3.12.0"
+
+local function ReadPlays(n)
+    return type(n) == "number" and n >= 0 and n <= 5 and n % 1 == 0 and n or nil
+end
+
+-- A room's picks off the wire as music, sfx, sfxPlays. Music is a listed track
+-- or Silence, so a file that isn't in the list never gets the music slot. The
+-- sound may be any game file by id and there is no list to check it against,
+-- only that it is a whole positive number. Its plays is 1 to 5 or 0 for a loop.
+-- A music pick that has a count or isn't listed is a sound the old way, from
+-- an older client or from the copy a newer one sends for them (see
+-- CH.ExportLayout), and sx wins over it.
+local function ReadRoomSounds(mu, mn, sx, sn)
+    local music, sfx, sfxPlays
+    if CH.IsFileID(sx) then
+        sfx, sfxPlays = sx, ReadPlays(sn) or 0
     end
-    if not CH.IsFileID(id) then
-        return
+    if mu == CH.SILENCE or (KNOWN.music(mu) and not ReadPlays(mn)) then
+        music = mu
+    elseif not sfx and CH.IsFileID(mu) then
+        sfx, sfxPlays = mu, ReadPlays(mn) or 0
     end
-    if type(plays) ~= "number" or plays < 0 or plays > 5 or plays % 1 ~= 0 then
-        plays = nil
+    return music, sfx, sfxPlays
+end
+
+-- The chat line a visitor gets when the owner's sound patch lands, naming the
+-- track since the game won't say what is playing. An owner comparing sounds
+-- sends a patch per click, so the line waits for two quiet seconds and only
+-- the last pick for each place gets said.
+local soundNotes = {}
+local noteTimer
+
+local function FlushSoundNotes()
+    for _, note in pairs(soundNotes) do
+        CH.Print("%s", note)
     end
-    if not plays and not KNOWN.music(id) then
-        plays = 0
+    wipe(soundNotes)
+end
+
+local function NoteSoundChange(kind, target, sender, place, value)
+    local name = CH.L["RD_AMBIENCE_NONE"]
+    if value then
+        name = kind == "ambience" and CH.L[CH.AMBIENCE[value].key] or CH.SoundName(value)
     end
-    return id, plays
+    soundNotes[kind .. target] = string.format(CH.L["SHARE_SOUND_GOT_" .. kind:upper()], sender, place, name)
+    if noteTimer then
+        noteTimer:Cancel()
+    end
+    noteTimer = C_Timer.NewTimer(2, FlushSoundNotes)
 end
 
 -- The house and floor sounds of one kind off a decoded payload, in the
@@ -641,7 +675,7 @@ local function DeserializeLayout(b64)
             if type(z.c) == "table" and type(z.c[1]) == "number" then
                 color = { z.c[1], z.c[2], z.c[3] }
             end
-            local music, musicPlays = ReadRoomMusic(z.mu, z.mn)
+            local music, sfx, sfxPlays = ReadRoomSounds(z.mu, z.mn, z.sx, z.sn)
             zones[#zones + 1] = {
                 name = string.sub(z.n, 1, 48),
                 mapID = z.m,
@@ -659,7 +693,8 @@ local function DeserializeLayout(b64)
                 noBanner = z.nb == true or nil,
                 ambience = KNOWN.ambience(z.am) and z.am or nil,
                 music = music,
-                musicPlays = musicPlays,
+                sfx = sfx,
+                sfxPlays = sfxPlays,
                 -- Room shape (3.0.0): only "circle" so far. Anything else, or absent
                 -- from older blobs, is a rectangle. Geometry still rides in x1..y2.
                 shape = z.sh == "circle" and "circle" or nil,
@@ -736,8 +771,13 @@ function CH.ExportLayout(houseGUID)
             se = z.secret, -- hidden from visitors' floor plan and room list, banner still fires
             nb = z.noBanner, -- no banner on entry (3.8.0, older clients still show one)
             am = z.ambience, -- index into CH.AMBIENCE (3.8.0)
-            mu = z.music, -- music or sound file id (3.10.0)
-            mn = z.musicPlays, -- times it plays on walking in, 0 loops, nil a music track
+            -- music file id (3.10.0). Clients before 3.12.0 read a sound from here
+            -- with its count in mn, so a room without music sends its sound this
+            -- way too and they keep hearing it.
+            mu = z.music or z.sfx,
+            mn = not z.music and z.sfxPlays or nil,
+            sx = z.sfx, -- sound on entry, any game file id (3.12.0)
+            sn = z.sfxPlays, -- times it plays on walking in, 0 loops
             fl = z.floor, -- which floor the room is on (2.4.0; appended, old clients ignore)
             sf = z.setFloor, -- absolute stair anchor: stepping on sets this floor
             fd = z.floorDelta, -- relative stair anchor: +1/-1 from current floor
@@ -1001,26 +1041,44 @@ function CH.HandleMessage(prefix, payload, _, fullSender)
             return
         end
         n = tonumber(n)
+        local stored, place
         if where == "R" then
             local zone = h.zones[n]
             if not zone then
                 return
             end
-            if kind == "music" then
-                zone.music, zone.musicPlays = ReadRoomMusic(value, tonumber(parts[7]))
-            else
+            local plays = tonumber(parts[7])
+            if kind == "ambience" then
                 zone.ambience = KNOWN.ambience(value) and value or nil
+            elseif kind == "sfx" then
+                zone.sfx = CH.IsFileID(value) and value or nil
+                zone.sfxPlays = zone.sfx and (ReadPlays(plays) or 0)
+            else
+                local music, sfx, sfxPlays = ReadRoomSounds(value, plays)
+                zone.music = music
+                -- An owner from before the split has one field for both, so
+                -- their pick takes the place of the room's sound as well.
+                if sfx or VersionOlder(peerVersions[sender], SFX_MIN_VERSION) then
+                    zone.sfx, zone.sfxPlays = sfx, sfxPlays
+                end
+                kind = sfx and "sfx" or kind
             end
-        elseif where == "H" or (where == "F" and n) then
-            CH.StoreHouseSound(h, kind, n, KNOWN[kind](value) and value or nil)
+            stored = zone[kind]
+            -- a secret room's name is not for the visitor's chat either
+            place = zone.secret and CH.L["SHARE_SOUND_A_ROOM"] or zone.name
+        elseif kind ~= "sfx" and (where == "H" or (where == "F" and n)) then
+            stored = KNOWN[kind](value) and value or nil
+            CH.StoreHouseSound(h, kind, n, stored)
+            place = n and string.format(CH.L["FP_AMBIENCE_FLOOR_X"], n) or CH.L["FP_AMBIENCE_HOUSE"]
         else
             return
         end
         h.updatedAt = newTs
         Debug(msgType, "applied:", guid, parts[5], value, "from", sender)
-        -- the mute button shows only in a house that has a sound somewhere
         if guid == CH.currentHouseGUID then
+            -- the mute button shows only in a house that has a sound somewhere
             CH.RefreshHUDMode()
+            NoteSoundChange(kind, parts[5], sender, place, stored)
         end
     elseif msgType == "LAYOUT_DECLINE" then
         -- The holder said no (or no longer has it). Declines are broadcast, so

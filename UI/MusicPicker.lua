@@ -7,9 +7,10 @@ local _, CH = ...
 -- outside it closes the picker without picking. Clicking a track plays it over
 -- whatever the house has on, and closing hands the music back.
 --
--- For a room there is a second tab with the sound list under its headers, where
--- a typed number is offered as a sound by file id. Plays sets whether the pick
--- loops or runs one to five times on walking in.
+-- A room's sound on entry is picked here as well. Opened for sounds the list
+-- is the sound list under its headers and a typed number is offered as a sound
+-- by file id. Plays sets whether the pick loops or runs one to five times on
+-- walking in.
 
 local ROW_H = 18
 local MAX_ROWS = 200
@@ -22,36 +23,22 @@ catcher:Hide()
 table.insert(UISpecialFrames, "ChamberlainMusicPicker")
 
 local win = CreateFrame("Frame", nil, catcher, "BackdropTemplate")
-win:SetSize(440, 498)
+win:SetSize(440, 472)
 win:SetPoint("CENTER")
 win:EnableMouse(true) -- or clicks on the window would reach the catcher under it
 CH.SkinWindow(win, "MP_TITLE")
 
-local selected -- id of the clicked track, what Use this track hands back
-local plays -- 1 to 5, nil loops
-local forRoom
+local selected -- id of the clicked row, what the Use button hands back
+local sounds -- picking a sound on entry, music otherwise
+local plays -- 1 to 5, nil loops, sounds only
+local house -- the house entry being picked for
 local onPick
-local soundPreview -- a custom sound of ours is on the preview slot
 local results = {}
 local rows = {}
 
--- Tabs like the Rooms window has them, the open one disabled. Sound effects is
--- only offered when picking for a room, a floor or the house takes music only.
-local tab = "music"
-local tabMusic = CH.MakeButton(win, "MP_TAB_MUSIC", 80, 22)
-local tabSounds = CH.MakeButton(win, "MP_TAB_SOUNDS", 140, 22)
-tabMusic:SetPoint("TOPLEFT", 12, -30)
-tabSounds:SetPoint("LEFT", tabMusic, "RIGHT", 2, 0)
-
-local tabSep = win:CreateTexture(nil, "ARTWORK")
-tabSep:SetHeight(1)
-tabSep:SetPoint("TOPLEFT", 12, -54)
-tabSep:SetPoint("TOPRIGHT", -12, -54)
-tabSep:SetColorTexture(CH.RGBA(CH.COLORS.sep, 0.8))
-
 local searchBox = CreateFrame("EditBox", nil, win, "InputBoxTemplate")
 searchBox:SetSize(404, 20)
-searchBox:SetPoint("TOPLEFT", 20, -62)
+searchBox:SetPoint("TOPLEFT", 20, -36)
 searchBox:SetAutoFocus(false)
 searchBox:SetMaxLetters(60)
 
@@ -59,14 +46,14 @@ local searchHint = searchBox:CreateFontString(nil, "OVERLAY", "GameFontDisableSm
 searchHint:SetPoint("LEFT", 6, 0)
 
 local status = win:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-status:SetPoint("TOPLEFT", 16, -90)
+status:SetPoint("TOPLEFT", 16, -64)
 status:SetPoint("RIGHT", -16, 0)
 status:SetJustifyH("LEFT")
 status:SetWordWrap(false)
 status:SetTextColor(CH.RGBA(CH.COLORS.muted, 1))
 
 local scroll, list = CH.MakeScrollList(win, "ChamberlainMusicScroll")
-scroll:SetPoint("TOPLEFT", 12, -108)
+scroll:SetPoint("TOPLEFT", 12, -82)
 scroll:SetPoint("BOTTOMRIGHT", -30, 42)
 list:SetWidth(396)
 
@@ -101,17 +88,18 @@ end, function(root, btn)
 end)
 btnPlays:SetPoint("RIGHT", btnCancel, "LEFT", -4, 0)
 CH.Tip(btnPlays, "MP_TT_PLAYS")
--- "No music" on this button got read as Silence, which is the opposite
-CH.Tip(btnNone, "MP_TT_NONE")
 
--- A listed track goes on the music slot like it will in the room. Anything
--- else can't, so it plays as a plain sound.
+-- "No music" on this button got read as Silence, which is the opposite
+CH.Tip(btnNone, function()
+    return sounds and "MP_TT_NONE_SOUND" or "MP_TT_NONE"
+end)
+
+-- On the slot and channel the pick will play on in the room.
 local function Preview(id)
-    local listed = id and CH.MusicPath(id)
-    CH.PreviewMusic(listed and id or nil)
-    if soundPreview or (id and not listed) then
-        soundPreview = id and not listed
-        CH.PreviewSound(soundPreview and id or nil, "SFX")
+    if sounds then
+        CH.PreviewSound(id, "SFX")
+    else
+        CH.PreviewMusic(id)
     end
 end
 
@@ -132,16 +120,11 @@ local function Render()
             row.text:SetJustifyH("LEFT")
             row.text:SetWordWrap(false)
             row:SetScript("OnClick", function(self)
-                -- Moving to another row puts Plays where that kind of pick
-                -- usually wants it. A track loops on the music slot. A scream
-                -- on a loop is rarely the idea, so a sound plays once unless a
-                -- count was already set, with Loops in the menu for a heartbeat.
-                if forRoom and self.id ~= selected then
-                    if CH.MusicPath(self.id) then
-                        plays = nil
-                    else
-                        plays = plays or 1
-                    end
+                -- A scream on a loop is rarely the idea, so moving to another
+                -- sound sets it to play once unless a count was already set,
+                -- with Loops in the menu for a heartbeat.
+                if sounds and self.id ~= selected then
+                    plays = plays or 1
                     btnPlays:Refresh()
                 end
                 selected = self.id
@@ -180,14 +163,31 @@ local function Matches(text, words)
     return true
 end
 
--- The Music tab keeps Silence on top, then the track that is set or, with
--- words typed, every track whose path holds them.
+-- With nothing typed the list opens on the pick that is set, then on what the
+-- house already plays somewhere under a header of its own, so the track from
+-- the hall is one click away for the next room.
+local function ListInUse()
+    if selected and selected ~= CH.SILENCE then
+        results[#results + 1] = { id = selected, path = CH.SoundName(selected) }
+    end
+    local header
+    for _, id in ipairs(CH.HousePicks(house, sounds and "sfx" or "music")) do
+        if id ~= selected then
+            if not header then
+                header = true
+                results[#results + 1] = { path = CH.L["MP_IN_HOUSE"] }
+            end
+            results[#results + 1] = { id = id, path = "   " .. CH.SoundName(id) }
+        end
+    end
+end
+
+-- Music keeps Silence on top. With words typed it lists every track whose path
+-- holds them.
 local function ListMusic(words)
     results[1] = { id = CH.SILENCE, path = CH.L["MP_SILENCE"] }
     if #words == 0 then
-        if selected and selected ~= CH.SILENCE and CH.MusicPath(selected) then
-            results[2] = { id = selected, path = CH.SoundName(selected) }
-        end
+        ListInUse()
         return
     end
     for id, path in CH.MUSIC_LIST:gmatch("(%d+);([^\n]+)") do
@@ -201,13 +201,11 @@ local function ListMusic(words)
     return #results - 1 -- less the Silence row
 end
 
--- The Sound effects tab has the listed sounds under their headers, or the ones
--- whose name holds the typed words. A number is offered as a file of its own.
+-- Sounds has the listed ones under their headers, or those whose name holds the
+-- typed words. A number is offered as a file of its own.
 local function ListSounds(words, text)
     if #words == 0 then
-        if selected and selected ~= CH.SILENCE and not CH.MusicPath(selected) then
-            results[1] = { id = selected, path = CH.SoundName(selected) }
-        end
+        ListInUse()
         for _, cat in ipairs(CH.SOUND_CATS) do
             results[#results + 1] = { path = CH.L[cat] }
             for _, sound in ipairs(CH.SOUNDS) do
@@ -237,35 +235,19 @@ local function Search(text)
         words[#words + 1] = word
     end
     local found
-    if tab == "music" then
-        found = ListMusic(words)
-    else
+    if sounds then
         found = ListSounds(words, text)
+    else
+        found = ListMusic(words)
     end
     if found then
         status:SetText(string.format(CH.L[#results == MAX_ROWS and "MP_FIRST_X" or "MP_FOUND_X"], found))
     else
-        status:SetText(CH.L[tab == "music" and "MP_EMPTY_HINT" or "MP_EMPTY_HINT_SOUNDS"])
+        status:SetText(CH.L[sounds and "MP_EMPTY_HINT_SOUNDS" or "MP_EMPTY_HINT"])
     end
     scroll:SetVerticalScroll(0)
     Render()
 end
-
-local function ShowTab(which)
-    tab = which
-    tabMusic:SetEnabled(tab ~= "music")
-    tabSounds:SetEnabled(tab ~= "sounds")
-    searchHint:SetText(CH.L[tab == "music" and "MP_SEARCH_HINT" or "MP_SEARCH_HINT_SOUNDS"])
-    -- SetText only fires OnTextChanged when the text changes, so search by hand
-    searchBox:SetText("")
-    Search("")
-end
-tabMusic:SetScript("OnClick", function()
-    ShowTab("music")
-end)
-tabSounds:SetScript("OnClick", function()
-    ShowTab("sounds")
-end)
 
 local function Close()
     catcher:Hide()
@@ -287,19 +269,12 @@ catcher:SetScript("OnHide", function()
 end)
 btnCancel:SetScript("OnClick", Close)
 
--- Hands back done(id, plays), plays as in ReadRoomMusic (Sharing/Share.lua).
+-- Hands back done(id), and for a sound done(id, plays) with plays as in
+-- ReadRoomSounds (Sharing/Share.lua).
 local function Pick(id)
     local done = onPick
-    local count
-    -- silence only means something on the music slot, so it never gets a count
-    if id and id ~= CH.SILENCE then
-        count = plays
-        if not count and not CH.MusicPath(id) then
-            count = 0
-        end
-    end
     Close()
-    done(id, count)
+    done(id, sounds and id and (plays or 0) or nil)
 end
 btnUse:SetScript("OnClick", function()
     Pick(selected)
@@ -308,19 +283,24 @@ btnNone:SetScript("OnClick", function()
     Pick(nil)
 end)
 
--- current is the id set right now or nil. done gets the new pick, nil for no
--- music, and closing any other way calls nothing.
-function CH.OpenMusicPicker(current, done, room, currentPlays)
+-- current is the id set right now or nil. done gets the new pick, nil for
+-- none, and closing any other way calls nothing. h is the house entry the pick
+-- is for. forSounds opens it for a room's sound on entry and currentPlays is
+-- its count.
+function CH.OpenMusicPicker(current, done, h, forSounds, currentPlays)
     selected = current
     onPick = done
-    forRoom = room
+    house = h
+    sounds = forSounds
     plays = currentPlays and currentPlays > 0 and currentPlays or nil
-    btnPlays:SetShown(room == true)
+    CH.SetWindowTitle(win, sounds and "MP_TITLE_SOUNDS" or "MP_TITLE")
+    btnUse:SetText(CH.L[sounds and "MP_USE_SOUND" or "MP_USE"])
+    searchHint:SetText(CH.L[sounds and "MP_SEARCH_HINT_SOUNDS" or "MP_SEARCH_HINT"])
+    btnPlays:SetShown(sounds == true)
     btnPlays:Refresh()
-    tabSounds:SetShown(room == true)
     catcher:Show()
-    -- open on the tab the current pick lives on
-    local isSound = current and current ~= CH.SILENCE and not CH.MusicPath(current)
-    ShowTab(room and isSound and "sounds" or "music")
+    -- SetText only fires OnTextChanged when the text changes, so search by hand
+    searchBox:SetText("")
+    Search("")
     searchBox:SetFocus()
 end

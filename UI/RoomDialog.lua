@@ -5,7 +5,7 @@ local _, CH = ...
 -- ─────────────────────────────────────────────────────────────────────
 
 local dialog = CreateFrame("Frame", "ChamberlainNameDialog", UIParent, "BackdropTemplate")
-dialog:SetSize(376, 470)
+dialog:SetSize(376, 498)
 dialog:SetFrameStrata("DIALOG")
 dialog:SetToplevel(true) -- clicking/showing lifts it above other windows, like the rest
 dialog:SetPoint("CENTER")
@@ -19,8 +19,9 @@ local pendingColor = nil -- color for the room being named; nil = default gold
 local pendingHeadID = nil -- talking-head index for the room; nil/1 = default
 local pendingVoice = nil -- TTS voice NAME for the room; nil = silent. Local-only.
 local pendingAmbience = nil -- index into CH.AMBIENCE, nil = none
-local pendingMusic = nil -- music or sound file id, nil = none
-local pendingMusicPlays = nil -- see SetPendingMusic
+local pendingMusic = nil -- music file id, nil = none
+local pendingSfx = nil -- file id of the sound on entry, nil = none
+local pendingSfxPlays = nil -- see SetPendingSfx
 
 -- Which floor the room sits on, and whether it doubles as a stair anchor.
 -- pendingSetFloor / pendingFloorDelta are mutually exclusive and both nil for an
@@ -330,13 +331,13 @@ speakerBox:HookScript("OnTextChanged", UpdateSpeakerHint)
 -- rest of the addon. InputScrollFrameTemplate ships the newer MinimalScrollBar
 -- that CH.SkinScrollBar can't style.
 local descLabel = dialog:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-descLabel:SetPoint("TOPLEFT", 24, -290)
+descLabel:SetPoint("TOPLEFT", 24, -318)
 descLabel:SetText(CH.L["RD_DESCRIPTION"])
 
 local DESC_MAX = 500
 local descScroll = CreateFrame("ScrollFrame", "ChamberlainDescScroll", dialog, "UIPanelScrollFrameTemplate")
 descScroll:SetSize(320, 104)
-descScroll:SetPoint("TOPLEFT", 28, -306)
+descScroll:SetPoint("TOPLEFT", 28, -334)
 CH.SkinScrollBar(descScroll)
 
 local descBg = descScroll:CreateTexture(nil, "BACKGROUND")
@@ -406,6 +407,9 @@ end
 local voiceLabel = dialog:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 voiceLabel:SetPoint("TOPLEFT", 24, -206)
 voiceLabel:SetText(CH.L["RD_VOICE"])
+-- the help spells out that the voice is personal and never shared, since we
+-- can't know which TTS voices another player's PC has
+AddFieldHelp(voiceLabel, "RD_VOICE_TT_TITLE", "RD_VOICE_TT1", "RD_VOICE_TT2")
 
 local voiceBtn = CH.MakeButton(dialog, "RD_DEFAULT_SILENT", 198, 22)
 voiceBtn:SetPoint("LEFT", voiceLabel, "RIGHT", 8, 0)
@@ -482,27 +486,6 @@ ttsWatcher:SetScript("OnEvent", function()
     SetTesting(false)
 end)
 
--- Info "?" on the voice row: spell out that the voice is personal and never
--- shared, since we can't know which TTS voices another player's PC has.
-local voiceInfo = CreateFrame("Button", nil, dialog)
-voiceInfo:SetSize(16, 16)
-voiceInfo:SetPoint("LEFT", voiceTest, "RIGHT", 4, 0)
-local voiceInfoText = voiceInfo:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-voiceInfoText:SetAllPoints()
-voiceInfoText:SetText("|cffFFD700?|r")
-voiceInfo:SetScript("OnEnter", function(self)
-    GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-    GameTooltip:ClearLines()
-    GameTooltip:AddLine(CH.L["RD_VOICE_TT_TITLE"], 1, 0.85, 0.25)
-    GameTooltip:AddLine(CH.L["RD_VOICE_TT1"], 0.85, 0.85, 0.85, true)
-    GameTooltip:AddLine(" ")
-    GameTooltip:AddLine(CH.L["RD_VOICE_TT2"], 0.8, 0.8, 0.8, true)
-    GameTooltip:Show()
-end)
-voiceInfo:SetScript("OnLeave", function()
-    GameTooltip:Hide()
-end)
-
 -- Ambience picker: one of the game's own ambience loops for the room, stored
 -- and shared as an index into CH.AMBIENCE. Test plays the pick until stopped.
 local ambienceLabel = dialog:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
@@ -557,29 +540,50 @@ end)
 -- Music picker: a track that takes over from the game's music while you're in
 -- the room. Only the file id is stored and shared. The button opens the search
 -- window (UI/MusicPicker.lua), which has the preview.
-local musicLabel = dialog:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-musicLabel:SetPoint("TOPLEFT", 24, -262)
-musicLabel:SetText(CH.L["RD_MUSIC"])
-AddFieldHelp(musicLabel, "RD_MUSIC_TT_TITLE", "RD_MUSIC_TT1", "RD_MUSIC_TT2")
+--
+-- The sound on entry is its own pick on the row under it. Any game sound goes
+-- by file id, played on the effects channel once or a few times as you walk
+-- in or looped over the music. Same window, opened for sounds.
+local ROW_RIGHT = 356 -- where the rows above end, so these two line up with them
 
-local musicBtn = CH.MakeButton(dialog, "RD_AMBIENCE_NONE", 266, 22)
-musicBtn:SetPoint("LEFT", musicLabel, "RIGHT", 8, 0)
+-- A label with its help and a button that fills the rest of the row. ttKey is
+-- the stem of the help's locale keys.
+local function MakeSoundRow(y, labelKey, ttKey)
+    local label = dialog:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    label:SetPoint("TOPLEFT", 24, y)
+    label:SetText(CH.L[labelKey])
+    AddFieldHelp(label, ttKey .. "_TITLE", ttKey .. "1", ttKey .. "2")
+    local btn = CH.MakeButton(dialog, "RD_AMBIENCE_NONE", ROW_RIGHT - 32 - label:GetStringWidth(), 22)
+    btn:SetPoint("LEFT", label, "RIGHT", 8, 0)
+    return btn
+end
 
--- plays as in ReadRoomMusic (Sharing/Share.lua). The button shows a count as "x3".
-local function SetPendingMusic(id, plays)
-    pendingMusic, pendingMusicPlays = id, plays
+local musicBtn = MakeSoundRow(-262, "RD_MUSIC", "RD_MUSIC_TT")
+local sfxBtn = MakeSoundRow(-290, "RD_SFX", "RD_SFX_TT")
+
+local function SetPendingMusic(id)
+    pendingMusic = id
+    musicBtn:SetText(id and CH.SoundName(id, true) or CH.L["RD_AMBIENCE_NONE"])
+end
+
+-- plays as in ReadRoomSounds (Sharing/Share.lua). The button shows a count as "x3".
+local function SetPendingSfx(id, plays)
+    pendingSfx, pendingSfxPlays = id, plays
     local text = CH.L["RD_AMBIENCE_NONE"]
     if id then
         text = CH.SoundName(id, true)
-        if plays and plays > 0 then
+        if plays > 0 then
             text = text .. "  x" .. plays
         end
     end
-    musicBtn:SetText(text)
+    sfxBtn:SetText(text)
 end
 
 musicBtn:SetScript("OnClick", function()
-    CH.OpenMusicPicker(pendingMusic, SetPendingMusic, true, pendingMusicPlays)
+    CH.OpenMusicPicker(pendingMusic, SetPendingMusic, DialogHouse())
+end)
+sfxBtn:SetScript("OnClick", function()
+    CH.OpenMusicPicker(pendingSfx, SetPendingSfx, DialogHouse(), true, pendingSfxPlays)
 end)
 
 -- ── Floor row (multi-floor houses only) ──────────────────────────────
@@ -587,7 +591,7 @@ end)
 -- dropdown that turns the room into a stair anchor (absolute "Go to floor N" or
 -- relative "Up/Down one"). Hidden entirely on single-floor houses. The dialog
 -- grows by one row when it's shown so nothing overlaps the description box.
-local DIALOG_BASE_H = 470
+local DIALOG_BASE_H = 498
 local FLOOR_ROW_H = 30
 
 local floorRow = CreateFrame("Frame", nil, dialog)
@@ -739,7 +743,8 @@ function CH.OpenRenameDialog(zone, houseGUID)
     bannerCheck:SetChecked(not zone.noBanner)
     pendingAmbience = zone.ambience
     ambienceBtn:Refresh()
-    SetPendingMusic(zone.music, zone.musicPlays)
+    SetPendingMusic(zone.music)
+    SetPendingSfx(zone.sfx, zone.sfxPlays)
     SetPendingVoice(zone.voice)
     UpdateMainSwatch()
     RefreshHistorySwatches()
@@ -787,7 +792,8 @@ local function ConfirmZone()
             renameTarget.noBanner = not bannerCheck:GetChecked() or nil
             renameTarget.ambience = pendingAmbience
             renameTarget.music = pendingMusic
-            renameTarget.musicPlays = pendingMusicPlays
+            renameTarget.sfx = pendingSfx
+            renameTarget.sfxPlays = pendingSfxPlays
             renameTarget.voice = pendingVoice -- local-only; not shared
             renameTarget.floor = pendingFloor or 1
             renameTarget.setFloor = pendingSetFloor
@@ -798,19 +804,30 @@ local function ConfirmZone()
             -- as a patch. Anything more and they have to pull the map, since a
             -- patch would stamp their copy current with the old name still on it.
             -- voice never leaves this client so it doesn't count as a change.
-            local newAmbience = before.ambience ~= pendingAmbience
-            local newMusic = before.music ~= pendingMusic or before.musicPlays ~= pendingMusicPlays
+            -- The sound on entry goes first. A client from before 3.12.0 skips
+            -- that patch, so the ones behind it no longer fit its copy and it
+            -- pulls the whole map, where last in line it would have been
+            -- stamped current without the sound.
+            local changed = {}
+            if before.sfx ~= pendingSfx or before.sfxPlays ~= pendingSfxPlays then
+                changed[#changed + 1] = "sfx"
+            end
+            if before.ambience ~= pendingAmbience then
+                changed[#changed + 1] = "ambience"
+            end
+            if before.music ~= pendingMusic then
+                changed[#changed + 1] = "music"
+            end
             before.ambience, before.voice = pendingAmbience, pendingVoice
-            before.music, before.musicPlays = pendingMusic, pendingMusicPlays
-            if (newAmbience or newMusic) and h.ownerGUID == ownerGUID and tCompare(before, renameTarget, 2) then
+            before.music = pendingMusic
+            before.sfx, before.sfxPlays = pendingSfx, pendingSfxPlays
+            if #changed > 0 and h.ownerGUID == ownerGUID and tCompare(before, renameTarget, 2) then
                 local target = "R" .. tIndexOf(h.zones, renameTarget)
-                if newAmbience then
-                    CH.SendSoundPatch(guid, "ambience", baseTs, target, pendingAmbience)
-                    -- a music patch right behind it builds on this one
+                for i, kind in ipairs(changed) do
+                    local plays = kind == "sfx" and pendingSfxPlays or nil
+                    CH.SendSoundPatch(guid, kind, baseTs, target, renameTarget[kind], i > 1, plays)
+                    -- the next patch builds on this one
                     baseTs = h.updatedAt
-                end
-                if newMusic then
-                    CH.SendSoundPatch(guid, "music", baseTs, target, pendingMusic, newAmbience, pendingMusicPlays)
                 end
             end
         end

@@ -160,11 +160,12 @@ function CH.SkinScrollBar(scroll)
     thumb:SetSize(6, 36)
 end
 
--- One-line hover tooltip on a button, looked up by locale key.
+-- One-line hover tooltip on a button, looked up by locale key. key can be a
+-- function handing back the key, for a button whose job changes.
 function CH.Tip(btn, key)
     btn:HookScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
-        GameTooltip:SetText(CH.L[key], 1, 1, 1, 1, true)
+        GameTooltip:SetText(CH.L[type(key) == "function" and key() or key], 1, 1, 1, 1, true)
         GameTooltip:Show()
     end)
     btn:HookScript("OnLeave", function()

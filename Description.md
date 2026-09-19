@@ -64,18 +64,27 @@ instead of the house's.
 Music works the same way. A room, a floor or the house can have a track from the
 game's own music, picked in a search window where a click plays it first. It
 takes the place of the game's music while you're there, and Silence is one of
-the picks for a room that should have none.
+the picks for a room that should have none. The window opens on the tracks your
+house already uses, so the one from the hall goes into the next room with a
+click.
 
-A room can also play a short game sound as you walk in, once or a few times. The
-picker has a list of laughs, screams and bells, so the nursery can greet you
-with a ghost's laugh. Any other game sound works by its file number, the
-FileDataID that sites like wago.tools list for every file in the game.
+A room can also play a short game sound as you walk in, once or a few times, set
+on the Entry sound row under Music. Its list has laughs, screams and bells, so
+the nursery can greet you with a ghost's laugh while its own music plays on. Any
+other game sound works by its file number, the FileDataID that sites like
+wago.tools list for every file in the game.
+
+The Chamberlain bar's title strip shows what's on, the track in gold next to the
+ambience, and hovering it gives the track's full path. The game has no such
+readout of its own, so this is how a guest finds out what that tune in your
+hall is called.
 
 Visitors with your shared map hear all of it, and when you change a sound while
-grouped they hear the change right away. Ambience follows the game's Ambience
-volume, music the Music volume and a room's own sound the Effects volume. The
-Sound button on the Chamberlain bar mutes all of it, in your house or anyone
-else's, and the game sounds the way it normally does.
+grouped they hear the change right away, with a chat line naming the new track
+if they're in the house. Ambience follows the game's Ambience volume, music the
+Music volume and a room's own sound the Effects volume. The Sound button on the
+Chamberlain bar mutes all of it, in your house or anyone else's, and the game
+sounds the way it normally does.
 
 ## Archive
 

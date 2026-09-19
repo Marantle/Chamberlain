@@ -456,17 +456,17 @@ function CH.CheckZones()
         end
     end
     -- There is one music slot, so a bannerless room with a track (a stage, a
-    -- music box) takes it from the room around it. A pick with musicPlays set
-    -- is a sound laid over the music and leaves the slot to the floor or house.
-    local source = spot and spot.music and spot or found
-    local musicID, sting, plays
-    if source and source.musicPlays then
-        sting, plays = source.music, source.musicPlays
-        musicID = CH.ResolveSound(h, "music", nil)
-    else
-        musicID = CH.ResolveSound(h, "music", source)
-    end
-    CH.UpdateAmbience(CH.ResolveSound(h, "ambience", found), spot and spot.ambience, musicID, sting, plays)
+    -- music box) takes it from the room around it. The sound on entry has one
+    -- slot as well and goes the same way.
+    local musicZone = spot and spot.music and spot or found
+    local sfxZone = spot and spot.sfx and spot or found
+    CH.UpdateAmbience(
+        CH.ResolveSound(h, "ambience", found),
+        spot and spot.ambience,
+        CH.ResolveSound(h, "music", musicZone),
+        sfxZone and sfxZone.sfx,
+        sfxZone and sfxZone.sfxPlays
+    )
     -- A named anchor (one with a real name, not a bare floor switch) shows its
     -- own banner, the "Stairs Up" live confirmation, but only if no smaller room
     -- on this floor overlaps it.

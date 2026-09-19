@@ -20,6 +20,19 @@ local _, CH = ...
 -- an `onToggle` run after any of them flips.
 CH.WHATS_NEW = {
     {
+        v = "3.12.0",
+        notes = {
+            "Now playing. The Chamberlain bar's title names the music and ambience the "
+                .. "house has on. Hover it for the full track path. Guests see it too.",
+            "A room's sound on entry has its own row in the room dialog now, Entry sound, "
+                .. "so a room can have music and a sound. Rooms that had one keep it.",
+            "When the owner changes a sound while you're in their house, chat tells you "
+                .. "the name of the new track or ambience.",
+            "The music window lists the tracks your house already uses before you type "
+                .. "anything, so reusing one takes a click.",
+        },
+    },
+    {
         v = "3.11.0",
         notes = {
             "78 more ambience loops for your rooms. Naxxramas and Frostmourne are in, so "

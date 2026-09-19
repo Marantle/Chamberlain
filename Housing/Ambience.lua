@@ -202,6 +202,30 @@ function CH.ResolveSound(h, kind, zone)
     return zone and zone[kind] or set and (set.floors and set.floors[CH.activeFloor] or set.house)
 end
 
+-- Every pick of one kind the house holds, "music" or "sfx", each once. The
+-- house's own comes first, then the floors' and the rooms', though only music
+-- has the first two. Silence is left out since the picker always has it on top.
+function CH.HousePicks(h, kind)
+    local ids, seen = {}, { [CH.SILENCE] = true }
+    local function add(id)
+        if id and not seen[id] then
+            seen[id] = true
+            ids[#ids + 1] = id
+        end
+    end
+    local set = h[kind]
+    if set then
+        add(set.house)
+        for floor = 1, h.floorCount or 1 do
+            add(set.floors and set.floors[floor])
+        end
+    end
+    for _, zone in ipairs(h.zones) do
+        add(zone[kind])
+    end
+    return ids
+end
+
 -- Game sounds worth having in a room, offered in the music picker next to
 -- typing a file number. Only the file id is saved and shared, so unlike
 -- CH.AMBIENCE the order here means nothing and entries can go.
@@ -239,9 +263,12 @@ CH.SOUNDS = {
 }
 CH.SOUND_CATS = { "SFX_CAT_LAUGHS", "SFX_CAT_SPOOKY", "SFX_CAT_HOUSE", "SFX_CAT_FUN" }
 
+-- file id to name key, the ambience loops along with the sounds
 local soundKeys = {}
-for _, sound in ipairs(CH.SOUNDS) do
-    soundKeys[sound.id] = sound.key
+for _, list in ipairs({ CH.AMBIENCE, CH.SOUNDS }) do
+    for _, sound in ipairs(list) do
+        soundKeys[sound.id] = sound.key
+    end
 end
 
 -- Silence is a pick too, for a quiet room in a house with music or a house
@@ -362,7 +389,7 @@ local function Loop(slot)
     end
 end
 
--- plays as in ReadRoomMusic (Sharing/Share.lua). Leaving and coming back starts
+-- plays as in ReadRoomSounds (Sharing/Share.lua). Leaving and coming back starts
 -- the count over.
 local function SetSlot(slot, file, plays)
     if slot.file == file then
@@ -381,6 +408,7 @@ local function SetSlot(slot, file, plays)
         Start(slot)
         WarnIfMuted(slot.channel)
     end
+    CH.RefreshNowPlaying()
 end
 
 local function AmbienceFile(index)
@@ -392,6 +420,7 @@ end
 -- so one track at a time. wanted is what the ticker resolved, preview what the
 -- picker is playing over it.
 local music = {}
+local musicWatch = CreateFrame("Frame")
 
 local function ApplyMusic()
     local id = music.preview or music.wanted
@@ -407,6 +436,37 @@ local function ApplyMusic()
         StopMusic()
     end
     music.playing = id
+    -- only listening while a track of ours is on
+    if id then
+        musicWatch:RegisterEvent("CVAR_UPDATE")
+    else
+        musicWatch:UnregisterEvent("CVAR_UPDATE")
+    end
+    CH.RefreshNowPlaying()
+end
+
+-- Music switched off and on again (Ctrl+M, or all sound with Ctrl+S) comes
+-- back as the zone's own. The client has dropped our track by then, Silence
+-- too, so it goes on again.
+musicWatch:SetScript("OnEvent", function(_, _, cvar)
+    if (cvar == "Sound_EnableMusic" or cvar == "Sound_EnableAllSound") and GetCVarBool(cvar) then
+        music.playing = nil
+        ApplyMusic()
+    end
+end)
+
+-- What the bar's ticker shows. Hands back the track on the music slot and a
+-- list of the other files heard. The list holds the room's ambience, the
+-- spot's over it and a room sound that loops. A sound being tried out stands
+-- in for the room's, which is quiet meanwhile. A sound on a count is over
+-- before anyone could read its name.
+function CH.NowPlaying()
+    local sting = slots.sting
+    local files = {}
+    files[#files + 1] = slots.preview.file or slots.room.file
+    files[#files + 1] = slots.spot.file
+    files[#files + 1] = not sting.left and sting.file or nil
+    return music.playing, files
 end
 
 -- Called from the zone ticker with the ambience index of the current room, of

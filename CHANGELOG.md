@@ -1,5 +1,38 @@
 # Changelog
 
+## 3.12.0
+- Now playing. The Chamberlain bar's title strip names the music and ambience
+  the house has on, next to three little bars that bounce while something
+  plays. The track shows in gold by the last part of its file name, and a name
+  too long for the strip slides back and forth. Hover it for the full path.
+  Visitors get it as well, so a guest can see what that tune in the hall is
+  called. It goes away when nothing of Chamberlain's is playing or the Sound
+  button has it muted.
+- The sound a room plays as you walk in has a row of its own in the room
+  dialog, Entry sound, under Music. The two used to share the Music button, so
+  a room had either a track or a sound. Now it can have both, the nursery's
+  lullaby and the ghost's laugh. The Fun sound effects tab is gone from the
+  music window, which opens for one or the other. Rooms that already had a
+  sound keep it, moved over to the new row the first time you log in, and so
+  do your stored maps in the archive.
+- Group members on an older version still hear a room's sound as long as the
+  room has no music of its own. In a room with both they get the music, until
+  they update.
+- When the owner changes a sound while you're grouped and standing in their
+  house, a chat line says who changed it and for which room or floor, then
+  names the new track or ambience. An owner clicking through a few sounds to
+  compare gets you one line for the pick they end on. A secret room shows up
+  as "A room".
+- Switching the game's music off and on again with Ctrl+M brought back the
+  game's own music in a house that has a track or Silence set. The house's
+  pick comes back now, and the same goes for Ctrl+S.
+- The Voice row in the room dialog has its help on the label's (?) now, like
+  the rows around it, in place of the lone gold question mark at the end.
+- The music window lists what the house already uses before you type
+  anything, under "Used in this house". The track from the hall is one click
+  away when you want it in the next room too. Opened for an entry sound it
+  does the same with the sounds your rooms play.
+
 ## 3.11.0
 - 78 more ambience loops, 123 in all. Most of them are haunted. Naxxramas is in
   wing by wing, so are Icecrown Citadel and Frostmourne, and the spirit world
