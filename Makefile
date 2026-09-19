@@ -107,7 +107,7 @@ release: release-check package notes
 	  python -c "import json,sys; v='$(TOC_DISPLAY)'; d=json.load(sys.stdin); print(next((x['id'] for x in d if x['name']==v),''))"); \
 	test -n "$$GAME_VER_ID" || { echo "Error: WoW $(TOC_DISPLAY) not found in CurseForge API"; exit 1; }; \
 	python -c "import json; open('.release_meta.json','w').write(json.dumps({'gameVersions':[int('$$GAME_VER_ID')],'releaseType':'$(RELEASE_TYPE)','changelog':open('.notes.md',encoding='utf-8').read(),'changelogType':'markdown'}))" && \
-	curl -sf \
+	curl -sS --fail-with-body \
 	  -H "X-Api-Token: $(CURSEFORGE_TOKEN)" \
 	  -F "metadata=<.release_meta.json;type=application/json" \
 	  -F "file=@$(ADDON)-$(VERSION).zip" \
@@ -122,7 +122,7 @@ release-wago: release-check package notes
 	@echo "Uploading $(ADDON)-$(VERSION).zip to Wago..."
 	@STAB=$$(test "$(RELEASE_TYPE)" = "release" && echo stable || echo "$(RELEASE_TYPE)"); \
 	python -c "import json; open('.wago_meta.json','w').write(json.dumps({'label':'$(REL_LABEL)','stability':'$$STAB','changelog':open('.notes.md',encoding='utf-8').read(),'supported_retail_patch':'$(TOC_DISPLAY)'}))" && \
-	curl -sf \
+	curl -sS --fail-with-body \
 	  -H "Authorization: Bearer $(WAGO_API_TOKEN)" \
 	  -H "Accept: application/json" \
 	  -F "metadata=<.wago_meta.json" \
@@ -140,7 +140,7 @@ release-wowi: release-check package notes
 	@COMPAT_ID=$$(curl -sf "https://api.wowinterface.com/addons/compatible.json" | \
 	  python -c "import json,sys; v='$(TOC_VERSION)'; d=json.load(sys.stdin); print(next((x['id'] for x in d if x.get('interface')==v),''))"); \
 	test -n "$$COMPAT_ID" || { echo "Error: interface $(TOC_VERSION) not found in WoWInterface API"; exit 1; }; \
-	curl -sf \
+	curl -sS --fail-with-body \
 	  -H "x-api-token: $(WOWI_API_TOKEN)" \
 	  -F "id=$(WOWI_PROJECT)" \
 	  -F "version=$(VERSION)" \
