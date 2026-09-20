@@ -6,13 +6,18 @@ local _, CH = ...
 -- The old position HUD tried to do three jobs at once: show live coords, create
 -- rooms (Mark A / Mark B / Create), and launch the windows. That stacked up to
 -- seven buttons. It is now just a small launcher. Build opens the toolbox, Rooms
--- the manager, Settings the options. The coordinate readout and the make/fit
--- tools moved to the toolbox (UI/Toolbox.lua). The map has its own button when
--- you're visiting a house you hold a layout for.
+-- the manager, Sharing the same window on its Group tab. The coordinate readout
+-- and the make/fit tools moved to the toolbox (UI/Toolbox.lua). The map has its
+-- own button when you're visiting a house you hold a layout for.
+--
+-- The row is for the windows you work in. Settings and the mute are icons in
+-- the header, where they cost no width, or the bar grows a button with every
+-- feature (3.13.0).
 
 CH.hud = CreateFrame("Frame", "ChamberlainHUDFrame", UIParent, "BackdropTemplate")
 local hud = CH.hud
-hud:SetSize(184, 58)
+local MIN_WIDTH = 184
+hud:SetSize(MIN_WIDTH, 58)
 hud:SetFrameStrata("MEDIUM")
 CH.SkinWindow(hud, "HUD_TITLE")
 hud:Hide()
@@ -23,14 +28,43 @@ local btnBuild = CH.MakeButton(hud, "HUD_BUILD", 60, 22)
 local btnRooms = CH.MakeButton(hud, "HUD_ROOMS", 60, 22)
 local btnMap = CH.MakeButton(hud, "HUD_MAP", 56, 22)
 local btnArchive = CH.MakeButton(hud, "HUD_ARCHIVE", 66, 22)
-local btnSettings = CH.MakeButton(hud, "HUD_SETTINGS", 72, 22)
+local btnSharing = CH.MakeButton(hud, "HUD_SHARING", 66, 22)
+
+local function MakeHeaderIcon(texture)
+    local b = CreateFrame("Button", nil, hud)
+    b:SetSize(16, 16)
+    b.icon = b:CreateTexture(nil, "ARTWORK")
+    b.icon:SetAllPoints()
+    b.icon:SetTexture(texture)
+    b:SetHighlightTexture(texture, "ADD")
+    return b
+end
+
+local btnSettings = MakeHeaderIcon("Interface\\Buttons\\UI-OptionsButton")
+btnSettings:SetPoint("RIGHT", hud, "TOPRIGHT", -8, -13)
 
 btnBuild:SetScript("OnClick", function()
     CH.ToggleToolbox()
 end)
 btnRooms:SetScript("OnClick", function()
-    CH.ToggleRoomManager()
+    CH.ToggleRoomManager("myrooms")
 end)
+btnSharing:SetScript("OnClick", function()
+    CH.ToggleRoomManager("party")
+end)
+
+-- Lit while somebody in the group offers a map of this house, see
+-- CH.RefreshSharingDot in UI/RoomManager.lua.
+local sharingDot = btnSharing:CreateTexture(nil, "OVERLAY")
+sharingDot:SetSize(6, 6)
+sharingDot:SetPoint("TOPRIGHT", -3, -3)
+sharingDot:SetColorTexture(CH.RGBA(CH.COLORS.tipGold, 1))
+sharingDot:Hide()
+
+function CH.SetSharingDot(on)
+    sharingDot:SetShown(on)
+end
+
 btnMap:SetScript("OnClick", function()
     CH.ToggleFloorPlan()
 end)
@@ -42,22 +76,67 @@ btnSettings:SetScript("OnClick", function()
 end)
 
 -- Quick mute for room ambience, the same switch as the one in Settings. Only
--- on the bar in a house whose map has a sound somewhere.
-local btnSound = CH.MakeButton(hud, "HUD_SOUND", 56, 22)
+-- on the bar in a house whose map has a sound somewhere. The game's own mute
+-- mark goes over the speaker while it's off.
+local btnSound = MakeHeaderIcon("Interface\\Common\\VoiceChat-Speaker")
+btnSound:SetPoint("RIGHT", btnSettings, "LEFT", -4, 0)
 
+local muteMark = btnSound:CreateTexture(nil, "OVERLAY")
+muteMark:SetAllPoints()
+muteMark:SetTexture("Interface\\Common\\VoiceChat-Muted")
+
+-- The kinds a player can mute one by one, label key and settings key. Left
+-- click on the speaker is the master mute and right click opens these.
+CH.SOUND_KINDS = {
+    { "HUD_KIND_AMBIENCE", "soundAmbience" },
+    { "HUD_KIND_MUSIC", "soundMusic" },
+    { "HUD_KIND_ROOMS", "soundRooms" },
+    { "HUD_KIND_ECHOES", "echoes" },
+}
+
+-- Plain with everything on, the red mark on the master mute, grey when only
+-- some kind is off.
 local function RefreshSound()
-    btnSound:SetText(CH.L[ChamberlainDB.settings.ambienceEnabled and "HUD_SOUND" or "HUD_MUTED"])
+    local s = ChamberlainDB.settings
+    local all = s.ambienceEnabled
+    for _, kind in ipairs(CH.SOUND_KINDS) do
+        all = all and s[kind[2]]
+    end
+    muteMark:SetShown(not s.ambienceEnabled)
+    btnSound.icon:SetDesaturated(not all)
 end
 CH.RefreshHudSound = RefreshSound
 
-btnSound:SetScript("OnClick", function()
+-- Also behind the button in Settings. The zone ticker reads the settings, so a
+-- tick takes hold within a tenth of a second.
+function CH.FillSoundMenu(root)
+    root:CreateTitle(CH.L["HUD_SOUND_KINDS"])
+    for _, kind in ipairs(CH.SOUND_KINDS) do
+        local key = kind[2]
+        root:CreateCheckbox(CH.L[kind[1]], function()
+            return ChamberlainDB.settings[key]
+        end, function()
+            ChamberlainDB.settings[key] = not ChamberlainDB.settings[key]
+            RefreshSound()
+        end)
+    end
+end
+
+btnSound:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+btnSound:SetScript("OnClick", function(self, button)
+    if button == "RightButton" then
+        MenuUtil.CreateContextMenu(self, function(_, root)
+            CH.FillSoundMenu(root)
+        end)
+        return
+    end
     ChamberlainDB.settings.ambienceEnabled = not ChamberlainDB.settings.ambienceEnabled
     RefreshSound()
     CH.RefreshSettingsTab()
 end)
 
 local function HasAmbience(h)
-    if h.ambience or h.music then
+    if h.ambience or h.music or h.arrival then
         return true
     end
     for _, z in ipairs(h.zones) do
@@ -73,7 +152,7 @@ end
 -- client runs, so nothing here ticks.
 local playing = CreateFrame("Frame", nil, hud)
 playing:SetPoint("LEFT", hud.title, "RIGHT", 10, 0)
-playing:SetPoint("RIGHT", hud, "TOPRIGHT", -8, -13)
+-- its right end is set in CH.RefreshHUDMode, by the icons the header has on
 playing:SetHeight(16)
 playing:Hide()
 -- It takes the mouse for its hover, which would leave this part of the header
@@ -196,6 +275,7 @@ CH.Tip(btnBuild, "HUD_TT_BUILD")
 CH.Tip(btnRooms, "HUD_TT_ROOMS")
 CH.Tip(btnMap, "HUD_TT_MAP")
 CH.Tip(btnArchive, "HUD_TT_ARCHIVE")
+CH.Tip(btnSharing, "HUD_TT_SHARING")
 CH.Tip(btnSettings, "HUD_TT_SETTINGS")
 CH.Tip(btnSound, "HUD_TT_SOUND")
 
@@ -208,7 +288,8 @@ local function Layout(buttons)
         b:Show()
         x = x + b:GetWidth() + 4
     end
-    hud:SetWidth(x + 4)
+    -- two buttons alone would leave the header no room for now playing
+    hud:SetWidth(math.max(x + 4, MIN_WIDTH))
 end
 
 -- Pick the launcher's buttons for where we are: full set in your own house, a
@@ -216,11 +297,13 @@ end
 -- Archive joins the bar only while a stored map is waiting for a house that has
 -- no rooms yet. Otherwise it lives in the Rooms window and behind /rooms archive.
 function CH.RefreshHUDMode()
-    if ChamberlainDB.settings.hudHidden then
+    -- A map coming in from the group lands here as well, wherever you stand,
+    -- and used to put the bar up in the middle of Stormwind.
+    if ChamberlainDB.settings.hudHidden or not C_Housing.IsInsideHouse() then
         hud:Hide()
         return
     end
-    for _, b in ipairs({ btnBuild, btnRooms, btnMap, btnArchive, btnSettings, btnSound }) do
+    for _, b in ipairs({ btnBuild, btnRooms, btnMap, btnArchive, btnSharing }) do
         b:Hide()
     end
     local guid = CH.currentHouseGUID
@@ -228,20 +311,24 @@ function CH.RefreshHUDMode()
     local buttons
     if CH.isOwnHouse then
         if CH.ArchiveWaiting(guid) then
-            buttons = { btnBuild, btnMap, btnRooms, btnArchive, btnSettings }
+            buttons = { btnBuild, btnMap, btnRooms, btnSharing, btnArchive }
         else
-            buttons = { btnBuild, btnMap, btnRooms, btnSettings }
+            buttons = { btnBuild, btnMap, btnRooms, btnSharing }
         end
     elseif h and h.zones and #h.zones > 0 then
-        buttons = { btnRooms, btnMap, btnSettings }
+        buttons = { btnRooms, btnMap, btnSharing }
     else
-        buttons = { btnRooms, btnSettings }
+        buttons = { btnRooms, btnSharing }
     end
-    if h and h.zones and HasAmbience(h) then
-        buttons[#buttons + 1] = btnSound
+    -- now playing ends at whichever icon is leftmost
+    local sounds = h and h.zones and HasAmbience(h)
+    btnSound:SetShown(sounds == true)
+    playing:SetPoint("RIGHT", sounds and btnSound or btnSettings, "LEFT", -6, 0)
+    if sounds then
         RefreshSound()
     end
     Layout(buttons)
+    CH.RefreshSharingDot()
     hud:Show()
     FitNames()
 end
@@ -250,8 +337,6 @@ end
 -- houses and sessions until shown again. Returns the new hidden state.
 function CH.ToggleHud()
     ChamberlainDB.settings.hudHidden = not ChamberlainDB.settings.hudHidden
-    if C_Housing.IsInsideHouse() then
-        CH.RefreshHUDMode()
-    end
+    CH.RefreshHUDMode()
     return ChamberlainDB.settings.hudHidden
 end

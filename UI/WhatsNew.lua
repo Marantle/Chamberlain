@@ -20,6 +20,31 @@ local _, CH = ...
 -- an `onToggle` run after any of them flips.
 CH.WHATS_NEW = {
     {
+        v = "3.13.0",
+        notes = {
+            "Echoes. A room's sound on entry can carry through the house, so the bell on "
+                .. "your front door rings for you in the cellar when a guest walks in. Click "
+                .. "Entry sound in the room dialog and drag the Echo slider.",
+            "The house can have an arrival sound, picked with the Arrival button on the "
+                .. "house map. It rings for everyone inside with your map when somebody with "
+                .. "Chamberlain walks in.",
+            "Everyone in the house with your map hears an echo, if they share a group or a "
+                .. "guild with whoever walked in. Each person rings a room once in 30 seconds.",
+            "The sound list got a shop door bell and a ding dong doorbell. Knocks, dinner "
+                .. "bells and a good many chimes came with them.",
+            "The bar has a Sharing button, with a gold dot when your group has a map of the "
+                .. "house you're in. Settings and Sound are the gear and the speaker in its title now.",
+            "Share My Houses asks which house when you have more than one.",
+            "Right click the speaker on the bar to mute one kind of house sound and keep "
+                .. "the rest, say the music or what other players set off.",
+        },
+        toggles = { { "HUD_KIND_ECHOES", "echoes" } },
+        -- the bar's speaker greys while a kind is off
+        onToggle = function()
+            CH.RefreshHudSound()
+        end,
+    },
+    {
         v = "3.12.0",
         notes = {
             "Now playing. The Chamberlain bar's title names the music and ambience the "

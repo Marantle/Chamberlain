@@ -24,6 +24,8 @@ read_globals = {
     "UnitGUID",
     "IsInGroup",
     "IsInRaid",
+    "IsInGuild",
+    "issecretvalue",
     "GetNumGroupMembers",
     "UnitIsUnit",
     "LE_PARTY_CATEGORY_HOME",

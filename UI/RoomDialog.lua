@@ -22,6 +22,7 @@ local pendingAmbience = nil -- index into CH.AMBIENCE, nil = none
 local pendingMusic = nil -- music file id, nil = none
 local pendingSfx = nil -- file id of the sound on entry, nil = none
 local pendingSfxPlays = nil -- see SetPendingSfx
+local pendingEcho = nil -- how far the others hear the sound on entry, see CH.SendEcho
 
 -- Which floor the room sits on, and whether it doubles as a stair anchor.
 -- pendingSetFloor / pendingFloorDelta are mutually exclusive and both nil for an
@@ -566,14 +567,18 @@ local function SetPendingMusic(id)
     musicBtn:SetText(id and CH.SoundName(id, true) or CH.L["RD_AMBIENCE_NONE"])
 end
 
--- plays as in ReadRoomSounds (Sharing/Share.lua). The button shows a count as "x3".
-local function SetPendingSfx(id, plays)
-    pendingSfx, pendingSfxPlays = id, plays
+-- plays as in ReadRoomSounds (Sharing/Share.lua). The button shows a count as
+-- "x3" and an echo behind it.
+local function SetPendingSfx(id, plays, echo)
+    pendingSfx, pendingSfxPlays, pendingEcho = id, plays, id and echo
     local text = CH.L["RD_AMBIENCE_NONE"]
     if id then
         text = CH.SoundName(id, true)
         if plays > 0 then
             text = text .. "  x" .. plays
+        end
+        if echo then
+            text = text .. "  " .. CH.EchoText(echo)
         end
     end
     sfxBtn:SetText(text)
@@ -583,7 +588,7 @@ musicBtn:SetScript("OnClick", function()
     CH.OpenMusicPicker(pendingMusic, SetPendingMusic, DialogHouse())
 end)
 sfxBtn:SetScript("OnClick", function()
-    CH.OpenMusicPicker(pendingSfx, SetPendingSfx, DialogHouse(), true, pendingSfxPlays)
+    CH.OpenMusicPicker(pendingSfx, SetPendingSfx, DialogHouse(), true, pendingSfxPlays, pendingEcho)
 end)
 
 -- ── Floor row (multi-floor houses only) ──────────────────────────────
@@ -744,7 +749,7 @@ function CH.OpenRenameDialog(zone, houseGUID)
     pendingAmbience = zone.ambience
     ambienceBtn:Refresh()
     SetPendingMusic(zone.music)
-    SetPendingSfx(zone.sfx, zone.sfxPlays)
+    SetPendingSfx(zone.sfx, zone.sfxPlays, zone.echo)
     SetPendingVoice(zone.voice)
     UpdateMainSwatch()
     RefreshHistorySwatches()
@@ -794,6 +799,7 @@ local function ConfirmZone()
             renameTarget.music = pendingMusic
             renameTarget.sfx = pendingSfx
             renameTarget.sfxPlays = pendingSfxPlays
+            renameTarget.echo = pendingEcho
             renameTarget.voice = pendingVoice -- local-only; not shared
             renameTarget.floor = pendingFloor or 1
             renameTarget.setFloor = pendingSetFloor
@@ -809,7 +815,7 @@ local function ConfirmZone()
             -- pulls the whole map, where last in line it would have been
             -- stamped current without the sound.
             local changed = {}
-            if before.sfx ~= pendingSfx or before.sfxPlays ~= pendingSfxPlays then
+            if before.sfx ~= pendingSfx or before.sfxPlays ~= pendingSfxPlays or before.echo ~= pendingEcho then
                 changed[#changed + 1] = "sfx"
             end
             if before.ambience ~= pendingAmbience then
@@ -820,12 +826,21 @@ local function ConfirmZone()
             end
             before.ambience, before.voice = pendingAmbience, pendingVoice
             before.music = pendingMusic
-            before.sfx, before.sfxPlays = pendingSfx, pendingSfxPlays
+            before.sfx, before.sfxPlays, before.echo = pendingSfx, pendingSfxPlays, pendingEcho
             if #changed > 0 and h.ownerGUID == ownerGUID and tCompare(before, renameTarget, 2) then
                 local target = "R" .. tIndexOf(h.zones, renameTarget)
                 for i, kind in ipairs(changed) do
-                    local plays = kind == "sfx" and pendingSfxPlays or nil
-                    CH.SendSoundPatch(guid, kind, baseTs, target, renameTarget[kind], i > 1, plays)
+                    local sfx = kind == "sfx"
+                    CH.SendSoundPatch(
+                        guid,
+                        kind,
+                        baseTs,
+                        target,
+                        renameTarget[kind],
+                        i > 1,
+                        sfx and pendingSfxPlays or nil,
+                        sfx and pendingEcho or nil
+                    )
                     -- the next patch builds on this one
                     baseTs = h.updatedAt
                 end

@@ -1,6 +1,6 @@
 local ADDON, CH = ...
 
-CH.VERSION = "3.12.0"
+CH.VERSION = "3.13.0"
 
 -- How often the zone ticker samples your position, in seconds. Drives stair
 -- detection and the per-room time stats both, so they stay in step if it changes.
@@ -134,6 +134,15 @@ events:SetScript("OnEvent", function(_, event, arg1)
         if ChamberlainDB.settings.ambienceEnabled == nil then
             ChamberlainDB.settings.ambienceEnabled = true
         end
+        -- A mute per kind under the master above (3.13.0), all on so an update
+        -- changes nobody's sound. CH.SOUND_KINDS in UI/HUD.lua lists them.
+        -- echoes is what other players set off: a room's sound reaching you
+        -- from a distance when somebody walks into it, and the front door.
+        for _, key in ipairs({ "soundAmbience", "soundMusic", "soundRooms", "echoes" }) do
+            if ChamberlainDB.settings[key] == nil then
+                ChamberlainDB.settings[key] = true
+            end
+        end
         -- Personal text-to-speech defaults (local only, voiceFemale/voiceMale stay
         -- nil until the player picks them). When enabled, these read rooms shared
         -- to you that have no voice of their own. See CH.ResolveZoneVoice.
@@ -245,6 +254,7 @@ events:SetScript("OnEvent", function(_, event, arg1)
             end
         end
         C_ChatInfo.RegisterAddonMessagePrefix("CH")
+        C_ChatInfo.RegisterAddonMessagePrefix(CH.ECHO_PREFIX)
         CH.ApplyHUDPos()
         if CH.ApplyToolboxLayout then
             CH.ApplyToolboxLayout()
@@ -261,12 +271,17 @@ events:SetScript("OnEvent", function(_, event, arg1)
         CH.ApplyBannerPos()
         CH.ApplyTalkingHeadPos()
         C_Timer.NewTicker(CH.ZONE_TICK, CH.CheckZones)
+        -- registered this late so no answer runs CheckHousingState before the
+        -- login setup above
+        events:RegisterEvent("CURRENT_HOUSE_INFO_RECIEVED")
         CH.CheckHousingState()
         if CH.RestoreFloorPlan then
             CH.RestoreFloorPlan()
         end
     elseif event == "ZONE_CHANGED_NEW_AREA" then
         CH.CheckHousingState()
+    elseif event == "CURRENT_HOUSE_INFO_RECIEVED" then
+        CH.OnHouseInfo(arg1)
     end
 end)
 

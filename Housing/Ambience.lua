@@ -156,9 +156,10 @@ CH.AMBIENCE_CATS = {
 }
 
 -- House and floor sounds live on the house entry, one table per kind, kind
--- being "ambience" (an index into CH.AMBIENCE) or "music" (a file id):
+-- being "ambience" (an index into CH.AMBIENCE), "music" (a file id) or
+-- "arrival" (a sound id, played when somebody walks into the house, 3.13.0):
 -- h.ambience = { house = value, floors = { [floor] = value } }, nil while there
--- are none. floor nil means the whole house.
+-- are none. floor nil means the whole house, and arrival has no floors.
 function CH.GetHouseSound(guid, kind, floor)
     local set = ChamberlainDB.houses[guid][kind]
     if floor then
@@ -244,9 +245,9 @@ CH.SOUNDS = {
     { id = 564856, key = "SFX_OLD_GOD_WHISPER", cat = "SFX_CAT_SPOOKY" },
     { id = 565732, key = "SFX_HEARTBEAT", cat = "SFX_CAT_SPOOKY" },
     { id = 929455, key = "SFX_WOLF_HOWL", cat = "SFX_CAT_SPOOKY" },
-    { id = 566564, key = "SFX_BELL", cat = "SFX_CAT_HOUSE" },
-    { id = 566254, key = "SFX_BELL_TOWER", cat = "SFX_CAT_HOUSE" },
-    { id = 565564, key = "SFX_GONG", cat = "SFX_CAT_HOUSE" },
+    { id = 566564, key = "SFX_BELL", cat = "SFX_CAT_BELLS" },
+    { id = 566254, key = "SFX_BELL_TOWER", cat = "SFX_CAT_BELLS" },
+    { id = 565564, key = "SFX_GONG", cat = "SFX_CAT_BELLS" },
     { id = 565560, key = "SFX_DOOR", cat = "SFX_CAT_HOUSE" },
     { id = 569086, key = "SFX_GLASS", cat = "SFX_CAT_HOUSE" },
     { id = 569222, key = "SFX_THUNDERCLAP", cat = "SFX_CAT_HOUSE" },
@@ -260,8 +261,50 @@ CH.SOUNDS = {
     { id = 567439, key = "SFX_QUEST_COMPLETE", cat = "SFX_CAT_FUN" },
     { id = 567409, key = "SFX_READY_CHECK", cat = "SFX_CAT_FUN" },
     { id = 567397, key = "SFX_RAID_WARNING", cat = "SFX_CAT_FUN" },
+    -- the ones below zero aren't game files, see SHIPPED
+    { id = -2, key = "SFX_SHOP_BELL", cat = "SFX_CAT_DOOR" },
+    { id = -3, key = "SFX_SHOP_BELL_SQUEAK", cat = "SFX_CAT_DOOR" },
+    { id = -4, key = "SFX_DING_DONG", cat = "SFX_CAT_DOOR" },
+    { id = 540523, key = "SFX_KNOCK_1", cat = "SFX_CAT_DOOR" },
+    { id = 540522, key = "SFX_KNOCK_2", cat = "SFX_CAT_DOOR" },
+    { id = 2066499, key = "SFX_DINNER_BELL_1", cat = "SFX_CAT_DOOR" },
+    { id = 2066500, key = "SFX_DINNER_BELL_2", cat = "SFX_CAT_DOOR" },
+    { id = 2066501, key = "SFX_DINNER_BELL_3", cat = "SFX_CAT_DOOR" },
+    { id = 2066502, key = "SFX_DINNER_BELL_4", cat = "SFX_CAT_DOOR" },
+    { id = 2066497, key = "SFX_DINNER_BELL_5", cat = "SFX_CAT_DOOR" },
+    { id = 2066498, key = "SFX_DINNER_BELL_6", cat = "SFX_CAT_DOOR" },
+    { id = 568154, key = "SFX_SHAYS_BELL", cat = "SFX_CAT_DOOR" },
+    { id = 1514318, key = "SFX_CHIME_1", cat = "SFX_CAT_CHIMES" },
+    { id = 1514321, key = "SFX_CHIME_2", cat = "SFX_CAT_CHIMES" },
+    { id = 1514324, key = "SFX_CHIME_3", cat = "SFX_CAT_CHIMES" },
+    { id = 1514328, key = "SFX_CHIME_4", cat = "SFX_CAT_CHIMES" },
+    { id = 1514311, key = "SFX_CHIMES_1", cat = "SFX_CAT_CHIMES" },
+    { id = 1514314, key = "SFX_CHIMES_2", cat = "SFX_CAT_CHIMES" },
+    { id = 1514317, key = "SFX_CHIMES_3", cat = "SFX_CAT_CHIMES" },
+    { id = 3691975, key = "SFX_CHIME_CELERITY", cat = "SFX_CAT_CHIMES" },
+    { id = 6684192, key = "SFX_CHIME_CALENDAR", cat = "SFX_CAT_CHIMES" },
+    { id = 3892923, key = "SFX_REPAIR_BELL_1", cat = "SFX_CAT_BELLS" },
+    { id = 3892927, key = "SFX_REPAIR_BELL_2", cat = "SFX_CAT_BELLS" },
+    { id = 5738550, key = "SFX_BELL_STROKE_1", cat = "SFX_CAT_BELLS" },
+    { id = 5738554, key = "SFX_BELL_STROKE_2", cat = "SFX_CAT_BELLS" },
+    { id = 5738558, key = "SFX_BELL_STROKE_3", cat = "SFX_CAT_BELLS" },
+    { id = 5148442, key = "SFX_BELL_TOLL_2", cat = "SFX_CAT_BELLS" },
+    { id = 5148452, key = "SFX_BELL_TOLL_3", cat = "SFX_CAT_BELLS" },
+    { id = 1838453, key = "SFX_BELL_RINGING", cat = "SFX_CAT_BELLS" },
+    { id = 1129273, key = "SFX_SHIP_BELL_1", cat = "SFX_CAT_BELLS" },
+    { id = 1129274, key = "SFX_SHIP_BELL_2", cat = "SFX_CAT_BELLS" },
+    { id = 1838477, key = "SFX_SHIP_BELL_PIRATE", cat = "SFX_CAT_BELLS" },
+    { id = 1100031, key = "SFX_DARKMOON_BELL", cat = "SFX_CAT_BELLS" },
 }
-CH.SOUND_CATS = { "SFX_CAT_LAUGHS", "SFX_CAT_SPOOKY", "SFX_CAT_HOUSE", "SFX_CAT_FUN" }
+CH.SOUND_CATS = {
+    "SFX_CAT_DOOR",
+    "SFX_CAT_CHIMES",
+    "SFX_CAT_BELLS",
+    "SFX_CAT_LAUGHS",
+    "SFX_CAT_SPOOKY",
+    "SFX_CAT_HOUSE",
+    "SFX_CAT_FUN",
+}
 
 -- file id to name key, the ambience loops along with the sounds
 local soundKeys = {}
@@ -275,12 +318,44 @@ end
 -- without the game's music. No game file is silent, so the addon ships one and this
 -- number stands for it wherever a music id goes. Real file ids are positive.
 CH.SILENCE = -1
-local SILENCE_FILE = "Interface\\AddOns\\Chamberlain\\Media\\silence.ogg"
+local MEDIA = "Interface\\AddOns\\Chamberlain\\Media\\"
+local SILENCE_FILE = MEDIA .. "silence.ogg"
+
+-- The game has no shop door bell, so a few sounds ship with the addon and go
+-- by a number below zero the same way. The number is what gets saved and
+-- shared, so one that has been out is never handed to another file.
+local SHIPPED = {
+    [-2] = MEDIA .. "shopbell.ogg",
+    [-3] = MEDIA .. "shopbell_squeak.ogg",
+    [-4] = MEDIA .. "dingdong.ogg",
+}
 
 -- A whole positive number that fits the %d of a patch message. tonumber takes
 -- "1e20" from the search box just as happily as a wire value can be one.
 function CH.IsFileID(n)
     return type(n) == "number" and n >= 1 and n < 2 ^ 31 and n % 1 == 0
+end
+
+-- What a room's sound on entry or the house's arrival sound may be, a game
+-- file or one of ours.
+function CH.IsSoundID(n)
+    return CH.IsFileID(n) or SHIPPED[n] ~= nil
+end
+
+-- A room's echo is how many yards its sound on entry carries to the others in
+-- the house when somebody walks in. This number stands for all of it.
+CH.WHOLE_HOUSE = -1
+CH.ECHO_MAX = 100
+
+function CH.IsEcho(n)
+    return n == CH.WHOLE_HOUSE or (type(n) == "number" and n >= 1 and n <= CH.ECHO_MAX and n % 1 == 0)
+end
+
+function CH.EchoText(echo)
+    if echo == CH.WHOLE_HOUSE then
+        return CH.L["MP_ECHO_HOUSE"]
+    end
+    return echo and string.format(CH.L["MP_ECHO_YARDS_X"], echo) or CH.L["MP_ECHO_NONE"]
 end
 
 -- The list's path for a music id, nil for an id that isn't in it. Doubles as
@@ -337,12 +412,14 @@ end
 
 -- room is the tone of the room you stand in, spot the bannerless room laid
 -- over it (a hearth, a fountain), sting a room's own sound file, preview the
--- dialog's Test buton and a custom sound in the picker. Each holds a file id.
+-- dialog's Test buton and a custom sound in the picker, echo a sting somebody
+-- else set off elsewhere in the house. Each holds a file id.
 local slots = {
     room = { channel = "Ambience" },
     spot = { channel = "Ambience" },
     sting = { channel = "SFX" },
     preview = { channel = "Ambience" },
+    echo = { channel = "SFX" },
 }
 
 -- The API has no loop flag and won't say how long a file is. The first time
@@ -354,7 +431,7 @@ local OVERLAP = 0.3
 local lengths = {}
 
 local function Start(slot)
-    local willPlay, handle = PlaySoundFile(slot.file, slot.channel)
+    local willPlay, handle = PlaySoundFile(SHIPPED[slot.file] or slot.file, slot.channel)
     -- nil when the client refuses (sound off), so the ticker won't keep asking
     slot.handle = willPlay and handle or nil
     slot.started = GetTime()
@@ -473,8 +550,17 @@ end
 -- the bannerless room on top of it, the music id and a room's own sound file
 -- with its play count, nil for none.
 function CH.UpdateAmbience(room, spot, musicID, sting, plays)
-    if not ChamberlainDB.settings.ambienceEnabled then
-        room, spot, musicID, sting = nil, nil, nil, nil
+    -- ambienceEnabled is the master mute, the three under it a kind each. The
+    -- fourth kind, what other players set off, goes by CH.EchoesOn.
+    local s = ChamberlainDB.settings
+    if not (s.ambienceEnabled and s.soundAmbience) then
+        room, spot = nil, nil
+    end
+    if not (s.ambienceEnabled and s.soundMusic) then
+        musicID = nil
+    end
+    if not (s.ambienceEnabled and s.soundRooms) then
+        sting = nil
     end
     -- a sound being tried out is heard alone and the room's own come back after
     if slots.preview.file then
@@ -485,8 +571,28 @@ function CH.UpdateAmbience(room, spot, musicID, sting, plays)
     SetSlot(slots.sting, sting, plays)
     -- keeps a running preview looping as well
     SetSlot(slots.preview, slots.preview.file)
+    -- same for an echo still playing out, and this is where muting cuts it short
+    SetSlot(slots.echo, CH.EchoesOn() and slots.echo.file or nil)
     music.wanted = musicID
     ApplyMusic()
+end
+
+function CH.EchoesOn()
+    return ChamberlainDB.settings.ambienceEnabled and ChamberlainDB.settings.echoes
+end
+
+-- A room's sound set off by somebody else walking in, from the ECHO message
+-- (Sharing/Share.lua). Cleared first since the same bell rings again for the
+-- next visitor. A sound that loops for the one standing in it plays once here.
+function CH.PlayEcho(file, plays)
+    CH.StopEcho()
+    SetSlot(slots.echo, file, math.max(plays, 1))
+end
+
+-- Also on the way out of a house. The ticker stops there, and a bell left
+-- halfway trough its count would ring the rest in the next house.
+function CH.StopEcho()
+    SetSlot(slots.echo, nil)
 end
 
 -- The music picker playing a track. nil ends it and whatever the house wants

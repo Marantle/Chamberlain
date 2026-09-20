@@ -10,10 +10,12 @@ local _, CH = ...
 -- A room's sound on entry is picked here as well. Opened for sounds the list
 -- is the sound list under its headers and a typed number is offered as a sound
 -- by file id. Plays sets whether the pick loops or runs one to five times on
--- walking in.
+-- walking in, and Echo how far off the others in the house hear it.
 
 local ROW_H = 18
 local MAX_ROWS = 200
+local LIST_BOTTOM = 42 -- the list ends this far up, above the buttons
+local ECHO_ROW_H = 26
 
 local catcher = CreateFrame("Button", "ChamberlainMusicPicker", UIParent)
 catcher:SetAllPoints(UIParent)
@@ -29,8 +31,9 @@ win:EnableMouse(true) -- or clicks on the window would reach the catcher under i
 CH.SkinWindow(win, "MP_TITLE")
 
 local selected -- id of the clicked row, what the Use button hands back
-local sounds -- picking a sound on entry, music otherwise
+local sounds -- true picking a sound on entry, "arrival" the house's arrival sound, music otherwise
 local plays -- 1 to 5, nil loops, sounds only
+local echo -- yards the others hear it from, CH.WHOLE_HOUSE or nil, sounds only
 local house -- the house entry being picked for
 local onPick
 local results = {}
@@ -54,7 +57,7 @@ status:SetTextColor(CH.RGBA(CH.COLORS.muted, 1))
 
 local scroll, list = CH.MakeScrollList(win, "ChamberlainMusicScroll")
 scroll:SetPoint("TOPLEFT", 12, -82)
-scroll:SetPoint("BOTTOMRIGHT", -30, 42)
+scroll:SetPoint("BOTTOMRIGHT", -30, LIST_BOTTOM)
 list:SetWidth(396)
 
 local btnUse = CH.MakeButton(win, "MP_USE", 110, 22)
@@ -88,6 +91,38 @@ end, function(root, btn)
 end)
 btnPlays:SetPoint("RIGHT", btnCancel, "LEFT", -4, 0)
 CH.Tip(btnPlays, "MP_TT_PLAYS")
+
+-- The echo row, sounds only. The slider runs in yards and its last notch, one
+-- step past the longest reach, stands for the whole house.
+local ECHO_STEP = 5
+local ECHO_TOP = CH.ECHO_MAX + ECHO_STEP
+
+local echoRow = CreateFrame("Frame", nil, win)
+echoRow:SetPoint("BOTTOMLEFT", 16, LIST_BOTTOM)
+echoRow:SetPoint("BOTTOMRIGHT", -16, LIST_BOTTOM)
+echoRow:SetHeight(ECHO_ROW_H)
+
+local echoLabel = echoRow:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+echoLabel:SetPoint("LEFT")
+echoLabel:SetText(CH.L["MP_ECHO"])
+
+local echoSlider = CH.MakeSlider(echoRow, 200, 0, ECHO_TOP, ECHO_STEP)
+echoSlider:SetPoint("LEFT", echoLabel, "RIGHT", 10, 0)
+CH.Tip(echoSlider, "MP_TT_ECHO")
+
+local echoValue = echoRow:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+echoValue:SetPoint("LEFT", echoSlider, "RIGHT", 10, 0)
+echoValue:SetTextColor(CH.RGBA(CH.COLORS.muted, 1))
+
+local function SetEcho(value)
+    echo = value
+    echoValue:SetText(CH.EchoText(value))
+end
+
+echoSlider:SetScript("OnValueChanged", function(_, value)
+    value = math.floor(value + 0.5)
+    SetEcho(value >= ECHO_TOP and CH.WHOLE_HOUSE or value > 0 and value or nil)
+end)
 
 -- "No music" on this button got read as Silence, which is the opposite
 CH.Tip(btnNone, function()
@@ -269,12 +304,16 @@ catcher:SetScript("OnHide", function()
 end)
 btnCancel:SetScript("OnClick", Close)
 
--- Hands back done(id), and for a sound done(id, plays) with plays as in
+-- Hands back done(id), and for a sound done(id, plays, echo) with plays as in
 -- ReadRoomSounds (Sharing/Share.lua).
 local function Pick(id)
     local done = onPick
     Close()
-    done(id, sounds and id and (plays or 0) or nil)
+    if sounds and id then
+        done(id, plays or 0, echo)
+    else
+        done(id)
+    end
 end
 btnUse:SetScript("OnClick", function()
     Pick(selected)
@@ -285,19 +324,25 @@ end)
 
 -- current is the id set right now or nil. done gets the new pick, nil for
 -- none, and closing any other way calls nothing. h is the house entry the pick
--- is for. forSounds opens it for a room's sound on entry and currentPlays is
--- its count.
-function CH.OpenMusicPicker(current, done, h, forSounds, currentPlays)
+-- is for. forSounds opens it for a room's sound on entry, currentPlays is its
+-- count and currentEcho its echo. forSounds "arrival" is the same list for the
+-- house's arrival sound, which has neither, so their controls stay away.
+function CH.OpenMusicPicker(current, done, h, forSounds, currentPlays, currentEcho)
     selected = current
     onPick = done
     house = h
     sounds = forSounds
     plays = currentPlays and currentPlays > 0 and currentPlays or nil
-    CH.SetWindowTitle(win, sounds and "MP_TITLE_SOUNDS" or "MP_TITLE")
+    CH.SetWindowTitle(win, sounds == "arrival" and "MP_TITLE_ARRIVAL" or sounds and "MP_TITLE_SOUNDS" or "MP_TITLE")
     btnUse:SetText(CH.L[sounds and "MP_USE_SOUND" or "MP_USE"])
     searchHint:SetText(CH.L[sounds and "MP_SEARCH_HINT_SOUNDS" or "MP_SEARCH_HINT"])
     btnPlays:SetShown(sounds == true)
     btnPlays:Refresh()
+    echoRow:SetShown(sounds == true)
+    scroll:SetPoint("BOTTOMRIGHT", -30, LIST_BOTTOM + (sounds == true and ECHO_ROW_H or 0))
+    -- a value the slider already sits on fires no OnValueChanged
+    SetEcho(currentEcho)
+    echoSlider:SetValue(currentEcho == CH.WHOLE_HOUSE and ECHO_TOP or currentEcho or 0)
     catcher:Show()
     -- SetText only fires OnTextChanged when the text changes, so search by hand
     searchBox:SetText("")

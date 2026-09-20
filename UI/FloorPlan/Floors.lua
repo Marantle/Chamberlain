@@ -107,28 +107,38 @@ local function AddAmbienceEntry(root, guid, label, floor)
     end)
 end
 
--- A music line opens the picker since there are too many tracks for a menu.
-local function AddMusicEntry(root, guid, label, floor)
-    local id = CH.GetHouseSound(guid, "music", floor)
+-- A music line opens the picker since there are too many tracks for a menu,
+-- and so does the arrival sound. forSounds as in CH.OpenMusicPicker.
+local function AddPickerEntry(root, guid, label, kind, floor, forSounds)
+    local id = CH.GetHouseSound(guid, kind, floor)
     if id then
         label = label .. "  |cffFFD700" .. CH.SoundName(id, true) .. "|r"
     end
     root:CreateButton(label, function()
         CH.OpenMusicPicker(id, function(picked)
-            CH.SetHouseSound(guid, "music", floor, picked)
-        end, ChamberlainDB.houses[guid])
+            CH.SetHouseSound(guid, kind, floor, picked)
+        end, ChamberlainDB.houses[guid], forSounds)
     end)
 end
 
+local function AddMusicEntry(root, guid, label, floor)
+    AddPickerEntry(root, guid, label, "music", floor)
+end
+
+local function AddArrivalEntry(root, guid, label)
+    AddPickerEntry(root, guid, label, "arrival", nil, "arrival")
+end
+
 -- A button over the map's top left whose menu lists the whole house and then
--- each floor, own house only. The button's own label never changes.
-local function MakeSoundButton(labelKey, tipKey, addEntry, onClose)
+-- each floor, own house only. The button's own label never changes. houseOnly
+-- is for a sound that has no floors.
+local function MakeSoundButton(labelKey, tipKey, addEntry, onClose, houseOnly)
     local btn = CH.MakeMenuButton(fp, 80, labelKey, function() end, function(root)
         local guid = CH.currentHouseGUID
         addEntry(root, guid, CH.L["FP_AMBIENCE_HOUSE"])
         -- one floor is the whole house, no point offering it twice
         local count = FP.CurrentHouse().floorCount or 1
-        if count == 1 then
+        if count == 1 or houseOnly then
             return
         end
         for floor = 1, count do
@@ -145,6 +155,8 @@ local ambienceBtn = MakeSoundButton("FP_AMBIENCE", "FP_TT_AMBIENCE", AddAmbience
 ambienceBtn:SetPoint("TOPLEFT", canvas, "TOPLEFT", 4, -4)
 local musicBtn = MakeSoundButton("FP_MUSIC", "FP_TT_MUSIC", AddMusicEntry)
 musicBtn:SetPoint("LEFT", ambienceBtn, "RIGHT", 4, 0)
+local arrivalBtn = MakeSoundButton("FP_ARRIVAL", "FP_TT_ARRIVAL", AddArrivalEntry, nil, true)
+arrivalBtn:SetPoint("LEFT", musicBtn, "RIGHT", 4, 0)
 
 local function HasSpots(h)
     for _, zone in ipairs(h.zones) do
@@ -323,6 +335,7 @@ function FP.RefreshFloorControls(h)
     addFloorBtn:SetShown(CH.isOwnHouse and h ~= nil)
     ambienceBtn:SetShown(CH.isOwnHouse and h ~= nil)
     musicBtn:SetShown(CH.isOwnHouse and h ~= nil)
+    arrivalBtn:SetShown(CH.isOwnHouse and h ~= nil)
     -- Removing the top floor only makes sense once there are 2+ floors.
     removeFloorBtn:SetShown(CH.isOwnHouse and h ~= nil and floorCount > 1)
     -- The Show stairs toggle appears whenever the house has stairs to show/hide.

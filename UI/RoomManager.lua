@@ -39,7 +39,7 @@ end
 -- or /rooms settings), so the manager is just My Rooms and Party. The settings
 -- panel below and everything built into it is parented here.
 local settingsWin = CreateFrame("Frame", "ChamberlainSettings", UIParent, "BackdropTemplate")
-settingsWin:SetSize(320, 688)
+settingsWin:SetSize(320, 712)
 settingsWin:SetFrameStrata("DIALOG")
 settingsWin:SetToplevel(true)
 settingsWin:SetPoint("CENTER")
@@ -403,10 +403,27 @@ partyEmpty:SetText(CH.L["RM_NO_LAYOUTS_FROM_GROUP"])
 partyEmpty:SetTextColor(CH.RGBA(CH.COLORS.dim, 1))
 partyEmpty:Hide()
 
+-- With one house there is nothing to ask. With more the button asks which,
+-- since an alt's house used to ride along with every share.
 local shareAllBtn = CH.MakeButton(panelParty, "RM_SHARE_MY_HOUSES", 120, 22)
 shareAllBtn:SetPoint("BOTTOM", panelParty, "BOTTOM", 0, 4)
-shareAllBtn:SetScript("OnClick", function()
-    CH.ShareAll()
+shareAllBtn:SetScript("OnClick", function(self)
+    local owned = GetOwnedHouseList()
+    if #owned < 2 then
+        CH.ShareAll()
+        return
+    end
+    MenuUtil.CreateContextMenu(self, function(_, root)
+        root:CreateTitle(CH.L["RM_SHARE_WHICH"])
+        for _, house in ipairs(owned) do
+            root:CreateButton(house.label, function()
+                CH.ShareAll(house.guid)
+            end)
+        end
+        root:CreateButton(string.format(CH.L["RM_SHARE_ALL_X"], #owned), function()
+            CH.ShareAll()
+        end)
+    end)
 end)
 
 -- Disable the share button while a transfer is in flight so it can't be spammed
@@ -611,10 +628,15 @@ ambienceToggle:HookScript("OnClick", function()
 end)
 CH.Tip(ambienceToggle, "RM_TT_AMBIENCE")
 
+-- The mutes per kind, the same menu as a right click on the bar's speaker.
+local soundKindsBtn = CH.MakeMenuButton(panelSettings, 230, "RM_SOUND_KINDS", function() end, CH.FillSoundMenu)
+soundKindsBtn:SetPoint("TOPLEFT", 4, -188)
+CH.Tip(soundKindsBtn, "RM_TT_SOUND_KINDS")
+
 -- Banner fade-out: seconds before the room banner fades after it appears. 0 keeps
 -- it up until you leave the room.
 local bannerTimeoutLabel = panelSettings:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-bannerTimeoutLabel:SetPoint("TOPLEFT", 8, -192)
+bannerTimeoutLabel:SetPoint("TOPLEFT", 8, -216)
 bannerTimeoutLabel:SetText(CH.L["RM_BANNER_FADE_OUT"])
 
 local bannerSlider = CH.MakeSlider(panelSettings, 120, 0, 20, 1)
@@ -634,39 +656,39 @@ bannerSlider:SetScript("OnValueChanged", function(_, value)
     UpdateBannerTimeoutLabel(value)
 end)
 
-CH.MakeSep(panelSettings, -214)
-CH.MakeSectionHeader(panelSettings, "RM_SECTION_MAPS", -220)
+CH.MakeSep(panelSettings, -238)
+CH.MakeSectionHeader(panelSettings, "RM_SECTION_MAPS", -244)
 
 -- Class-colored dots for party (and raid) members on the floor plan. Positions
 -- are read locally, so the others don't need the addon.
 local groupDotsToggle = CH.MakeToggleButton(panelSettings, "RM_TOGGLE_GROUP_ON_MAP", "showGroupDots")
-groupDotsToggle:SetPoint("TOPLEFT", 4, -236)
+groupDotsToggle:SetPoint("TOPLEFT", 4, -260)
 
 -- The active floor's rooms drawn on the minimap in place of the still house
 -- picture the game shows indoors (UI/MinimapRooms.lua). Square is for addons
 -- that square the minimap, since the shape can't be read back.
 local minimapToggle = CH.MakeToggleButton(panelSettings, "RM_TOGGLE_MINIMAP_ROOMS", "minimapRooms")
-minimapToggle:SetPoint("TOPLEFT", 4, -260)
+minimapToggle:SetPoint("TOPLEFT", 4, -284)
 minimapToggle:HookScript("OnClick", function()
     CH.RefreshMinimapRooms()
 end)
 
 local squareToggle = CH.MakeToggleButton(panelSettings, "RM_TOGGLE_MINIMAP_SQUARE", "minimapSquare")
-squareToggle:SetPoint("TOPLEFT", 4, -284)
+squareToggle:SetPoint("TOPLEFT", 4, -308)
 squareToggle:HookScript("OnClick", function()
     CH.RefreshMinimapRooms()
 end)
 
-CH.MakeSep(panelSettings, -310)
-CH.MakeSectionHeader(panelSettings, "RM_SECTION_ROOM_NARRATION", -316)
+CH.MakeSep(panelSettings, -334)
+CH.MakeSectionHeader(panelSettings, "RM_SECTION_ROOM_NARRATION", -340)
 
 -- When on, your personal voices read rooms shared to you that carry no voice
 -- (your own rooms always use the per-room voice you set in the room dialog).
 local voiceToggle = CH.MakeToggleButton(panelSettings, "RM_TOGGLE_USE_DEFAULT_VOICES", "voiceDefaultsEnabled")
-voiceToggle:SetPoint("TOPLEFT", 4, -332)
+voiceToggle:SetPoint("TOPLEFT", 4, -356)
 
 local femLabel = panelSettings:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-femLabel:SetPoint("TOPLEFT", 8, -362)
+femLabel:SetPoint("TOPLEFT", 8, -386)
 femLabel:SetText(CH.L["RM_FEMININE"])
 
 local femVoice = CH.MakeVoiceDropdown(panelSettings, 150, "RM_VOICE_NONE", function()
@@ -674,7 +696,7 @@ local femVoice = CH.MakeVoiceDropdown(panelSettings, 150, "RM_VOICE_NONE", funct
 end, function(n)
     ChamberlainDB.settings.voiceFemale = n
 end)
-femVoice:SetPoint("TOPLEFT", 84, -358)
+femVoice:SetPoint("TOPLEFT", 84, -382)
 
 local femTest = CH.MakeButton(panelSettings, "RM_TEST", 44, 20)
 femTest:SetPoint("LEFT", femVoice, "RIGHT", 6, 0)
@@ -688,7 +710,7 @@ femTest:SetScript("OnClick", function()
 end)
 
 local malLabel = panelSettings:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-malLabel:SetPoint("TOPLEFT", 8, -388)
+malLabel:SetPoint("TOPLEFT", 8, -412)
 malLabel:SetText(CH.L["RM_MASCULINE"])
 
 local malVoice = CH.MakeVoiceDropdown(panelSettings, 150, "RM_VOICE_NONE", function()
@@ -696,7 +718,7 @@ local malVoice = CH.MakeVoiceDropdown(panelSettings, 150, "RM_VOICE_NONE", funct
 end, function(n)
     ChamberlainDB.settings.voiceMale = n
 end)
-malVoice:SetPoint("TOPLEFT", 84, -384)
+malVoice:SetPoint("TOPLEFT", 84, -408)
 
 local malTest = CH.MakeButton(panelSettings, "RM_TEST", 44, 20)
 malTest:SetPoint("LEFT", malVoice, "RIGHT", 6, 0)
@@ -710,23 +732,23 @@ malTest:SetScript("OnClick", function()
 end)
 
 local voiceNote = panelSettings:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-voiceNote:SetPoint("TOPLEFT", 8, -412)
+voiceNote:SetPoint("TOPLEFT", 8, -436)
 voiceNote:SetPoint("RIGHT", panelSettings, "RIGHT", -8, 0)
 voiceNote:SetJustifyH("LEFT")
 voiceNote:SetWordWrap(true)
 voiceNote:SetText(CH.L["RM_VOICE_NOTE"])
 voiceNote:SetTextColor(CH.RGBA(CH.COLORS.dim, 1))
 
-CH.MakeSep(panelSettings, -468)
-CH.MakeSectionHeader(panelSettings, "RM_SECTION_TRUSTED_BLOCKED", -474)
+CH.MakeSep(panelSettings, -492)
+CH.MakeSectionHeader(panelSettings, "RM_SECTION_TRUSTED_BLOCKED", -498)
 
 local blockDesc = panelSettings:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-blockDesc:SetPoint("TOPLEFT", 4, -490)
+blockDesc:SetPoint("TOPLEFT", 4, -514)
 blockDesc:SetText(CH.L["RM_TRUST_BLOCK_DESC"])
 blockDesc:SetTextColor(CH.RGBA(CH.COLORS.muted, 1))
 
 local blockScroll, blockScrollChild = CH.MakeScrollList(panelSettings, "ChamberlainBlockScroll")
-blockScroll:SetPoint("TOPLEFT", panelSettings, "TOPLEFT", 0, -506)
+blockScroll:SetPoint("TOPLEFT", panelSettings, "TOPLEFT", 0, -530)
 blockScroll:SetPoint("BOTTOMRIGHT", panelSettings, "BOTTOMRIGHT", -20, 0)
 
 local blockEmpty = blockScrollChild:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
@@ -873,10 +895,28 @@ CH.RefreshMyRoomsTab = function()
     end
 end
 
+-- The bar's Sharing button wears a dot while somebody in the group has a map
+-- of the house you're standing in, one you don't have or a newer one than yours.
+-- Maps of other houses can wait in the list. Also called from
+-- CH.RefreshHUDMode, which runs when the house changes.
+function CH.RefreshSharingDot()
+    local guid = CH.currentHouseGUID
+    local news = false
+    for _, catalog in pairs(CH.partyCatalogs or {}) do
+        local entry = guid and catalog[guid]
+        if entry then
+            local status = GetStatus(guid, entry.timestamp)
+            news = news or status == "not_owned" or status == "newer"
+        end
+    end
+    CH.SetSharingDot(news)
+end
+
 CH.RefreshPartyTab = function()
     if activeTab == "party" then
         PopulatePartyList()
     end
+    CH.RefreshSharingDot()
 end
 
 -- Exposed so the trust list refreshes when "Always accept from X" is ticked.
@@ -901,17 +941,19 @@ function CH.ToggleSettings()
     end
 end
 
-function CH.OpenRoomManager()
+function CH.OpenRoomManager(tab)
     roomMgr:Show()
     roomMgr:Raise()
-    ShowTab(activeTab or "myrooms")
+    ShowTab(tab or activeTab or "myrooms")
 end
 
--- Launcher/minimap toggle: open if closed, close if already open.
-function CH.ToggleRoomManager()
-    if roomMgr:IsShown() then
+-- Launcher/minimap toggle: open if closed, close if already open. The bar's
+-- Rooms and Sharing buttons name a tab each, and the one for the other tab
+-- switches over where the window is already up.
+function CH.ToggleRoomManager(tab)
+    if roomMgr:IsShown() and (not tab or tab == activeTab) then
         roomMgr:Hide()
     else
-        CH.OpenRoomManager()
+        CH.OpenRoomManager(tab)
     end
 end

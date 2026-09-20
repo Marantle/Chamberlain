@@ -26,6 +26,12 @@ function CH.GetWorldPos()
     return px, py, mapID
 end
 
+-- A circle is stored as a square box, so the centre is the box centre and the
+-- radius is half its width.
+local function Circle(zone)
+    return (zone.minX + zone.maxX) * 0.5, (zone.minY + zone.maxY) * 0.5, (zone.maxX - zone.minX) * 0.5
+end
+
 local function IsInZone(zone, x, y, mapID)
     if zone.mapID ~= mapID then
         return false
@@ -35,11 +41,7 @@ local function IsInZone(zone, x, y, mapID)
         return false
     end
     if zone.shape == "circle" then
-        -- Stored as a square box, so the centre is the box centre and the radius is
-        -- half its width. Inside means within that radius of the centre.
-        local cx = (zone.minX + zone.maxX) * 0.5
-        local cy = (zone.minY + zone.maxY) * 0.5
-        local r = (zone.maxX - zone.minX) * 0.5
+        local cx, cy, r = Circle(zone)
         if r <= 0 then
             return false
         end
@@ -47,6 +49,22 @@ local function IsInZone(zone, x, y, mapID)
         return dx * dx + dy * dy <= r * r
     end
     return true
+end
+
+-- Yards from a spot to the nearest edge of a room, 0 inside it. Flat, the
+-- floors don't count. A room on another map is out of reach.
+function CH.DistanceToZone(zone, x, y, mapID)
+    if zone.mapID ~= mapID then
+        return math.huge
+    end
+    if zone.shape == "circle" then
+        local cx, cy, r = Circle(zone)
+        local dx, dy = x - cx, y - cy
+        return math.max(0, math.sqrt(dx * dx + dy * dy) - r)
+    end
+    local dx = math.max(zone.minX - x, 0, x - zone.maxX)
+    local dy = math.max(zone.minY - y, 0, y - zone.maxY)
+    return math.sqrt(dx * dx + dy * dy)
 end
 
 -- An anchor is a zone that changes the active floor when stepped on. Absolute
@@ -82,6 +100,7 @@ local function FindActiveAnchor(h, x, y, mapID)
 end
 
 local currentZone = nil
+local echoZone = nil -- the room whose sound on entry we last walked into, so an echo goes out once per entry
 local currentAnchor = nil -- the anchor footprint we're standing on; latched until we leave all anchors
 local wasInside = false -- were we inside a house on the previous state check (for entry detection)
 local firstCheck = true -- has CH.CheckHousingState run yet this session
@@ -189,6 +208,7 @@ function CH.RepairHouseKey(oldKey)
         end
         h.ambience = h.ambience or old.ambience
         h.music = h.music or old.music
+        h.arrival = h.arrival or old.arrival
     end
 
     CH.StampHouseMap(h)
@@ -245,7 +265,10 @@ function CH.CheckHousingState()
         CH.HideTalkingHead()
         CH.SetBannerRoom(nil)
         CH.UpdateAmbience()
+        CH.StopEcho()
+        CH.ForgetEchoes()
         currentZone = nil
+        echoZone = nil
         currentAnchor = nil
         CH.activeFloor = 1
         wasInside = false
@@ -255,13 +278,20 @@ function CH.CheckHousingState()
 
     -- A new visit begins. Mark the floor as not-yet-resolved. The actual choice
     -- (restore the saved floor, or reset to 1) happens once the house id is known
-    -- in the callback below. This runs only on the real transition in, not on
+    -- in CH.OnHouseInfo. This runs only on the real transition in, not on
     -- every ZONE_CHANGED_NEW_AREA re-check while inside.
     if not wasInside then
         currentAnchor = nil
         wasInside = true
         floorResolved = false
         pendingRestore = isFirst
+        -- Unknown until the game says which house. Only on the way in: a
+        -- re-check in the middle of a visit keeps the house it has, or the rooms
+        -- would hang on a second answer that may never come. CH.OnHouseInfo
+        -- swaps it if the answer names another house.
+        CH.currentHouseGUID = nil
+        CH.currentHouseOwner = nil
+        CH.zoneLabel:SetText("...")
         -- First step indoors this visit: surface any post-update release notes.
         if CH.MaybeShowWhatsNew then
             CH.MaybeShowWhatsNew()
@@ -274,82 +304,110 @@ function CH.CheckHousingState()
     if CH.WarmUpHeadModel then
         CH.WarmUpHeadModel()
     end -- one-time, only inside a house
-    CH.currentHouseGUID = nil
-    CH.currentHouseOwner = nil
-    CH.zoneLabel:SetText("...")
+    -- The answer comes back as CURRENT_HOUSE_INFO_RECIEVED, see CH.OnHouseInfo.
     C_Housing.RequestCurrentHouseInfo()
-    C_Timer.NewTimer(1.5, function()
-        if not C_Housing.IsInsideHouse() then
-            return
-        end
-        local info = C_Housing.GetCurrentHouseInfo()
-        if not info then
-            CH.zoneLabel:SetText(CH.L["HOUSE_HOME_INTERIOR"])
-            return
-        end
-        -- info.houseGUID is an opaque per-session handle ("Opaque-2") and is NOT
-        -- stable across reloads or clients. neighborhoodGUID + plotID is real
-        -- server data and identifies the same plot everywhere, so that is the key.
-        if info.neighborhoodGUID and info.plotID then
-            CH.currentHouseGUID = info.neighborhoodGUID .. ":" .. info.plotID
+end
+
+-- A real walk-in rings the front door. We hear the house's arrival sound and
+-- the others inside get a word so they hear theirs (room 0 of CH.SendEcho).
+-- Without the map there's no telling whether the house has one, so that case
+-- speaks up too. A map that has none stays quiet.
+local function Arrive(guid)
+    local h = ChamberlainDB.houses[guid]
+    local sound = h and CH.GetHouseSound(guid, "arrival")
+    if sound and CH.EchoesOn() then
+        CH.PlayEcho(sound, 1)
+    end
+    if sound or not h then
+        CH.SendEcho(guid)
+    end
+end
+
+-- CURRENT_HOUSE_INFO_RECIEVED (Blizzard's spelling). This used to be a read of
+-- GetCurrentHouseInfo 1.5 seconds after the request, which was a guess. The
+-- info is nil from the door until this event and a relaod had it three seconds
+-- out. Once you've left it still names the house you were in.
+--
+-- It fires two or three times a visit and out on the plot as well, so it only
+-- counts inside and once per house. On a walk-in the game sends one unasked
+-- that beats ZONE_CHANGED_NEW_AREA by a few hundredths, before the entry above
+-- has run. The entry runs from here then, so it doesn't matter which firing
+-- shows up or whether our own request gets a reply of its own.
+function CH.OnHouseInfo(info)
+    if not C_Housing.IsInsideHouse() then
+        return
+    end
+    if not wasInside then
+        CH.CheckHousingState()
+    end
+    -- info.houseGUID is an opaque per-session handle ("Opaque-2") and is NOT
+    -- stable across reloads or clients. neighborhoodGUID + plotID is real
+    -- server data and identifies the same plot everywhere, so that is the key.
+    local guid
+    if info.neighborhoodGUID and info.plotID then
+        guid = info.neighborhoodGUID .. ":" .. info.plotID
+    else
+        guid = info.houseGUID or info.guid or info.houseID
+    end
+    if guid == CH.currentHouseGUID then
+        return
+    end
+    CH.currentHouseGUID = guid
+    CH.currentHouseOwner = info.ownerName or info.owner
+    CH.zoneLabel:SetText(CH.currentHouseOwner or CH.L["HOUSE_HOME_INTERIOR"])
+
+    -- Resolve the active floor now that we know which house this is. Done once
+    -- per visit (floorResolved gate), so re-checks while inside don't disturb a
+    -- floor you've since walked to. On a reload/relog in place we restore the
+    -- saved floor. On a real walk-in we're on the ground floor, floor 1, and the
+    -- front door rings.
+    if not floorResolved and guid then
+        floorResolved = true
+        if pendingRestore then
+            CH.activeFloor = ChamberlainDB.floorMemory[guid] or 1
         else
-            CH.currentHouseGUID = info.houseGUID or info.guid or info.houseID
+            CH.activeFloor = 1
+            ChamberlainDB.floorMemory[guid] = 1
+            Arrive(guid)
         end
-        CH.currentHouseOwner = info.ownerName or info.owner
-        CH.zoneLabel:SetText(CH.currentHouseOwner or CH.L["HOUSE_HOME_INTERIOR"])
-
-        -- Resolve the active floor now that we know which house this is. Done once
-        -- per visit (floorResolved gate), so re-checks while inside don't disturb a
-        -- floor you've since walked to. On a reload/relog in place we restore the
-        -- saved floor. On a real walk-in we're on the ground floor, floor 1.
-        if not floorResolved and CH.currentHouseGUID then
-            floorResolved = true
-            if pendingRestore then
-                CH.activeFloor = ChamberlainDB.floorMemory[CH.currentHouseGUID] or 1
-            else
-                CH.activeFloor = 1
-                ChamberlainDB.floorMemory[CH.currentHouseGUID] = 1
-            end
-            if CH.OnActiveFloorChanged then
-                CH.OnActiveFloorChanged()
-            end
+        if CH.OnActiveFloorChanged then
+            CH.OnActiveFloorChanged()
         end
+    end
 
-        -- The house is identified now, so re-run the HUD layout: the visitor
-        -- Floor Plan button depends on knowing the house and its stored layout.
-        CH.RefreshHUDMode()
+    -- The house is identified now, so re-run the HUD layout: the visitor
+    -- Floor Plan button depends on knowing the house and its stored layout.
+    CH.RefreshHUDMode()
 
-        if CH.isOwnHouse and CH.currentHouseGUID then
-            CH.MigrateLegacyHouse(CH.currentHouseGUID, CH.currentHouseOwner)
-            ChamberlainDB.myHouses[CH.currentHouseGUID] = true
-            -- Stamp realm and display name on the house entry so the room list can
-            -- disambiguate two houses whose owner character names happen to match.
-            local h = ChamberlainDB.houses[CH.currentHouseGUID]
-            if h then
-                h.realm = GetRealmName()
-                h.houseName = info.houseName
-            end
+    if CH.isOwnHouse and guid then
+        CH.MigrateLegacyHouse(guid, CH.currentHouseOwner)
+        ChamberlainDB.myHouses[guid] = true
+        -- Stamp realm and display name on the house entry so the room list can
+        -- disambiguate two houses whose owner character names happen to match.
+        local h = ChamberlainDB.houses[guid]
+        if h then
+            h.realm = GetRealmName()
+            h.houseName = info.houseName
         end
+    end
 
-        -- Let the party know what we have, and check if a party member has a
-        -- layout for this house that we don't.
-        CH.BroadcastCatalog()
-        if CH.AnnounceOwnerPresence then
-            CH.AnnounceOwnerPresence() -- in our own house, let visitors aim owner-head rooms at us
-        end
-        local guid = CH.currentHouseGUID
-        if guid and not ChamberlainDB.houses[guid] and guid ~= promptedGUID then
-            if CH.partyCatalogs then
-                for pName, catalog in pairs(CH.partyCatalogs) do
-                    if catalog[guid] then
-                        promptedGUID = guid
-                        CH.Print(CH.L["HOUSE_PARTY_HAS_LAYOUT_X"], pName)
-                        break
-                    end
+    -- Let the party know what we have, and check if a party member has a
+    -- layout for this house that we don't.
+    CH.BroadcastCatalog()
+    if CH.AnnounceOwnerPresence then
+        CH.AnnounceOwnerPresence() -- in our own house, let visitors aim owner-head rooms at us
+    end
+    if guid and not ChamberlainDB.houses[guid] and guid ~= promptedGUID then
+        if CH.partyCatalogs then
+            for pName, catalog in pairs(CH.partyCatalogs) do
+                if catalog[guid] then
+                    promptedGUID = guid
+                    CH.Print(CH.L["HOUSE_PARTY_HAS_LAYOUT_X"], pName)
+                    break
                 end
             end
         end
-    end)
+    end
 end
 
 -- Manual override: tell Chamberlain which floor you're actually on, for when the
@@ -467,6 +525,15 @@ function CH.CheckZones()
         sfxZone and sfxZone.sfx,
         sfxZone and sfxZone.sfxPlays
     )
+    -- The others in the house hear it too when the room has an echo. Dragging
+    -- a room over yourself in the floor plan isn't walking in.
+    if sfxZone ~= echoZone then
+        echoZone = sfxZone
+        -- sfx is asked too: clearing the sound on 3.12.0 leaves the echo behind
+        if sfxZone and sfxZone.sfx and sfxZone.echo and not CH.editingLayout then
+            CH.SendEcho(CH.currentHouseGUID, h, sfxZone)
+        end
+    end
     -- A named anchor (one with a real name, not a bare floor switch) shows its
     -- own banner, the "Stairs Up" live confirmation, but only if no smaller room
     -- on this floor overlaps it.

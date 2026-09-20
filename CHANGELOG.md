@@ -1,5 +1,56 @@
 # Changelog
 
+## 3.13.0
+- Echoes. A room's sound on entry can carry through the house, so when a guest
+  walks into your entrance hall the bell on the door rings for you down in the
+  cellar too. Click Entry sound in the room dialog and drag the new Echo
+  slider to a number of yards, or all the way right for the whole house.
+  Floors don't count, so a room right above the bell is as close as one beside
+  it. Everyone in the house with your map hears it, as long as they're in the
+  same group or guild as the one who walked in. You set it off for your guests
+  the same way.
+- An arrival sound for the whole house. The new Arrival button on the house
+  map, next to Ambience and Music, picks the sound of your front door. It plays
+  for everyone inside who has your map, whenever somebody running Chamberlain
+  walks into the house. The visitor doesn't need the map, so a first-time
+  guest rings too, as long as they're in a group or guild with the people
+  inside and haven't turned Sharing off. It rings once per visit and a reload
+  doesn't set it off.
+- Each person rings a room once in 30 seconds, so nobody gets to stand in the
+  doorway hopping in and out.
+- House sounds can be muted a kind at a time. Right click the speaker on the
+  bar, or use the new button under House sounds in the settings, and untick
+  Ambience, Music, Room sounds or Echoes and arrivals. A left click on the
+  speaker still mutes all of it. The speaker goes grey while some kind is off
+  and wears the red mark while everything is.
+- An echo plays the sound your own copy of the map has for that room, at the
+  reach your copy has. The message between players only says which room was
+  walked into.
+- The game has no shop door bell, so Chamberlain brings its own, once plain
+  and once with a squeaky hinge. A ding dong doorbell came along too. They're
+  under "At the door" in the sound list with knocks and the Waycrest steward's
+  dinner bell.
+- 30 more game sounds in the list on top of those. The new ones sit in three
+  groups called At the door, Chimes and Bells, and the old bells and the gong
+  moved into Bells.
+- The Chamberlain bar has a Sharing button. It opens the Rooms window on its
+  Group tab, and a gold dot on it says somebody in your group has a map of the
+  house you're standing in, one you don't have yet or a newer one than yours.
+  To keep the bar from growing, Settings and Sound moved up into the title
+  strip as a gear and a speaker.
+- Share My Houses asks which house when you have more than one, with all of
+  them as the last choice. An alt's house used to go out with every share.
+- Chamberlain learns which house you're in from the game's own notice now and
+  no longer waits a second and a half after the door. Rooms, banners and
+  sounds start that much sooner.
+- Accepting a map from your group while you were out in the world put the
+  Chamberlain bar on screen, and the minimap button couldn't hide it again
+  until you'd been inside a house. The bar stays put away outside houses now.
+- Guests on 3.12.0 see and hear everything as before. They don't get echoes or
+  the three new door sounds until they update. If a friend updates after they
+  already took your map, change anything on it once so they pull a fresh copy
+  with the echoes in it.
+
 ## 3.12.0
 - Now playing. The Chamberlain bar's title strip names the music and ambience
   the house has on, next to three little bars that bounce while something
