@@ -683,10 +683,10 @@ local function MakeSecondsRow(y, labelKey, key, minV, maxV, step, offKey, tipKey
 end
 
 -- How soon an echo or the front door rings for you again, one row for the
--- same person and one for anybody at all. The first can't go under what
--- senders hold back by themselves.
+-- same person and one for anybody at all. The first stops at 5, the wait every
+-- sender keeps between two echoes of a room (ECHO_SEND_WAIT in Share.lua).
 local refreshPersonWait =
-    MakeSecondsRow(-192, "RM_ECHO_PERSON_WAIT", "echoPersonWait", 30, 180, 10, nil, "RM_TT_ECHO_PERSON_WAIT")
+    MakeSecondsRow(-192, "RM_ECHO_PERSON_WAIT", "echoPersonWait", 5, 180, 5, nil, "RM_TT_ECHO_PERSON_WAIT")
 local refreshRoomWait =
     MakeSecondsRow(-216, "RM_ECHO_ROOM_WAIT", "echoRoomWait", 0, 60, 5, "RM_ECHO_ROOM_OFF", "RM_TT_ECHO_ROOM_WAIT")
 

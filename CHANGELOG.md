@@ -19,9 +19,9 @@
   doesn't set it off. A change of it reaches group members even when their
   copy of your map is behind. With the game's sound or Effects volume off, a
   chat line says who is at the door and which sound would have rung.
-- Cooldowns. Each person rings a room once in 30 seconds. Two sliders in the
-  settings decide what you hear on top of that. "Echo wait, same person" goes
-  from those 30 seconds up to three minutes. "Echo wait, same room" is off to
+- Cooldowns. How often somebody rings for you is yours to set, with two
+  sliders in the settings. "Echo wait, same person" starts at 30 seconds and
+  goes from 5 seconds up to three minutes. "Echo wait, same room" is off to
   begin with and goes up to a minute. Once a room or the front door has rung,
   it stays quiet for you that long whoever walks in next, for the evening
   when ten guests arrive in a row.

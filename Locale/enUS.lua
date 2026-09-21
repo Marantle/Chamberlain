@@ -89,7 +89,7 @@ L["HUD_TT_NOTES"] = "Chamberlain was updated and has notes you haven't read. Cli
 L["HUD_SOUND"] = "Sound"
 L["HUD_MUTED"] = "|cffdd5555Muted|r"
 L["HUD_TT_SOUND"] =
-    "Right-click to mute or unmute the ambience, music and sounds Chamberlain plays in this house. Same switch as House sounds in Settings. Left click to mute all Chamberlain sounds."
+    "Right-click to mute or unmute the ambience, music and sounds Chamberlain plays in this house, one kind at a time. Left click to mute all Chamberlain sounds. Same switch as House sounds in Settings."
 L["HUD_SOUND_KINDS"] = "House sounds"
 L["HUD_KIND_AMBIENCE"] = "Ambience"
 L["HUD_KIND_MUSIC"] = "Music"
@@ -285,7 +285,7 @@ L["RM_TT_AMBIENCE"] =
     "Ambience, music and room sounds set for a house, yours or one shared to you. Off means you hear the game as it is. The Sound button on the Chamberlain bar is the same switch."
 L["RM_ECHO_PERSON_WAIT"] = "Echo wait, same person"
 L["RM_TT_ECHO_PERSON_WAIT"] =
-    "How long before the same person can ring the same room, or the front door, for you again. 30 seconds is the least, since nobody's Chamberlain rings more often than that."
+    "How long before the same person can ring the same room, or the front door, for you again. It starts at 30 seconds. 5 seconds is the least, since nobody's Chamberlain rings more often than that."
 L["RM_ECHO_ROOM_WAIT"] = "Echo wait, same room"
 L["RM_ECHO_ROOM_OFF"] = "Off"
 L["RM_TT_ECHO_ROOM_WAIT"] =

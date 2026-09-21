@@ -107,8 +107,8 @@ doesn't ring it.
 
 To hear an echo or an arrival you need the map of the house. You must also
 share a group or a guild with the person who walked in. Each person rings a
-room once in 30 seconds. If the game's sound is off for you, a chat line tells
-you who is at the door.
+room for you once in 30 seconds, and a slider in Settings changes that. If the
+game's sound is off for you, a chat line tells you who is at the door.
 
 ## Volume and mutes
 

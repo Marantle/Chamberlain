@@ -29,7 +29,8 @@ CH.WHATS_NEW = {
                 .. "house map. It rings for everyone inside with your map when somebody with "
                 .. "Chamberlain walks in.",
             "Everyone in the house with your map hears an echo, if they share a group or a "
-                .. "guild with whoever walked in. Each person rings a room once in 30 seconds.",
+                .. "guild with whoever walked in. Each person rings a room for you once in 30 "
+                .. "seconds, or as often as you set.",
             "An entry sound set to play once or a few times plays to the end even if you've "
                 .. "left the room, so a thin trigger across a doorway rings in full.",
             "The sound list got a shop door bell and a ding dong doorbell. Knocks, dinner "

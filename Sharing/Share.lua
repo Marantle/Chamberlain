@@ -283,11 +283,10 @@ end
 -- Which sound and how far both come out of the receiver's own copy, so nobody
 -- can send a sound or a reach of their choosing. Anyone with the map sends
 -- one, the owner walking in too. It goes to the group and to the guild, for
--- the guildmate who dropped by without an invite. Once per person and room in
--- ECHO_COOLDOWN seconds. The sender holds back that long, which only saves
--- messages. The receiver's own count is the one that can't be got round, and
--- it runs a little short. The first copy may have sat in the send queue, and
--- an honest re-entry at 31 seconds would otherwise land at 29 and be lost.
+-- the guildmate who dropped by without an invite. The sender holds back
+-- ECHO_SEND_WAIT seconds per room, which only saves messages. How often a
+-- person rings is the receiver's call, and their count is the one that can't
+-- be got round.
 --
 -- Echoes travel under a prefix of their own. The game only delivers a prefix
 -- to clients that registered it, and everything up to 3.12.0 knows "CH"
@@ -296,12 +295,21 @@ end
 -- (see CH.HandleMessage) and this way they don't need one.
 CH.ECHO_PREFIX = "ChamberlainEcho"
 
--- The receiver's wait is theirs to set (3.14.0). echoPersonWait goes from
--- ECHO_COOLDOWN up. echoRoomWait is a second one per room that counts whoever
--- walks in, for a busy house. Both start when an echo was heard, so one that
--- was out of earshot uses up neither.
-local ECHO_COOLDOWN = 30
-local ECHO_SLACK = 5
+-- The receiver's wait is theirs to set (3.14.0). echoPersonWait starts at 30
+-- and goes down to ECHO_SEND_WAIT, under that nothing new would come in.
+-- echoRoomWait is a second one per room that counts whoever walks in, for a
+-- busy house. Both start when an echo was heard, so one that was out of
+-- earshot uses up neither.
+--
+-- The person wait runs ECHO_SLACK short. The first copy may have sat in the
+-- sender's queue for a moment, and an honest re-entry at 31 seconds would
+-- otherwise land at 30 and be lost. Echoes go out in the fast lane, so the
+-- slack is small, or a wait of 10 would turn into 5. It never runs under
+-- ECHO_DEDUPE, or the guild copy of a groupmate's echo would ring a second
+-- time.
+local ECHO_SEND_WAIT = 5
+local ECHO_SLACK = 2
+local ECHO_DEDUPE = 2
 local echoSent = {}
 local echoHeard = {} -- by sender and room
 local roomHeard = {} -- by room, whoever it was
@@ -319,7 +327,7 @@ function CH.SendEcho(houseGUID, h, zone)
     -- no zone is an arrival, room 0 on the wire, see the ECHO handler
     local n = zone and tIndexOf(h.zones, zone) or 0
     local key = houseGUID .. "#" .. n
-    if Cooling(echoSent, key, ECHO_COOLDOWN) then
+    if Cooling(echoSent, key, ECHO_SEND_WAIT) then
         return
     end
     echoSent[key] = GetTime()
@@ -1264,10 +1272,10 @@ function CH.HandleMessage(prefix, payload, channel, fullSender)
             return
         end
         -- A groupmate in the guild sends it twice and the second copy stops at
-        -- the first of these. The slack comes off the player's own number too,
-        -- since it is there for a copy that sat in the sender's queue.
+        -- the first of these.
         local s = ChamberlainDB.settings
-        if Cooling(echoHeard, sender .. n, s.echoPersonWait - ECHO_SLACK) or Cooling(roomHeard, n, s.echoRoomWait) then
+        local personWait = math.max(s.echoPersonWait - ECHO_SLACK, ECHO_DEDUPE)
+        if Cooling(echoHeard, sender .. n, personWait) or Cooling(roomHeard, n, s.echoRoomWait) then
             return
         end
         local x, y, mapID = CH.GetWorldPos()
