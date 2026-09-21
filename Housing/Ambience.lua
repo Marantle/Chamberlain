@@ -260,7 +260,28 @@ CH.SOUNDS = {
     { id = 567431, key = "SFX_LEVEL_UP", cat = "SFX_CAT_FUN" },
     { id = 567439, key = "SFX_QUEST_COMPLETE", cat = "SFX_CAT_FUN" },
     { id = 567409, key = "SFX_READY_CHECK", cat = "SFX_CAT_FUN" },
-    { id = 567397, key = "SFX_RAID_WARNING", cat = "SFX_CAT_FUN" },
+    { id = 567397, key = "SFX_RAID_WARNING", cat = "SFX_CAT_HORNS" },
+    { id = 2974001, key = "SFX_ALARM_LARGE_1", cat = "SFX_CAT_ALARMS" },
+    { id = 2974002, key = "SFX_ALARM_LARGE_2", cat = "SFX_CAT_ALARMS" },
+    { id = 2974005, key = "SFX_ALARM_MEDIUM", cat = "SFX_CAT_ALARMS" },
+    { id = 2974003, key = "SFX_ALARM_SMALL_1", cat = "SFX_CAT_ALARMS" },
+    { id = 2974004, key = "SFX_ALARM_SMALL_2", cat = "SFX_CAT_ALARMS" },
+    { id = 597938, key = "SFX_KLAXON", cat = "SFX_CAT_ALARMS" },
+    { id = 555503, key = "SFX_ALARM_BOT_INTRUDER", cat = "SFX_CAT_ALARMS" },
+    { id = 555499, key = "SFX_ALARM_BOT_SIREN", cat = "SFX_CAT_ALARMS" },
+    { id = 6439398, key = "SFX_CAR_ALARM_1", cat = "SFX_CAT_ALARMS" },
+    { id = 6439404, key = "SFX_CAR_ALARM_2", cat = "SFX_CAT_ALARMS" },
+    { id = 567436, key = "SFX_ALARM_CLOCK_1", cat = "SFX_CAT_ALARMS" },
+    { id = 567399, key = "SFX_ALARM_CLOCK_2", cat = "SFX_CAT_ALARMS" },
+    { id = 567458, key = "SFX_ALARM_CLOCK_3", cat = "SFX_CAT_ALARMS" },
+    { id = 567488, key = "SFX_PVP_WARNING", cat = "SFX_CAT_HORNS" },
+    { id = 567505, key = "SFX_PVP_WARNING_ALLIANCE", cat = "SFX_CAT_HORNS" },
+    { id = 567446, key = "SFX_PVP_WARNING_HORDE", cat = "SFX_CAT_HORNS" },
+    { id = 1030922, key = "SFX_WAR_HORN_1", cat = "SFX_CAT_HORNS" },
+    { id = 1030923, key = "SFX_WAR_HORN_2", cat = "SFX_CAT_HORNS" },
+    { id = 1036067, key = "SFX_WAR_HORN_WARSONG", cat = "SFX_CAT_HORNS" },
+    { id = 567094, key = "SFX_FOGHORN", cat = "SFX_CAT_HORNS" },
+    { id = 1487136, key = "SFX_ALARM_DRUM", cat = "SFX_CAT_HORNS" },
     -- the ones below zero aren't game files, see SHIPPED
     { id = -2, key = "SFX_SHOP_BELL", cat = "SFX_CAT_DOOR" },
     { id = -3, key = "SFX_SHOP_BELL_SQUEAK", cat = "SFX_CAT_DOOR" },
@@ -300,6 +321,8 @@ CH.SOUND_CATS = {
     "SFX_CAT_DOOR",
     "SFX_CAT_CHIMES",
     "SFX_CAT_BELLS",
+    "SFX_CAT_ALARMS",
+    "SFX_CAT_HORNS",
     "SFX_CAT_LAUGHS",
     "SFX_CAT_SPOOKY",
     "SFX_CAT_HOUSE",
@@ -396,15 +419,16 @@ local FADE_MS = 1500
 -- a silent house doesn't look like a broken addon.
 local warned = {}
 
-local function WarnIfMuted(channel)
-    if warned[channel] then
-        return
-    end
-    local audible = GetCVarBool("Sound_EnableAllSound")
+-- Whether the game would let a sound on this channel be heard at all.
+local function Audible(channel)
+    return GetCVarBool("Sound_EnableAllSound")
         and GetCVarBool("Sound_Enable" .. channel)
         and tonumber(GetCVar("Sound_MasterVolume")) > 0
         and tonumber(GetCVar("Sound_" .. channel .. "Volume")) > 0
-    if not audible then
+end
+
+local function WarnIfMuted(channel)
+    if not warned[channel] and not Audible(channel) then
         warned[channel] = true
         CH.Print(CH.L["SND_MUTED_" .. channel:upper()])
     end
@@ -467,8 +491,10 @@ local function Loop(slot)
 end
 
 -- plays as in ReadRoomSounds (Sharing/Share.lua). Leaving and coming back starts
--- the count over.
-local function SetSlot(slot, file, plays)
+-- the count over, once a counted sound has rung out (see CH.UpdateAmbience,
+-- walking back in while it still rings doesn't ring it twice). ringOut leaves a counted sound that is being replaced to end
+-- by itself, which a one-shot does anyway, where a loop has to be stopped.
+local function SetSlot(slot, file, plays, ringOut)
     if slot.file == file then
         if slot.handle then
             Loop(slot)
@@ -476,7 +502,9 @@ local function SetSlot(slot, file, plays)
         return
     end
     if slot.handle then
-        StopSound(slot.handle, FADE_MS)
+        if not (ringOut and slot.left) then
+            StopSound(slot.handle, FADE_MS)
+        end
         slot.handle = nil
     end
     slot.file = file
@@ -550,17 +578,25 @@ end
 -- the bannerless room on top of it, the music id and a room's own sound file
 -- with its play count, nil for none.
 function CH.UpdateAmbience(room, spot, musicID, sting, plays)
-    -- ambienceEnabled is the master mute, the three under it a kind each. The
-    -- fourth kind, what other players set off, goes by CH.EchoesOn.
+    -- ambienceEnabled is the master mute, the three under it a kind each.
     local s = ChamberlainDB.settings
-    if not (s.ambienceEnabled and s.soundAmbience) then
+    local on = s.ambienceEnabled
+    if not (on and s.soundAmbience) then
         room, spot = nil, nil
     end
-    if not (s.ambienceEnabled and s.soundMusic) then
+    if not (on and s.soundMusic) then
         musicID = nil
     end
-    if not (s.ambienceEnabled and s.soundRooms) then
+    -- A sound on a count plays out once it has started, the rest of its count
+    -- too, however soon you're out of the room. A thin trigger across a doorway
+    -- is behind you in one step and would fade its own bell. A loop still ends
+    -- with the room, and muting cuts either short.
+    local stingSlot = slots.sting
+    local stingOn = on and s.soundRooms
+    if not stingOn then
         sting = nil
+    elseif not sting and stingSlot.left and stingSlot.handle then
+        sting = stingSlot.file
     end
     -- a sound being tried out is heard alone and the room's own come back after
     if slots.preview.file then
@@ -568,17 +604,15 @@ function CH.UpdateAmbience(room, spot, musicID, sting, plays)
     end
     SetSlot(slots.room, AmbienceFile(room))
     SetSlot(slots.spot, AmbienceFile(spot))
-    SetSlot(slots.sting, sting, plays)
+    SetSlot(stingSlot, sting, plays, stingOn)
     -- keeps a running preview looping as well
     SetSlot(slots.preview, slots.preview.file)
-    -- same for an echo still playing out, and this is where muting cuts it short
-    SetSlot(slots.echo, CH.EchoesOn() and slots.echo.file or nil)
+    -- Same for an echo still playing out, and this is where the master mute
+    -- cuts it short. Its own mutes are asked when it comes in (the ECHO handler
+    -- in Sharing/Share.lua), since in the slot an echo and an arrival look alike.
+    SetSlot(slots.echo, on and slots.echo.file or nil)
     music.wanted = musicID
     ApplyMusic()
-end
-
-function CH.EchoesOn()
-    return ChamberlainDB.settings.ambienceEnabled and ChamberlainDB.settings.echoes
 end
 
 -- A room's sound set off by somebody else walking in, from the ECHO message
@@ -589,10 +623,29 @@ function CH.PlayEcho(file, plays)
     SetSlot(slots.echo, file, math.max(plays, 1))
 end
 
--- Also on the way out of a house. The ticker stops there, and a bell left
--- halfway trough its count would ring the rest in the next house.
+-- Somebody at the front door (room 0 of the ECHO message). With the game's
+-- effects sound off or at zero the doorbell turns into a chat line saying who
+-- came and what would have rung. Every time, where the other muted-channel
+-- notes speak up once a session, since each one is news. The player's own
+-- mutes don't get a line since that silence was asked for.
+function CH.PlayArrival(file, who)
+    if Audible(slots.echo.channel) then
+        CH.PlayEcho(file, 1)
+    else
+        CH.Print(CH.L["SND_ARRIVED_MUTED_X"], who, CH.SoundName(file))
+    end
+end
+
 function CH.StopEcho()
     SetSlot(slots.echo, nil)
+end
+
+-- On the way out of a house. The ticker stops there, and a bell left halfway
+-- trough its count would ring the rest in the next house. The same goes for
+-- a room's own sound since it plays out after the room.
+function CH.StopRoomSounds()
+    SetSlot(slots.sting, nil)
+    CH.StopEcho()
 end
 
 -- The music picker playing a track. nil ends it and whatever the house wants

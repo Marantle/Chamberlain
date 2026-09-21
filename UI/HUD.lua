@@ -43,6 +43,30 @@ end
 local btnSettings = MakeHeaderIcon("Interface\\Buttons\\UI-OptionsButton")
 btnSettings:SetPoint("RIGHT", hud, "TOPRIGHT", -8, -13)
 
+-- Update notes nobody has read, for players who turned the What's New window
+-- off (UI/WhatsNew.lua keeps ChamberlainDB.unreadSince for it). The blink is an
+-- animation the client runs and only while the icon is up. Where it sits is
+-- decided in CH.RefreshHUDMode with the other icons.
+local btnNotes = MakeHeaderIcon("Interface\\Buttons\\UI-GuildButton-PublicNote-Up")
+btnNotes:Hide()
+btnNotes:SetScript("OnClick", function()
+    CH.OpenWhatsNew()
+end)
+
+local blink = btnNotes:CreateAnimationGroup()
+blink:SetLooping("BOUNCE")
+local dim = blink:CreateAnimation("Alpha")
+dim:SetFromAlpha(1)
+dim:SetToAlpha(0.25)
+dim:SetDuration(0.7)
+dim:SetSmoothing("IN_OUT")
+btnNotes:SetScript("OnShow", function()
+    blink:Play()
+end)
+btnNotes:SetScript("OnHide", function()
+    blink:Stop()
+end)
+
 btnBuild:SetScript("OnClick", function()
     CH.ToggleToolbox()
 end)
@@ -92,6 +116,8 @@ CH.SOUND_KINDS = {
     { "HUD_KIND_MUSIC", "soundMusic" },
     { "HUD_KIND_ROOMS", "soundRooms" },
     { "HUD_KIND_ECHOES", "echoes" },
+    { "HUD_KIND_ARRIVAL_GROUP", "arrivalGroup" },
+    { "HUD_KIND_ARRIVAL_GUILD", "arrivalGuild" },
 }
 
 -- Plain with everything on, the red mark on the master mute, grey when only
@@ -276,6 +302,7 @@ CH.Tip(btnRooms, "HUD_TT_ROOMS")
 CH.Tip(btnMap, "HUD_TT_MAP")
 CH.Tip(btnArchive, "HUD_TT_ARCHIVE")
 CH.Tip(btnSharing, "HUD_TT_SHARING")
+CH.Tip(btnNotes, "HUD_TT_NOTES")
 CH.Tip(btnSettings, "HUD_TT_SETTINGS")
 CH.Tip(btnSound, "HUD_TT_SOUND")
 
@@ -298,7 +325,7 @@ end
 -- no rooms yet. Otherwise it lives in the Rooms window and behind /rooms archive.
 function CH.RefreshHUDMode()
     -- A map coming in from the group lands here as well, wherever you stand,
-    -- and used to put the bar up in the middle of Stormwind.
+    -- and would put the bar up in the middle of Stormwind.
     if ChamberlainDB.settings.hudHidden or not C_Housing.IsInsideHouse() then
         hud:Hide()
         return
@@ -320,13 +347,22 @@ function CH.RefreshHUDMode()
     else
         buttons = { btnRooms, btnSharing }
     end
-    -- now playing ends at whichever icon is leftmost
+    -- The header's icons run from the right. The gear is always up, the speaker
+    -- joins in a house with sounds and the note while update notes are unread.
+    -- Now playing ends at whichever is leftmost.
     local sounds = h and h.zones and HasAmbience(h)
     btnSound:SetShown(sounds == true)
-    playing:SetPoint("RIGHT", sounds and btnSound or btnSettings, "LEFT", -6, 0)
     if sounds then
         RefreshSound()
     end
+    local leftmost = sounds and btnSound or btnSettings
+    local unread = ChamberlainDB.unreadSince ~= nil
+    btnNotes:SetShown(unread)
+    if unread then
+        btnNotes:SetPoint("RIGHT", leftmost, "LEFT", -4, 0)
+        leftmost = btnNotes
+    end
+    playing:SetPoint("RIGHT", leftmost, "LEFT", -6, 0)
     Layout(buttons)
     CH.RefreshSharingDot()
     hud:Show()

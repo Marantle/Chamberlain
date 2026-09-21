@@ -183,7 +183,6 @@ L["RM_STATUS_NEWER_AVAILABLE"] = "|cff44FF44Uudempi versio saatavilla osoitteess
 L["RM_STATUS_UP_TO_DATE"] = "|cff666666Ajantasainen versio:|r"
 L["RM_SECTION_SHARING"] = "Jakaminen"
 L["RM_TOGGLE_SHARING"] = "Jakaminen"
-L["RM_TOGGLE_ENTRY_SOUND"] = "Tuloääni"
 L["RM_TOGGLE_ROOM_DESCRIPTIONS"] = "Huoneiden kuvaukset"
 L["RM_TOGGLE_SHOW_BANNERS"] = "Huonebannerit"
 L["RM_BANNER_FADE_OUT"] = "Bannerin häivyttäminen"

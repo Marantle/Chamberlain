@@ -265,7 +265,7 @@ function CH.CheckHousingState()
         CH.HideTalkingHead()
         CH.SetBannerRoom(nil)
         CH.UpdateAmbience()
-        CH.StopEcho()
+        CH.StopRoomSounds()
         CH.ForgetEchoes()
         currentZone = nil
         echoZone = nil
@@ -315,7 +315,10 @@ end
 local function Arrive(guid)
     local h = ChamberlainDB.houses[guid]
     local sound = h and CH.GetHouseSound(guid, "arrival")
-    if sound and CH.EchoesOn() then
+    -- our own way in is neither a groupmate's nor a guildmate's, so it takes
+    -- both arrival mutes off to silence it
+    local s = ChamberlainDB.settings
+    if sound and s.ambienceEnabled and (s.arrivalGroup or s.arrivalGuild) then
         CH.PlayEcho(sound, 1)
     end
     if sound or not h then
@@ -323,10 +326,10 @@ local function Arrive(guid)
     end
 end
 
--- CURRENT_HOUSE_INFO_RECIEVED (Blizzard's spelling). This used to be a read of
--- GetCurrentHouseInfo 1.5 seconds after the request, which was a guess. The
--- info is nil from the door until this event and a relaod had it three seconds
--- out. Once you've left it still names the house you were in.
+-- CURRENT_HOUSE_INFO_RECIEVED (Blizzard's spelling). A fixed wait before
+-- reading GetCurrentHouseInfo is a guess. The info is nil from the door until
+-- this event and a relaod had it three seconds out. Once you've left it still
+-- names the house you were in.
 --
 -- It fires two or three times a visit and out on the plot as well, so it only
 -- counts inside and once per house. On a walk-in the game sends one unasked
@@ -569,9 +572,6 @@ function CH.CheckZones()
                 -- Banners off: keep it hidden even as rooms change.
                 CH.SetBannerRoom(nil)
                 CH.HideBanner(0)
-            end
-            if ChamberlainDB.settings.entrySound then
-                PlaySound(SOUNDKIT.MAP_PING, "SFX")
             end
         else
             CH.HideTalkingHead()

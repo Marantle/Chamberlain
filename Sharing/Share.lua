@@ -153,9 +153,9 @@ local function FlushQueue()
             break
         end
         tokens = tokens - 1
+        local prefix = payload:find("^ECHO") and CH.ECHO_PREFIX or "CH"
         -- result is the client's own verdict, 0 for sent. A refused guild send
         -- comes back as a number here and throws nothing.
-        local prefix = payload:find("^ECHO") and CH.ECHO_PREFIX or "CH"
         local ok, result = pcall(C_ChatInfo.SendAddonMessage, prefix, payload, to)
         Debug(
             "send:",
@@ -295,19 +295,20 @@ end
 -- clients have no guard against a message that comes in as secret values
 -- (see CH.HandleMessage) and this way they don't need one.
 CH.ECHO_PREFIX = "ChamberlainEcho"
+
+-- The receiver's wait is theirs to set (3.14.0). echoPersonWait goes from
+-- ECHO_COOLDOWN up. echoRoomWait is a second one per room that counts whoever
+-- walks in, for a busy house. Both start when an echo was heard, so one that
+-- was out of earshot uses up neither.
 local ECHO_COOLDOWN = 30
 local ECHO_SLACK = 5
 local echoSent = {}
-local echoHeard = {}
+local echoHeard = {} -- by sender and room
+local roomHeard = {} -- by room, whoever it was
 
--- true when key is still inside wait seconds, and starts the clock when it isn't
-local function EchoCooling(times, key, wait)
-    local now = GetTime()
-    if times[key] and now - times[key] < wait then
-        return true
-    end
-    times[key] = now
-    return false
+-- true while key is still inside wait seconds
+local function Cooling(times, key, wait)
+    return times[key] ~= nil and GetTime() - times[key] < wait
 end
 
 function CH.SendEcho(houseGUID, h, zone)
@@ -317,9 +318,11 @@ function CH.SendEcho(houseGUID, h, zone)
     end
     -- no zone is an arrival, room 0 on the wire, see the ECHO handler
     local n = zone and tIndexOf(h.zones, zone) or 0
-    if EchoCooling(echoSent, houseGUID .. "#" .. n, ECHO_COOLDOWN) then
+    local key = houseGUID .. "#" .. n
+    if Cooling(echoSent, key, ECHO_COOLDOWN) then
         return
     end
+    echoSent[key] = GetTime()
     local payload = string.format("ECHO|%s|%d|%d", houseGUID, zone and h.updatedAt or 0, n)
     if group then
         Send(payload)
@@ -334,6 +337,7 @@ end
 -- stepping out and back in would get round the wait on the front door.
 function CH.ForgetEchoes()
     wipe(echoHeard)
+    wipe(roomHeard)
 end
 
 -- Live owner presence: house key -> GUID of whoever announced they own it now.
@@ -558,7 +562,11 @@ function CH.ApplyLayout(houseGUID, data, senderName)
     if existing then
         existing.zones = data.zones
         existing.updatedAt = data.timestamp
-        existing.owner = data.owner or existing.owner
+        -- only an import reaches a house of your own, and the name in a string
+        -- is whatever its maker typed
+        if not ChamberlainDB.myHouses[houseGUID] then
+            existing.owner = data.owner or existing.owner
+        end
         existing.ownerGUID = data.ownerGUID or existing.ownerGUID
         existing.floorCount = data.floorCount or existing.floorCount or 1
         existing.ambience = data.ambience
@@ -673,6 +681,14 @@ local KNOWN = {
 -- The sound on entry came in this version. Before it a room's sound sat in the
 -- music field, mu, with its play count in mn behind it.
 local SFX_MIN_VERSION = "3.12.0"
+
+-- A map's timestamp off the wire: whole seconds that date() and a %d both
+-- take. date() hands back nil for a year it can't place, a negative or a 1e20
+-- for instance, and the import summary would throw on it. A fraction would be
+-- cut by %d in an echo and never match the receiver's copy again.
+local function IsTimestamp(n)
+    return type(n) == "number" and n >= 0 and n < 2 ^ 31 and n % 1 == 0
+end
 
 local function ReadPlays(n)
     return type(n) == "number" and n >= 0 and n <= 5 and n % 1 == 0 and n or nil
@@ -813,7 +829,7 @@ local function DeserializeLayout(b64)
         guid = type(payload.guid) == "string" and payload.guid or nil,
         owner = type(payload.owner) == "string" and payload.owner or nil,
         ownerGUID = type(payload.oguid) == "string" and payload.oguid or nil,
-        timestamp = type(payload.ts) == "number" and payload.ts or GetServerTime(),
+        timestamp = IsTimestamp(payload.ts) and payload.ts or GetServerTime(),
         floorCount = type(payload.fc) == "number" and payload.fc or 1,
         ambience = ReadHouseSound("ambience", payload.ha, payload.fa),
         music = ReadHouseSound("music", payload.hm, payload.fm),
@@ -913,24 +929,31 @@ function CH.ImportLayout(text)
         CH.Print(CH.L["SHARE_IMPORT_NO_HOUSE"])
         return
     end
-    local existing = ChamberlainDB.houses[guid]
-    if existing and existing.zones and #existing.zones > 0 then
-        CH.ShowAcceptDialog(guid, data, CH.L["SHARE_IMPORTED_STRING"], true)
-    else
-        CH.ApplyLayout(guid, data, CH.L["SHARE_SENDER_IMPORT"])
-    end
+    -- Always through the dialog, which shows what the string holds before
+    -- anything is saved.
+    CH.ShowAcceptDialog(guid, data, CH.L["SHARE_IMPORTED_STRING"], true)
 end
 
-function CH.HandleMessage(prefix, payload, _, fullSender)
+local GROUP_CHANNELS = { PARTY = true, RAID = true, INSTANCE_CHAT = true }
+
+function CH.HandleMessage(prefix, payload, channel, fullSender)
     -- On a boss, in a key or in a PvP match the game may hand these over as
     -- secret values, and comparing or splitting one is a Lua error. Echoes go
     -- to the whole guild, so they reach people there. Nothing of a house
-    -- matters to them in a fight and the message is let go. Whether addon
-    -- messages come in secret at all is still unanswered.
-    if issecretvalue(prefix) or issecretvalue(payload) or issecretvalue(fullSender) then
+    -- matters to them in a fight and the message is let go. Blizzard's event
+    -- docs mark the chat events that turn secret in a lockdown and
+    -- CHAT_MSG_ADDON isn't one of them, so this may never fire. Nobody has
+    -- watched it in a real fight yet.
+    if issecretvalue(prefix) or issecretvalue(payload) or issecretvalue(channel) or issecretvalue(fullSender) then
         return
     end
     if prefix ~= "CH" and prefix ~= CH.ECHO_PREFIX then
+        return
+    end
+    -- Chamberlain only sends to the group, and echoes to the guild as well.
+    -- Whatever comes another way was made by hand: a whispered
+    -- ECHO|<house>|0|0 would ring the door of anybody whose house key you know.
+    if not GROUP_CHANNELS[channel] and not (channel == "GUILD" and prefix == CH.ECHO_PREFIX) then
         return
     end
     local sender = StripRealm(fullSender)
@@ -948,6 +971,11 @@ function CH.HandleMessage(prefix, payload, _, fullSender)
         return
     end
     local msgType = parts[1]
+    -- the echo prefix carries echoes and "CH" everything else, so nothing but
+    -- an echo gets in by way of the guild
+    if (prefix == CH.ECHO_PREFIX) ~= (msgType == "ECHO") then
+        return
+    end
 
     if msgType == "HELLO" then
         local version = string.sub(parts[2] or "?", 1, 16)
@@ -1143,7 +1171,15 @@ function CH.HandleMessage(prefix, payload, _, fullSender)
         local where, n = (parts[5] or ""):match("^(%a)(%d*)$")
         local value = tonumber(parts[6])
         local h = guid and ChamberlainDB.houses[guid]
-        if not h or not newTs or not value or ChamberlainDB.myHouses[guid] or h.updatedAt ~= baseTs then
+        if not h or not IsTimestamp(newTs) or not value or ChamberlainDB.myHouses[guid] then
+            return
+        end
+        -- The arrival sound is the one exception to the exact version. It hangs
+        -- on the house and not on the nth room, so a copy that is behind takes
+        -- it as well, as long as the patch is newer than the copy. Such a copy
+        -- keeps its old stamp and still pulls the map for the rest.
+        local current = h.updatedAt == baseTs
+        if not current and not (kind == "arrival" and newTs > (h.updatedAt or 0)) then
             return
         end
         if ChamberlainDB.blocks.players[sender] then
@@ -1190,7 +1226,9 @@ function CH.HandleMessage(prefix, payload, _, fullSender)
         else
             return
         end
-        h.updatedAt = newTs
+        if current then
+            h.updatedAt = newTs
+        end
         Debug(msgType, "applied:", guid, parts[5], value, "from", sender)
         if guid == CH.currentHouseGUID then
             -- the mute button shows only in a house that has a sound somewhere
@@ -1200,7 +1238,7 @@ function CH.HandleMessage(prefix, payload, _, fullSender)
     elseif msgType == "ECHO" then
         -- The whole guild gets these, so the ones for another house go first.
         local guid, n = parts[2], tonumber(parts[4])
-        if guid ~= CH.currentHouseGUID or not n or not CH.EchoesOn() then
+        if guid ~= CH.currentHouseGUID or not n or not ChamberlainDB.settings.ambienceEnabled then
             return
         end
         local h = ChamberlainDB.houses[guid]
@@ -1214,14 +1252,33 @@ function CH.HandleMessage(prefix, payload, _, fullSender)
         if not file then
             return
         end
-        -- a groupmate in the guild sends it twice and the second copy stops here too
-        if EchoCooling(echoHeard, sender .. n, ECHO_COOLDOWN - ECHO_SLACK) then
+        -- Room echoes go by one mute. The front door has two, by whether a
+        -- group member walked in or a guildmate outside the group. A groupmate
+        -- in the guild sends on both channels, and peerVersions knows every
+        -- group member who runs the addon, so their guild copy counts as the
+        -- group's and not as a way round that mute. This sits ahead of the
+        -- cooldown so a copy that is muted doesn't use it up.
+        local fromGuild = channel == "GUILD" and not peerVersions[sender]
+        local mute = n > 0 and "echoes" or fromGuild and "arrivalGuild" or "arrivalGroup"
+        if not ChamberlainDB.settings[mute] then
+            return
+        end
+        -- A groupmate in the guild sends it twice and the second copy stops at
+        -- the first of these. The slack comes off the player's own number too,
+        -- since it is there for a copy that sat in the sender's queue.
+        local s = ChamberlainDB.settings
+        if Cooling(echoHeard, sender .. n, s.echoPersonWait - ECHO_SLACK) or Cooling(roomHeard, n, s.echoRoomWait) then
             return
         end
         local x, y, mapID = CH.GetWorldPos()
         if not zone or zone.echo == CH.WHOLE_HOUSE or (x and CH.DistanceToZone(zone, x, y, mapID) <= zone.echo) then
+            echoHeard[sender .. n], roomHeard[n] = GetTime(), GetTime()
             Debug("ECHO heard:", zone and zone.name or "arrival", "from", sender)
-            CH.PlayEcho(file, zone and zone.sfxPlays or 1)
+            if zone then
+                CH.PlayEcho(file, zone.sfxPlays)
+            else
+                CH.PlayArrival(file, sender)
+            end
         end
     elseif msgType == "LAYOUT_DECLINE" then
         -- The holder said no (or no longer has it). Declines are broadcast, so

@@ -110,6 +110,64 @@ btnDecline:SetPoint("BOTTOMLEFT", acceptDialog, "BOTTOM", 4, 8)
 local acceptQueue = {}
 local pendingGUID, pendingData, pendingSender, pendingImport
 
+-- Text out of a map somebody else made goes on screen as written. A name
+-- with || codes in it could otherwise draw a texture or fake a line of ours.
+local function Plain(text)
+    return (text:gsub("|", "||"))
+end
+
+local PREVIEW_NAMES = 5
+
+-- What a map holds, in grey lines under the question. Secret rooms count but
+-- stay unnamed here as everywhere.
+local function DescribeLayout(data)
+    local lines = {}
+    if data.owner then
+        lines[#lines + 1] = string.format(CH.L["SUI_PREVIEW_OWNER_X"], Plain(data.owner))
+    end
+    local floors = data.floorCount or 1
+    lines[#lines + 1] =
+        string.format(CH.L[floors > 1 and "SUI_PREVIEW_SIZE_FLOORS_X" or "SUI_PREVIEW_SIZE_X"], #data.zones, floors)
+    lines[#lines + 1] = string.format(CH.L["SUI_PREVIEW_CHANGED_X"], date("%Y-%m-%d", data.timestamp))
+
+    local has = { AMBIENCE = data.ambience, MUSIC = data.music, ARRIVAL = data.arrival }
+    local names, hidden = {}, 0
+    for _, zone in ipairs(data.zones) do
+        has.AMBIENCE = has.AMBIENCE or zone.ambience
+        has.MUSIC = has.MUSIC or zone.music
+        has.SFX = has.SFX or zone.sfx
+        has.ECHO = has.ECHO or zone.echo
+        if zone.secret or #names == PREVIEW_NAMES then
+            hidden = hidden + 1
+        else
+            names[#names + 1] = Plain(zone.name)
+        end
+    end
+    local kinds = {}
+    for _, kind in ipairs({ "AMBIENCE", "MUSIC", "SFX", "ECHO", "ARRIVAL" }) do
+        if has[kind] then
+            kinds[#kinds + 1] = CH.L["SUI_PREVIEW_KIND_" .. kind]
+        end
+    end
+    if #kinds > 0 then
+        lines[#lines + 1] = string.format(CH.L["SUI_PREVIEW_SOUNDS_X"], table.concat(kinds, ", "))
+    end
+    if #names > 0 then
+        local list = table.concat(names, ", ")
+        if hidden > 0 then
+            list = list .. string.format(CH.L["SUI_PREVIEW_MORE_X"], hidden)
+        end
+        lines[#lines + 1] = string.format(CH.L["SUI_PREVIEW_ROOMS_X"], list)
+    end
+    return "|cffb0b0b0" .. table.concat(lines, "\n") .. "|r"
+end
+
+-- The question with the map's details under it, and the dialog sized to fit.
+local function SetAcceptText(question, data)
+    acceptText:SetText(question .. "\n\n" .. DescribeLayout(data))
+    acceptDialog:SetHeight(acceptText:GetStringHeight() + 106)
+end
+
 local function ShowNextAccept()
     local item = table.remove(acceptQueue, 1)
     if not item then
@@ -121,22 +179,36 @@ local function ShowNextAccept()
     local existing = ChamberlainDB.houses[item.guid]
     local myCount = existing and existing.zones and #existing.zones or 0
     local newCount = #item.data.zones
-    local houseName = (item.data.owner and string.format(CH.L["SHARE_X_HOUSE"], item.data.owner))
+    local houseName = (item.data.owner and string.format(CH.L["SHARE_X_HOUSE"], Plain(item.data.owner)))
         or CH.L["SHARE_A_HOUSE"]
 
     if item.isImport then
         -- Pasted strings aren't tied to a person, so no trust offer here.
         trustCB:Hide()
         trustLabel:Hide()
-        if myCount > 0 then
-            acceptText:SetText(string.format(CH.L["SUI_OVERWRITE_X"], houseName, myCount, newCount))
+        -- A string names its own house and owner, and whoever made it chose
+        -- both. One keyed to a house of yours can call itself anything, so for
+        -- those the name is left out of the question and the dialog says whose
+        -- rooms go. Sharing never gets here since CH.ReceiveLayout drops maps of
+        -- your houses.
+        local question
+        if ChamberlainDB.myHouses[item.guid] and myCount > 0 then
+            question = string.format(CH.L["SUI_OVERWRITE_OWN_X"], myCount, newCount)
+        elseif ChamberlainDB.myHouses[item.guid] then
+            question = string.format(CH.L["SUI_IMPORT_OWN_X"], newCount)
+        elseif myCount > 0 then
+            question = string.format(CH.L["SUI_OVERWRITE_X"], houseName, myCount, newCount)
         else
-            acceptText:SetText(string.format(CH.L["SUI_IMPORT_X"], houseName, newCount))
+            question = string.format(CH.L["SUI_IMPORT_X"], houseName, newCount)
         end
+        SetAcceptText(question, item.data)
     else
         local verb = myCount > 0 and CH.L["SUI_VERB_UPDATE"] or CH.L["SUI_VERB_SHARE"]
         local more = #acceptQueue > 0 and string.format(CH.L["SUI_MORE_X"], #acceptQueue) or ""
-        acceptText:SetText(string.format(CH.L["SUI_ACCEPT_PROMPT_X"], item.sender, verb, houseName, newCount, more))
+        SetAcceptText(
+            string.format(CH.L["SUI_ACCEPT_PROMPT_X"], item.sender, verb, houseName, newCount, more),
+            item.data
+        )
         trustLabel:SetText(string.format(CH.L["SUI_ALWAYS_ACCEPT_X"], item.sender))
         trustCB:SetChecked(false)
         trustCB:Show()
@@ -151,17 +223,22 @@ end
 function CH.ShowAcceptDialog(houseGUID, incomingData, senderName, isImport)
     -- A re-send of a house already waiting (or on screen) just refreshes its
     -- data so we decide against the newest copy, rather than queueing a dupe.
+    -- The one on screen goes back through ShowNextAccept so the dialog says
+    -- what Accept will do. A pasted string could otherwise ride in under a
+    -- groupmate's "wants to share" that was still up.
+    local offer = { guid = houseGUID, data = incomingData, sender = senderName, isImport = isImport }
     if pendingGUID == houseGUID and acceptDialog:IsShown() then
-        pendingData, pendingSender, pendingImport = incomingData, senderName, isImport
+        table.insert(acceptQueue, 1, offer)
+        ShowNextAccept()
         return
     end
-    for _, item in ipairs(acceptQueue) do
+    for i, item in ipairs(acceptQueue) do
         if item.guid == houseGUID then
-            item.data, item.sender, item.isImport = incomingData, senderName, isImport
+            acceptQueue[i] = offer
             return
         end
     end
-    acceptQueue[#acceptQueue + 1] = { guid = houseGUID, data = incomingData, sender = senderName, isImport = isImport }
+    acceptQueue[#acceptQueue + 1] = offer
     if not acceptDialog:IsShown() then
         ShowNextAccept()
     end
@@ -316,11 +393,11 @@ btnExportClose:SetScript("OnClick", function()
     exportDialog:Hide()
 end)
 
--- mode "export": prefills the current house's string, ready to copy.
+-- mode "export": prefills the string of house guid, ready to copy.
 -- mode "import": empty box, paste and click Import.
-function CH.OpenExportDialog(mode)
+function CH.OpenExportDialog(mode, guid)
     if mode == "export" then
-        local s = CH.currentHouseGUID and CH.ExportLayout(CH.currentHouseGUID)
+        local s = guid and CH.ExportLayout(guid)
         if not s then
             CH.Print(CH.L["SUI_NO_EXPORT"])
             return

@@ -37,6 +37,7 @@ read_globals = {
     "CopyTable",
     "tCompare",
     "tIndexOf",
+    "tAppendAll",
     "CreateColor",
     "GameTooltip",
     "GameFontNormal",

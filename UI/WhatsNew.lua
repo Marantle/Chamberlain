@@ -20,7 +20,7 @@ local _, CH = ...
 -- an `onToggle` run after any of them flips.
 CH.WHATS_NEW = {
     {
-        v = "3.13.0",
+        v = "3.14.0",
         notes = {
             "Echoes. A room's sound on entry can carry through the house, so the bell on "
                 .. "your front door rings for you in the cellar when a guest walks in. Click "
@@ -30,13 +30,18 @@ CH.WHATS_NEW = {
                 .. "Chamberlain walks in.",
             "Everyone in the house with your map hears an echo, if they share a group or a "
                 .. "guild with whoever walked in. Each person rings a room once in 30 seconds.",
+            "An entry sound set to play once or a few times plays to the end even if you've "
+                .. "left the room, so a thin trigger across a doorway rings in full.",
             "The sound list got a shop door bell and a ding dong doorbell. Knocks, dinner "
-                .. "bells and a good many chimes came with them.",
+                .. "bells, chimes, alarms, war horns and a foghorn came with them.",
             "The bar has a Sharing button, with a gold dot when your group has a map of the "
-                .. "house you're in. Settings and Sound are the gear and the speaker in its title now.",
-            "Share My Houses asks which house when you have more than one.",
-            "Right click the speaker on the bar to mute one kind of house sound and keep "
-                .. "the rest, say the music or what other players set off.",
+                .. "house you're in. Settings and Sound are the gear and the speaker in its title.",
+            "Right click the speaker to mute one kind of house sound. The "
+                .. "arrival sound has a tick for group members and one for guildmates.",
+            "Two sliders in the settings set how soon the same person or room rings for you again.",
+            "Share My Houses and Export ask which house when you have more than one.",
+            "Import shows what a string holds before you accept it, and says so in red when "
+                .. "the string is aimed at your own house.",
         },
         toggles = { { "HUD_KIND_ECHOES", "echoes" } },
         -- the bar's speaker greys while a kind is off
@@ -394,12 +399,19 @@ function CH.MaybeShowWhatsNew()
 
     if ChamberlainDB.settings.showUpdateNotes == false then
         -- Opted out: stay silent, but move the marker forward so re-enabling later
-        -- doesn't dump notes the player already lived through.
+        -- doesn't dump notes the player already lived through. unreadSince keeps
+        -- where they left off, for the note icon on the bar, and holds on to the
+        -- oldest of a run of skipped updates.
+        ChamberlainDB.unreadSince = ChamberlainDB.unreadSince or last
         ChamberlainDB.lastSeenVersion = CH.VERSION
+        CH.RefreshHUDMode()
         return
     end
 
-    local blocks = CollectBlocks(last)
+    -- whoever turned the window back on gets what they skipped along with it
+    local blocks = CollectBlocks(ChamberlainDB.unreadSince or last)
+    ChamberlainDB.unreadSince = nil
+    CH.RefreshHUDMode()
     shownThisSession = true
     ChamberlainDB.lastSeenVersion = CH.VERSION -- won't reappear next entry or login
     if #blocks == 0 then
@@ -409,10 +421,13 @@ function CH.MaybeShowWhatsNew()
     Populate(blocks)
 end
 
--- Manual path: /rooms whatsnew. Ignores the opt-out and the last-seen marker so a
--- silenced player can re-read the latest notes on demand.
+-- Manual path: /rooms whatsnew and the bar's note icon. Ignores the opt-out and
+-- the last-seen marker so a silenced player can re-read the latest notes on
+-- demand. Notes the icon was waving about count as read from here.
 function CH.OpenWhatsNew()
-    local blocks = CollectBlocks(ChamberlainDB.lastSeenVersion)
+    local blocks = CollectBlocks(ChamberlainDB.unreadSince or ChamberlainDB.lastSeenVersion)
+    ChamberlainDB.unreadSince = nil
+    CH.RefreshHUDMode()
     if #blocks == 0 then
         blocks = CH.WHATS_NEW[1] and { CH.WHATS_NEW[1] } or {}
     end

@@ -1,157 +1,224 @@
 # Chamberlain - Room Names for Housing
 
-Chamberlain lets you name the rooms in your player house. When you walk into
-one, a gold banner shows the room's name, then fades out when you leave. The
-name comes from the manor officer who announced guests as they entered each
-room.
+Chamberlain lets you name the rooms in your player house. When you walk into a
+room, a gold banner shows its name. The banner fades out when you leave. The
+addon takes its name from the manor officer who announced guests as they
+entered each room.
 
-To make a room, open the Build toolbox and click Square room or Round room. One
-drops where you stand and the name box opens right away. To fit it to the walls,
-pick the room, walk to a wall and click Snap nearest edge to me, or use Grow and
-Shrink. You can also grab the room on the house map and drag its corners. Rooms
-can overlap. Put a walk-in closet inside your bedroom and the smaller one wins
-while you're standing in it.
+To make a room, open the Build toolbox and click Square room or Round room. The
+room drops where you stand and the name box opens. To fit the room to the
+walls, select it, walk to a wall and click Snap nearest edge to me. Grow and
+Shrink change its size too. You can also drag the corners of the room on the
+house map.
 
-There's also a house map that draws all your rooms to scale, each in its own
-color, with a dot showing where you currently are. Hover a room to see its name
-and size if the label doesn't fit. The mouse wheel zooms and dragging an empty
-patch pans. The labels and your dot stay the same size.
+Rooms can overlap. Put a closet inside your bedroom and the smaller room wins
+while you stand in it.
 
-The rooms can take over the minimap too. Indoors the game puts a still picture of
-a house there, and with Rooms on the minimap turned on in Settings the rooms of
-your floor show in its place, you in the middle, zoomed with the usual minimap
-buttons. If another addon squares your minimap, turn on Square minimap as well.
+The house map draws all your rooms to scale, each in its own color. A dot shows
+where you are, and your group members show as dots too. Hover a room to see its
+name and size when the label doesn't fit. The mouse wheel zooms, and a drag on
+an empty patch moves the view. The labels and your dot stay the same size.
+
+The rooms can also take the place of the minimap picture. Indoors the game
+shows a still picture of a house there. Turn on Rooms on the minimap in
+Settings and the rooms of your floor show in its place, with you in the middle.
+The usual minimap buttons zoom it. If a different addon makes your minimap
+square, turn on Square minimap too.
 
 ## Floors
 
-A house with more than one floor can hold rooms on each, and a room upstairs won't
-fire the banner for the room under it. The game doesn't expose your height, so
-Chamberlain learns your floor from your stairs. In the Build toolbox click Stairs.
-Stand on the lower step and Mark bottom, then go up a bit and Mark top. Walk onto
-either one and it puts you on that step's floor. For a tall shaft, a fall, a balcony
-or such, drop a Floor pin instead. It sits on every floor and you set which floor it
-sends you to.
+A house with more than one floor can have rooms on each floor. A room upstairs
+doesn't fire the banner of the room below it. The game doesn't tell addons your
+height, so Chamberlain learns your floor from your stairs.
 
-The house map has Add floor to start, up and down arrows to view each floor, and a
-Move to floor button for when it gets the floor wrong. If your stairs spiral or
-stack so one flight sits right above another, keep each flight's marks off the same
-spot, or they trigger each other.
+In the Build toolbox click Stairs. Stand on the lowest step and click Mark
+bottom. Then go up a little and click Mark top. When you walk onto a mark,
+Chamberlain puts you on the floor of that mark.
+
+For a tall shaft, a fall or a balcony, drop a Floor pin. A Floor pin works on
+every floor, and you set the floor it sends you to.
+
+The house map has an Add floor button and arrows to look at each floor. Its
+Move to floor button corrects Chamberlain when it has the wrong floor. If your
+stairs spiral, one flight sits above the next. Keep the marks of each flight
+off the same spot, or they trigger each other.
 
 ## Room name, description and talking head
 
-Rooms carry more than a name. Set a color for the banner and map tile, write
-a description, and pick a face to read it on a talking-head box. Your computer can
-speak the description aloud in a voice you pick, kept on your machine and sent to no
-one. A room marked secret stays off visitors' house maps and room lists, but its
-banner still fires when they walk in.
+A room has more than a name. You can set a color for the banner and the map
+tile. You can write a description and pick a face that reads it in a talking
+head box. Your computer can speak the description in a voice you pick. The
+voice stays on your computer and goes to nobody.
+
+A room marked Secret stays off the house maps and room lists of your visitors.
+Its banner still fires when they walk in.
 
 ## Ambience and music
 
-A room can have a background sound. Edit the room and pick one from the Ambience
-menu. There are over a hundred loops from the game itself, like a crowded tavern
-or a slow river, and darker ones like Naxxramas. The menu sorts them into short
-categories. It fades in when you enter and fades out again when you leave.
+A room can have a background sound. Edit the room and pick a sound from the
+Ambience menu. The menu has more than 100 loops from the game, in short
+categories. A crowded tavern and a slow river are there, and so is Naxxramas.
+The sound fades in when you enter and fades out when you leave.
 
 For a fireplace or a fountain, drop a small room on it, give it the sound and
-untick Banner. A room without a banner doesn't count as the room you're in, so
-the hall around it keeps its banner and its own sound while the fire crackles on
-top. Tick Secret too and visitors won't see it on their map.
+untick Banner. A room without a banner doesn't count as the room you are in.
+The hall around it keeps its banner and its own sound, and the fire plays on
+top. Tick Secret too and your visitors don't see it on their map.
 
-The whole house and each floor can have a sound as well, from the Ambience button
-on the house map. A room's own sound plays instead of the floor's, and the floor's
-instead of the house's.
+The house and each floor can have a sound too, from the Ambience button on the
+house map. The sound of a room plays in place of the sound of its floor. The
+sound of a floor plays in place of the sound of the house.
 
-Music works the same way. A room, a floor or the house can have a track from the
-game's own music, picked in a search window where a click plays it first. It
-takes the place of the game's music while you're there, and Silence is one of
-the picks for a room that should have none. The window opens on the tracks your
-house already uses, so the one from the hall goes into the next room with a
-click.
+Music works the same way. A room, a floor or the house can have a track from
+the game's music. You pick it in a search window, where a click plays the track
+first. The track takes the place of the game's music while you are there.
+Silence is one of the picks, for a room that must have no music. The window
+opens on the tracks your house already uses, so one click puts the track of the
+hall into the next room.
 
-A room can also play a short game sound as you walk in, once or a few times, set
-on the Entry sound row under Music. Its list has laughs, screams and bells, so
-the nursery can greet you with a ghost's laugh while its own music plays on. Any
-other game sound works by its file number, the FileDataID that sites like
-wago.tools list for every file in the game.
+The title strip of the Chamberlain bar names the track in gold and the ambience
+after it. Hover it for the full path of the track. The game has no such
+readout, so this is how a guest learns the name of the tune in your hall.
 
-The Chamberlain bar's title strip shows what's on, the track in gold next to the
-ambience, and hovering it gives the track's full path. The game has no such
-readout of its own, so this is how a guest finds out what that tune in your
-hall is called.
+## Entry sounds, echoes and the front door
 
-Visitors with your shared map hear all of it, and when you change a sound while
-grouped they hear the change right away, with a chat line naming the new track
-if they're in the house. Ambience follows the game's Ambience volume, music the
-Music volume and a room's own sound the Effects volume. The Sound button on the
-Chamberlain bar mutes all of it, in your house or anyone else's, and the game
-sounds the way it normally does.
+A room can play a short sound as you walk in. Set it on the Entry sound row of
+the room, under Music. The list runs from door bells and chimes to alarms,
+horns, laughs and screams. Chamberlain brings 3 of the bells itself, because
+the game has no shop door bell. Any other game sound works by its file number.
+That number is the FileDataID that sites like wago.tools list for every file in
+the game.
+
+Plays sets how often the sound plays, from 1 to 5 times, or Loops. A sound with
+a count plays to its end even when you have already left the room. A thin room
+across a doorway thus rings in full. A sound that loops stops when you leave.
+
+Echo lets the others in the house hear the sound too. Drag the Echo slider in
+the same window to a number of yards, or to Whole house. When somebody walks
+into that room, everybody in range hears its sound. Floors don't count for the
+range. Put a bell with Whole house on your entrance hall and you hear each
+guest arrive, even down in the cellar.
+
+The house can also have an arrival sound, the sound of your front door. Pick it
+with the Arrival button on the house map. It plays for everybody inside when
+somebody with Chamberlain walks into the house. The visitor doesn't need your
+map, so a first visit rings too. It rings once for each visit, and a reload
+doesn't ring it.
+
+To hear an echo or an arrival you need the map of the house. You must also
+share a group or a guild with the person who walked in. Each person rings a
+room once in 30 seconds. If the game's sound is off for you, a chat line tells
+you who is at the door.
+
+## Volume and mutes
+
+Visitors with your map hear all of these sounds. When you change a sound while
+you are in a group, your group hears the change at once. A chat line names the
+new sound for those who are in the house.
+
+Ambience follows the game's Ambience volume and music follows the Music volume.
+Entry sounds, echoes and the arrival sound follow the Effects volume.
+
+The speaker on the Chamberlain bar mutes all house sounds with a left click, in
+your house or in any other. A right click opens a list of the kinds of sound.
+There you can mute only the music, or only the arrivals of guildmates.
+Settings has 2 sliders that set how soon the same person, or the same room, can
+ring for you again.
 
 ## Archive
 
-Since patch 12.1 a house can be saved to a blueprint, reset and rebuilt from
-another one, and a room map made for the old layout would keep firing in the
-new. The Archive is where a map goes in the meantime. Store the map under a
-name, pick the blueprint it belongs with if you like and it takes that name, then
-clear the rooms or keep building. Restore brings a stored map back as the live
-one, and if the map in the house has edits you haven't stored it asks first. Keep
-as many maps per house as you want and switch between them, and a map from
-another house of yours can be put into the one you're standing in. The addon also
-watches the blueprint and reset actions themselves. When you save a blueprint of
-the full layout or the interior it offers to store the map alongside. Load one
-and the map stored with it comes back on its own. Reset the house and it asks
-what to do with the rooms still on the map.
+Since patch 12.1 you can save a house to a blueprint, reset it and build it
+again from a different blueprint. A room map made for the old house would then
+fire in the new one. The Archive keeps a map for that time. Store the map under
+a name. If you pick the blueprint it goes with, the map takes the name of the
+blueprint. Then clear the rooms or continue to build.
 
-The archive lives on your computer and nothing gets it out of there. What your
-group receives, and what an export string holds, is the map in the house.
+Restore brings a stored map back as the live map. If the live map has edits you
+did not store, Chamberlain asks first. You can keep as many maps for a house as
+you want and switch between them. You can also put a map from a different house
+of yours into the house you stand in.
+
+Chamberlain also watches the blueprint and reset actions. When you save a
+blueprint of the full layout or of the interior, it offers to store the map
+with it. When you load a blueprint, the map stored with it comes back. When you
+reset the house, it asks what to do with the rooms that are still on the map.
+
+The Archive stays on your computer. Your group gets only the live map, and an
+export string holds only a live map.
 
 ## Sharing
 
-If you're grouped with other Chamberlain users, party or raid, you can send
-them your layout or request theirs, so a house only has to be mapped once. Every
-incoming request shows a consent dialog before anything is sent, and you can
-block players or houses that keep asking. Layouts you've received are listed
-separately from your own rooms and can be removed whenever. Sharing can also
-be turned off completely in the settings.
+If you are in a party or a raid with other Chamberlain users, you can send them
+your map or ask for theirs. A house then needs a map only once. The Sharing
+button on the Chamberlain bar opens the list of maps your group offers. A gold
+dot on the button tells you that somebody has a map of the house you are in.
+Share My Houses sends your map, and it asks which house if you own more than
+one.
+
+Every request for your map shows a consent dialog before Chamberlain sends
+anything. You can block players or houses that ask too often. A map from your
+group never replaces the map of your own house. Maps you received sit in a list
+of their own, and you can remove them at any time. You can turn Sharing off in
+Settings.
+
+Export makes a text string of one map, and it asks which house if you have more
+than one. Import reads such a string. Before Import saves anything, a dialog
+shows what the string holds. You see the owner named in it, the number of rooms
+and floors, the date of the last change and the first room names. If the string
+is for your own house, the dialog says so in red. Decline it unless it is a
+backup that you made.
 
 ## Good to know
 
-- The build tools only show up in your own house. Ownership comes from the
-  server, not your character name, so your alts can edit too.
-- If you own a house on both factions, they're tracked separately.
-- Floors come from the stairs you mark, not from elevation (the game does not expose elevation to addons).
-  With no stairs marked, the house is one floor, as before.
-- After an update, a What's New note pops the first time you step indoors and tells
-  you what changed. Close it, or turn it off for good.
+- The build tools show only in your own house. Ownership comes from the server
+  and not from your character name, so your alts can edit too.
+- If you own a house on both factions, Chamberlain tracks them separately.
+- Floors come from the stairs you mark, because the game doesn't tell addons
+  your height. With no stairs marked, the house is one floor.
+- After an update, a What's New note shows the first time you step indoors. You
+  can close it, or turn it off for good. If you turned it off, a note icon
+  blinks on the Chamberlain bar when an update has notes you did not read.
+- Echoes, the arrival sound and the 3 bells need version 3.14.0 or later on
+  both sides. A visitor on an older version sees and hears the rest as before.
 
 ## Features
 
-- Make rooms by dropping a square or round room where you stand, from the Build
-  toolbox.
-- A gold banner shows the room's name on entry and fades on exit.
-- An optional entry sound (a map ping) when you walk in.
-- Background sound for a room, a floor or the whole house, from over a hundred
-  of the game's own ambience loops. A small room without a banner puts a
-  crackling fire inside the great hall. Visitors with your shared map hear it
-  too.
-- Music for a room, a floor or the whole house, from the game's own tracks.
-  Search for one and click it to hear it before you pick.
-- A laugh, a bell or a murloc when you walk into a room.
-- A house map draws your rooms to scale and shows where you and your party are.
-- Zoom and pan the house map with the mouse.
-- Rooms drawn on the minimap indoors, in place of the game's still house picture.
-- Edit rooms on the house map: move, resize, rename, recolor and so on.
-- A talking-head "Yapper" reads a room's description like an NPC, optionally spoken
-  aloud by your computer narrator voices (TTS).
-- Secret rooms stay off visitors' maps but still announce themselves, use it to hide secrets and whatever.
-- Multiple floors, with each room tied to a floor.
-- Mark your stairs and the map will follow you up and down, 
-  and a Floor pin jumps you to any floor from anywhere.
-- Time spent in each of your rooms is tracked and displayed on room tooltip.
-- Share layouts with your party or raid, or export them to a text string others
-  can import, export is recommended for huge floor plans with lots of text.
-- An archive of stored maps per house, tied to your blueprints if you want, so
-  the rooms survive a reset or a blueprint swap.
-- Block players or houses that keep requesting your layout to harass you.
-- A minimap button and slash commands (/chamberlain, /rooms).
+- Make rooms from the Build toolbox. A square or round room drops where you
+  stand.
+- A gold banner shows the name of the room when you enter and fades when you
+  leave.
+- Background sound for a room, a floor or the house, from more than 100 of the
+  game's ambience loops. A small room without a banner puts a fire inside the
+  great hall.
+- Music for a room, a floor or the house, from the game's tracks. Search for a
+  track and click it to hear it before you pick.
+- An entry sound for each room, from a list of bells, chimes, alarms, horns and
+  laughs, or any game sound by its file number.
+- Echoes. The others in the house hear a room's entry sound when somebody walks
+  in, as far as you set.
+- An arrival sound for the house. It rings for everybody inside when a visitor
+  walks in.
+- A mute for each kind of house sound, and 2 sliders that set how often echoes
+  ring for you.
+- A house map that draws your rooms to scale and shows where you and your group
+  are. Zoom it and move it with the mouse.
+- Rooms on the minimap indoors, in place of the game's still house picture.
+- Edit rooms on the house map. You can move, resize, rename and recolor them.
+- A talking head "Yapper" reads the description of a room like an NPC. Your
+  computer can speak it with its TTS (text to speech) voices.
+- Secret rooms stay off the maps of your visitors but still announce
+  themselves.
+- More than one floor, with each room tied to a floor.
+- Mark your stairs and the map goes up and down with you. A Floor pin sends you
+  to any floor from anywhere.
+- Chamberlain tracks the time you spend in each of your rooms and shows it in
+  the room tooltip.
+- Share maps with your party or raid, or export a map to a text string that
+  others can import. Use export for a very large map with a lot of text.
+- An import shows what the string holds before you accept it.
+- An archive of stored maps for each house, tied to your blueprints if you
+  want. The rooms stay safe through a reset or a change of blueprint.
+- Block players or houses that ask for your map too often.
+- A minimap button and the slash commands /chamberlain and /rooms.
 
 Logo by [Lorc](https://lorcblog.blogspot.com/) from [game-icons.net](https://game-icons.net/1x1/lorc/top-hat.html), licensed under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/)

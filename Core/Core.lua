@@ -1,6 +1,6 @@
 local ADDON, CH = ...
 
-CH.VERSION = "3.13.0"
+CH.VERSION = "3.14.0"
 
 -- How often the zone ticker samples your position, in seconds. Drives stair
 -- detection and the per-room time stats both, so they stay in step if it changes.
@@ -114,9 +114,9 @@ events:SetScript("OnEvent", function(_, event, arg1)
         if ChamberlainDB.settings.receiveEnabled == nil then
             ChamberlainDB.settings.receiveEnabled = true
         end
-        if ChamberlainDB.settings.entrySound == nil then
-            ChamberlainDB.settings.entrySound = false
-        end
+        -- The map ping on every room left in 3.14.0 since a room has its own
+        -- entry sound. Its old setting goes out of the saved data with it.
+        ChamberlainDB.settings.entrySound = nil
         if ChamberlainDB.settings.hudHidden == nil then
             ChamberlainDB.settings.hudHidden = false
         end
@@ -136,12 +136,28 @@ events:SetScript("OnEvent", function(_, event, arg1)
         end
         -- A mute per kind under the master above (3.13.0), all on so an update
         -- changes nobody's sound. CH.SOUND_KINDS in UI/HUD.lua lists them.
-        -- echoes is what other players set off: a room's sound reaching you
-        -- from a distance when somebody walks into it, and the front door.
+        -- echoes is a room's sound reaching you from a distance when somebody
+        -- else walks into it.
         for _, key in ipairs({ "soundAmbience", "soundMusic", "soundRooms", "echoes" }) do
             if ChamberlainDB.settings[key] == nil then
                 ChamberlainDB.settings[key] = true
             end
+        end
+        -- The front door, by who walked in: somebody in your group or a guildmate
+        -- outside it (3.14.0). In 3.13.0 the echoes switch covered arrivals as
+        -- well, so whoever had that off starts with these off.
+        for _, key in ipairs({ "arrivalGroup", "arrivalGuild" }) do
+            if ChamberlainDB.settings[key] == nil then
+                ChamberlainDB.settings[key] = ChamberlainDB.settings.echoes
+            end
+        end
+        -- Seconds before the same person rings a room for you again, and before
+        -- anybody at all does (0 for no such wait). See the ECHO handler.
+        if ChamberlainDB.settings.echoPersonWait == nil then
+            ChamberlainDB.settings.echoPersonWait = 30
+        end
+        if ChamberlainDB.settings.echoRoomWait == nil then
+            ChamberlainDB.settings.echoRoomWait = 0
         end
         -- Personal text-to-speech defaults (local only, voiceFemale/voiceMale stay
         -- nil until the player picks them). When enabled, these read rooms shared
