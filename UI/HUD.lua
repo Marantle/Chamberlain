@@ -109,8 +109,9 @@ local muteMark = btnSound:CreateTexture(nil, "OVERLAY")
 muteMark:SetAllPoints()
 muteMark:SetTexture("Interface\\Common\\VoiceChat-Muted")
 
--- The kinds a player can mute one by one, label key and settings key. Left
--- click on the speaker is the master mute and right click opens these.
+-- The kinds a player can mute one by one, label key and settings key. Either
+-- click on the speaker opens these, under a Mute all that throws the master
+-- switch.
 CH.SOUND_KINDS = {
     { "HUD_KIND_AMBIENCE", "soundAmbience" },
     { "HUD_KIND_MUSIC", "soundMusic" },
@@ -148,17 +149,21 @@ function CH.FillSoundMenu(root)
     end
 end
 
+-- Both buttons open the menu (3.16.0). The master mute used to be a left click
+-- and nothing on screen said so, so people never found the kinds behind the
+-- right one. Mute all names what the click does instead of holding a tick,
+-- which would have meant the opposite of the six under it.
 btnSound:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-btnSound:SetScript("OnClick", function(self, button)
-    if button == "RightButton" then
-        MenuUtil.CreateContextMenu(self, function(_, root)
-            CH.FillSoundMenu(root)
+btnSound:SetScript("OnClick", function(self)
+    MenuUtil.CreateContextMenu(self, function(_, root)
+        local muted = not ChamberlainDB.settings.ambienceEnabled
+        root:CreateButton(muted and CH.L["HUD_UNMUTE_ALL"] or CH.L["HUD_MUTE_ALL"], function()
+            ChamberlainDB.settings.ambienceEnabled = not ChamberlainDB.settings.ambienceEnabled
+            RefreshSound()
+            CH.RefreshSettingsTab()
         end)
-        return
-    end
-    ChamberlainDB.settings.ambienceEnabled = not ChamberlainDB.settings.ambienceEnabled
-    RefreshSound()
-    CH.RefreshSettingsTab()
+        CH.FillSoundMenu(root)
+    end)
 end)
 
 local function HasAmbience(h)

@@ -20,6 +20,14 @@ local _, CH = ...
 -- an `onToggle` run after any of them flips.
 CH.WHATS_NEW = {
     {
+        v = "3.16.0",
+        notes = {
+            "Either click on the speaker in the Chamberlain bar opens the house sounds now, "
+                .. "with Mute all at the top. The kinds of sound used to sit behind a right "
+                .. "click with nothing to tell you they were there.",
+        },
+    },
+    {
         v = "3.15.0",
         notes = {
             "Whole house and floor sounds changes now reaches your group even when their map is older "

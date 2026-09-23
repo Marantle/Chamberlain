@@ -119,8 +119,9 @@ new sound for those who are in the house.
 Ambience follows the game's Ambience volume and music follows the Music volume.
 Entry sounds, echoes and the arrival sound follow the Effects volume.
 
-The speaker on the Chamberlain bar mutes all house sounds with a left click, in
-your house or in any other. A right click opens a list of the kinds of sound.
+The speaker on the Chamberlain bar opens the house sounds, in your house or in
+any other. Mute all at the top silences them all at once. Under it you can mute
+the ambience, the music and the rest one kind at a time.
 There you can mute only the music, or only the arrivals of guildmates.
 Settings has 2 sliders that set how soon the same person, or the same room, can
 ring for you again.

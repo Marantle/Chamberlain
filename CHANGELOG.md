@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.16.0
+- Either click on the speaker in the Chamberlain bar now opens the list of
+  house sounds, with Mute all at the top. The kinds used to hide behind a right
+  click that nothing told you about, so most people only ever found the mute.
+
 ## 3.15.0
 - House and floor sound reaches your group even when their map is older than
   yours. Pick an ambience or a track for the whole house, or for one floor, and

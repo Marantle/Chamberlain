@@ -89,7 +89,9 @@ L["HUD_TT_NOTES"] = "Chamberlain was updated and has notes you haven't read. Cli
 L["HUD_SOUND"] = "Sound"
 L["HUD_MUTED"] = "|cffdd5555Muted|r"
 L["HUD_TT_SOUND"] =
-    "Right-click to mute or unmute the ambience, music and sounds Chamberlain plays in this house, one kind at a time. Left click to mute all Chamberlain sounds. Same switch as House sounds in Settings."
+    "Click to open the sounds Chamberlain plays in this house. Mute all at the top silences the lot, the same switch as House sounds in Settings. Under it you can mute the ambience, the music and the rest one kind at a time."
+L["HUD_MUTE_ALL"] = "Mute all"
+L["HUD_UNMUTE_ALL"] = "Unmute all"
 L["HUD_SOUND_KINDS"] = "House sounds"
 L["HUD_KIND_AMBIENCE"] = "Ambience"
 L["HUD_KIND_MUSIC"] = "Music"
