@@ -218,7 +218,7 @@ canvas:SetScript("OnMouseUp", function(_, button)
         return
     end
     dragging = false
-    if CH.isOwnHouse and dragSX then
+    if FP.CanEdit() and dragSX then
         local mx, my = FP.CanvasCursor()
         if math.abs(mx - dragSX) < 4 and math.abs(my - dragSY) < 4 then
             CH.SetSelection(nil, nil)

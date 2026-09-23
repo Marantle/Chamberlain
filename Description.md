@@ -150,11 +150,14 @@ export string holds only a live map.
 ## Sharing
 
 If you are in a party or a raid with other Chamberlain users, you can send them
-your map or ask for theirs. A house then needs a map only once. The Sharing
-button on the Chamberlain bar opens the list of maps your group offers. A gold
-dot on the button tells you that somebody has a map of the house you are in.
-Share My Houses sends your map, and it asks which house if you own more than
-one.
+your map or ask for theirs. A house then needs a map only once. The Rooms
+window lists every house you hold a map of, one line each, with a search box
+that finds a house by its owner or by a room name. Maps your group offers show
+at the top under In your group. The Sharing button on the Chamberlain bar opens
+the window, on the first map your group offers if there is one. A gold dot on
+the button tells you that somebody has a map of the house you are in. Click one
+of your houses and then Share to send its map. Map shows the floor plan of the
+house you clicked, even when you are somewhere else.
 
 Every request for your map shows a consent dialog before Chamberlain sends
 anything. You can block players or houses that ask too often. A map from your
@@ -162,9 +165,9 @@ group never replaces the map of your own house. Maps you received sit in a list
 of their own, and you can remove them at any time. You can turn Sharing off in
 Settings.
 
-Export makes a text string of one map, and it asks which house if you have more
-than one. Import reads such a string. Before Import saves anything, a dialog
-shows what the string holds. You see the owner named in it, the number of rooms
+Export makes a text string of the map of the house you clicked. Import reads
+such a string. Before Import saves anything, a dialog shows what the string
+holds. You see the owner named in it, the number of rooms
 and floors, the date of the last change and the first room names. If the string
 is for your own house, the dialog says so in red. Decline it unless it is a
 backup that you made.
@@ -183,8 +186,8 @@ backup that you made.
   both sides. A visitor on an older version sees and hears the rest as before.
 - A sound you pick for the whole house or for a floor reaches your group even
   when their map is older than yours, from 3.15.0 on both sides. A room's own
-  sound needs their map to match yours, so send it again with Share My Houses
-  after you add, move or delete a room.
+  sound needs their map to match yours, so send it again with Share after you
+  add, move or delete a room.
 
 ## Features
 

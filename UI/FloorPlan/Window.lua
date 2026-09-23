@@ -102,7 +102,7 @@ FP.archiveBtn = fpArchiveBtn
 -- every room is still parked under the old one. Suggest the repair instead of
 -- leaving a blank map with no explanation.
 function FP.FixerCandidate()
-    if not CH.isOwnHouse or not CH.currentHouseGUID then
+    if not FP.CanEdit() or not CH.currentHouseGUID then
         return false
     end
     local cur = ChamberlainDB.houses[CH.currentHouseGUID]
@@ -139,15 +139,48 @@ end)
 -- you're viewing, and Stairs can seed its pickers from it.
 CH.fpViewedFloor = 1
 
+-- Set while the map shows a house picked in the Rooms window instead of the one
+-- you stand in. That map is read only. It hides the dots and the tools and keeps
+-- the floor you picked. Closing the map clears it.
+FP.viewGUID = nil
+
+function FP.HouseGUID()
+    return FP.viewGUID or CH.currentHouseGUID
+end
+
 function FP.CurrentHouse()
-    return CH.currentHouseGUID and ChamberlainDB.houses[CH.currentHouseGUID]
+    local guid = FP.HouseGUID()
+    return guid and ChamberlainDB.houses[guid]
+end
+
+-- The edit tools only work on the house you stand in, and only if it's yours.
+function FP.CanEdit()
+    return CH.isOwnHouse and not FP.viewGUID
+end
+
+-- The floor a new room or stair defaults to: the one on the map, unless the map
+-- shows another house and a floating toolbox is building in this one.
+function CH.MapFloor()
+    if FP.viewGUID then
+        return CH.activeFloor or 1
+    end
+    return CH.fpViewedFloor or CH.activeFloor or 1
+end
+
+-- Whether the map shows the owner's view with the secret rooms. Another house
+-- of yours gets it too, since its secrets are your own.
+function FP.OwnerView()
+    if FP.viewGUID then
+        return ChamberlainDB.myHouses[FP.viewGUID] ~= nil
+    end
+    return CH.isOwnHouse
 end
 
 -- Secret rooms show only on the owner's own floor plan. Visitors holding the
 -- shared layout still get the banner on entry (the room is in thier zone list),
 -- but it stays off their map.
 function FP.ZoneVisible(zone)
-    return CH.isOwnHouse or not zone.secret
+    return FP.OwnerView() or not zone.secret
 end
 
 -- OnShow/OnHide also track the open flag, so every close path (the Close button,
@@ -169,18 +202,39 @@ fp:SetScript("OnHide", function()
     if CH.toolbox and CH.toolbox:GetParent() == fp and CH.toolbox:IsShown() then
         CH.toolbox:Hide()
     end
+    FP.viewGUID = nil
 end)
 
-function CH.OpenFloorPlan()
+-- guid is a house picked in the Rooms window, nil the one you stand in. Moving
+-- between the two starts on floor 1 of the other house, or back on the floor
+-- you stand on.
+function CH.OpenFloorPlan(guid)
+    if guid == CH.currentHouseGUID then
+        guid = nil
+    end
+    if guid ~= FP.viewGUID then
+        FP.viewGUID = guid
+        FP.selectedIdx = nil
+        CH.fpViewedFloor = guid and 1 or (CH.activeFloor or 1)
+        -- the docked build tools work on the house you stand in, not this one
+        if guid and CH.toolbox and CH.toolbox:GetParent() == fp then
+            CH.toolbox:Hide()
+        end
+    end
     FP.ResetView() -- open at the fitted view
     FP.InvalidateFit() -- reframe on open
-    fp:Show()
+    if fp:IsShown() then
+        FP.Build()
+    else
+        fp:Show()
+    end
     fp:Raise()
 end
 
--- Launcher/minimap toggle: open if closed, close if already open.
+-- Launcher/minimap toggle: open if closed, close if already open. A map of
+-- another house counts as closed, so the bar's Map button brings back yours.
 function CH.ToggleFloorPlan()
-    if fp:IsShown() then
+    if fp:IsShown() and not FP.viewGUID then
         fp:Hide()
     else
         CH.OpenFloorPlan()

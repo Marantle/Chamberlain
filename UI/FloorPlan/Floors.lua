@@ -183,7 +183,7 @@ end)
 
 addFloorBtn:SetScript("OnClick", function()
     local h = FP.CurrentHouse()
-    if not h or not CH.isOwnHouse then
+    if not h or not FP.CanEdit() then
         return
     end
     h.floorCount = (h.floorCount or 1) + 1
@@ -240,7 +240,7 @@ end
 
 DoRemoveTopFloor = function()
     local h = FP.CurrentHouse()
-    if not h or not CH.isOwnHouse then
+    if not h or not FP.CanEdit() then
         return
     end
     local count = h.floorCount or 1
@@ -265,8 +265,8 @@ DoRemoveTopFloor = function()
     if CH.RefreshHUDMode then
         CH.RefreshHUDMode()
     end
-    if CH.RefreshMyRoomsTab then
-        CH.RefreshMyRoomsTab()
+    if CH.RefreshRoomList then
+        CH.RefreshRoomList()
     end
     SetViewedFloor(math.min(CH.fpViewedFloor, h.floorCount))
     CH.Print(CH.L["FP_REMOVED_FLOOR_X"], count)
@@ -276,7 +276,7 @@ end
 -- goes quietly, a populated one asks first.
 function CH.RemoveTopFloor()
     local h = FP.CurrentHouse()
-    if not h or not CH.isOwnHouse then
+    if not h or not FP.CanEdit() then
         return
     end
     local count = h.floorCount or 1
@@ -319,8 +319,9 @@ function FP.RefreshFloorControls(h)
         floorDown:Show()
         floorUp:SetEnabled(CH.fpViewedFloor < floorCount)
         floorDown:SetEnabled(CH.fpViewedFloor > 1)
-        -- Offer the override only while browsing a floor you're not standing on.
-        if CH.fpViewedFloor ~= (CH.activeFloor or 1) then
+        -- Offer the override only while browsing a floor you're not standing on,
+        -- in the house you're standing in.
+        if not FP.viewGUID and CH.fpViewedFloor ~= (CH.activeFloor or 1) then
             moveBtn:SetText(string.format(CH.L["FP_MOVE_TO_FLOOR_X"], CH.fpViewedFloor))
             moveBtn:Show()
         else
@@ -332,12 +333,13 @@ function FP.RefreshFloorControls(h)
         floorDown:Hide()
         moveBtn:Hide()
     end
-    addFloorBtn:SetShown(CH.isOwnHouse and h ~= nil)
-    ambienceBtn:SetShown(CH.isOwnHouse and h ~= nil)
-    musicBtn:SetShown(CH.isOwnHouse and h ~= nil)
-    arrivalBtn:SetShown(CH.isOwnHouse and h ~= nil)
+    local tools = FP.CanEdit() and h ~= nil
+    addFloorBtn:SetShown(tools)
+    ambienceBtn:SetShown(tools)
+    musicBtn:SetShown(tools)
+    arrivalBtn:SetShown(tools)
     -- Removing the top floor only makes sense once there are 2+ floors.
-    removeFloorBtn:SetShown(CH.isOwnHouse and h ~= nil and floorCount > 1)
+    removeFloorBtn:SetShown(tools and floorCount > 1)
     -- The Show stairs toggle appears whenever the house has stairs to show/hide.
     stairsCheck:SetShown(floorCount > 1)
     stairsCheck:SetChecked(ChamberlainDB.settings.showStairsOnMap)
@@ -349,6 +351,10 @@ end
 -- Called from Housing when the player's active floor changes (took the stairs):
 -- snap the viewed floor to follow them, so the map shows where they now are.
 function CH.OnActiveFloorChanged()
+    -- your stairs say nothing about the floors of a house picked in the Rooms window
+    if FP.viewGUID then
+        return
+    end
     CH.fpViewedFloor = CH.activeFloor or 1
     if fp:IsShown() then
         FP.Build()

@@ -1,11 +1,13 @@
 local _, CH = ...
 
 -- ─────────────────────────────────────────────────────────────────────
--- Room manager window  (My Rooms / Party / Settings tabs)
+-- Room manager window  (house list on the left, the picked house on the right)
 -- ─────────────────────────────────────────────────────────────────────
 
+local LIST_W = 210 -- left column, its scroll bar included
+
 local roomMgr = CreateFrame("Frame", "ChamberlainRoomManager", UIParent, "BackdropTemplate")
-roomMgr:SetSize(320, 520)
+roomMgr:SetSize(600, 520)
 roomMgr:SetFrameStrata("DIALOG")
 -- See FloorPlan.lua: SetToplevel lets clicking/showing this window pull its
 -- whole subtree above the Floor Plan (same strata) instead of bleeding through.
@@ -16,27 +18,8 @@ CH.SkinWindow(roomMgr, "RM_WINDOW_TITLE")
 roomMgr:Hide()
 table.insert(UISpecialFrames, "ChamberlainRoomManager")
 
-local tabMyRooms = CH.MakeButton(roomMgr, "RM_TAB_MY_ROOMS", 90, 22)
-local tabParty = CH.MakeButton(roomMgr, "RM_TAB_GROUP", 68, 22)
-tabMyRooms:SetPoint("TOPLEFT", roomMgr, "TOPLEFT", 8, -30)
-tabParty:SetPoint("LEFT", tabMyRooms, "RIGHT", 2, 0)
-
-local tabSep = roomMgr:CreateTexture(nil, "ARTWORK")
-tabSep:SetHeight(1)
-tabSep:SetPoint("TOPLEFT", roomMgr, "TOPLEFT", 8, -54)
-tabSep:SetPoint("TOPRIGHT", roomMgr, "TOPRIGHT", -8, -54)
-tabSep:SetColorTexture(CH.RGBA(CH.COLORS.sep, 0.8))
-
-local panelMyRooms = CreateFrame("Frame", nil, roomMgr)
-local panelParty = CreateFrame("Frame", nil, roomMgr)
-for _, p in ipairs({ panelMyRooms, panelParty }) do
-    p:SetPoint("TOPLEFT", roomMgr, "TOPLEFT", 8, -58)
-    p:SetPoint("BOTTOMRIGHT", roomMgr, "BOTTOMRIGHT", -8, 40)
-    p:Hide()
-end
-
 -- Settings live in their own window now (opened by the launcher's Settings button
--- or /rooms settings), so the manager is just My Rooms and Party. The settings
+-- or /rooms settings), so the manager is just the house list. The settings
 -- panel below and everything built into it is parented here.
 local settingsWin = CreateFrame("Frame", "ChamberlainSettings", UIParent, "BackdropTemplate")
 -- No taller than this. UIParent is 768 high at UI scale 1 and shorter as the
@@ -69,49 +52,32 @@ thanksBtn:SetScript("OnClick", function()
 end)
 
 local mgrClose = CH.MakeButton(roomMgr, "RM_CLOSE", 80, 22)
-mgrClose:SetPoint("BOTTOM", roomMgr, "BOTTOM", 0, 10)
+mgrClose:SetPoint("BOTTOMRIGHT", roomMgr, "BOTTOMRIGHT", -10, 10)
 mgrClose:SetScript("OnClick", function()
     roomMgr:Hide()
 end)
 
--- ─────────────────────────────────────────────────────────────────────
--- My Rooms Panel
--- ─────────────────────────────────────────────────────────────────────
-
-local ownerLabel = panelMyRooms:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-ownerLabel:SetPoint("TOPLEFT", 2, -4)
-ownerLabel:SetTextColor(CH.RGBA(CH.COLORS.muted, 1))
-
-CH.MakeSep(panelMyRooms, -18, 0.4)
-
-local mgrScroll, mgrScrollChild = CH.MakeScrollList(panelMyRooms, "ChamberlainMgrScroll")
-mgrScroll:SetPoint("TOPLEFT", panelMyRooms, "TOPLEFT", 0, -22)
-mgrScroll:SetPoint("BOTTOMRIGHT", panelMyRooms, "BOTTOMRIGHT", -20, 26)
-
--- its click comes further down, once the house lists it asks from exist
-local btnExport = CH.MakeButton(panelMyRooms, "RM_EXPORT", 80, 20)
-btnExport:SetPoint("BOTTOMLEFT", panelMyRooms, "BOTTOM", -126, 2)
-
-local btnImport = CH.MakeButton(panelMyRooms, "RM_IMPORT", 80, 20)
-btnImport:SetPoint("LEFT", btnExport, "RIGHT", 4, 0)
+local btnImport = CH.MakeButton(roomMgr, "RM_IMPORT", 80, 22)
+btnImport:SetPoint("BOTTOMLEFT", roomMgr, "BOTTOMLEFT", 10, 10)
 btnImport:SetScript("OnClick", function()
     CH.OpenExportDialog("import")
 end)
 
-local btnArchive = CH.MakeButton(panelMyRooms, "RM_ARCHIVE", 80, 20)
+local btnArchive = CH.MakeButton(roomMgr, "RM_ARCHIVE", 80, 22)
 btnArchive:SetPoint("LEFT", btnImport, "RIGHT", 4, 0)
 btnArchive:SetScript("OnClick", function()
     CH.OpenArchive()
 end)
 
-local mgrEmpty = mgrScrollChild:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-mgrEmpty:SetPoint("TOP", 0, -20)
-mgrEmpty:SetText(CH.L["RM_NO_ROOMS_SAVED"])
-mgrEmpty:SetTextColor(CH.RGBA(CH.COLORS.dim, 1))
-mgrEmpty:Hide()
+local divider = roomMgr:CreateTexture(nil, "ARTWORK")
+divider:SetWidth(1)
+divider:SetPoint("TOPLEFT", roomMgr, "TOPLEFT", LIST_W + 12, -34)
+divider:SetPoint("BOTTOMLEFT", roomMgr, "BOTTOMLEFT", LIST_W + 12, 40)
+divider:SetColorTexture(CH.RGBA(CH.COLORS.sep, 0.5))
 
-local ROW_H = 26
-local rowPool = {}
+-- ─────────────────────────────────────────────────────────────────────
+-- House data
+-- ─────────────────────────────────────────────────────────────────────
 
 -- Collect all zones from owned houses, grouped by house.
 local function GetOwnedHouseList()
@@ -119,7 +85,7 @@ local function GetOwnedHouseList()
     for guid, _ in pairs(ChamberlainDB.myHouses or {}) do
         local h = ChamberlainDB.houses[guid]
         if h and h.zones and #h.zones > 0 then
-            list[#list + 1] = { guid = guid, owner = h.owner, realm = h.realm, zones = h.zones }
+            list[#list + 1] = { guid = guid, owner = h.owner, realm = h.realm, zones = h.zones, own = true }
         end
     end
 
@@ -159,7 +125,7 @@ local function GetSharedHouseList()
                 end
             end
             if #visible > 0 then
-                local label = string.format(CH.L["RM_X_HOUSE_SHARED_X"], h.owner or CH.L["RM_UNKNOWN"])
+                local label = string.format(CH.L["RM_X_HOUSE"], h.owner or CH.L["RM_UNKNOWN"])
                 list[#list + 1] = { guid = guid, label = label, zones = visible }
             end
         end
@@ -169,295 +135,6 @@ local function GetSharedHouseList()
     end)
     return list
 end
-
--- For a button that works on one house and has to ask which. With a single
--- house, or none, there is nothing to ask and pick gets it straight away (nil
--- for none). extra may add entries under the houses.
-local function AskWhichHouse(owner, titleKey, houses, pick, extra)
-    if #houses < 2 then
-        pick(houses[1] and houses[1].guid)
-        return
-    end
-    MenuUtil.CreateContextMenu(owner, function(_, root)
-        root:CreateTitle(CH.L[titleKey])
-        for _, house in ipairs(houses) do
-            root:CreateButton(house.label, function()
-                pick(house.guid)
-            end)
-        end
-        if extra then
-            extra(root)
-        end
-    end)
-end
-
--- Your own houses first, then the maps you hold of other people's.
-btnExport:SetScript("OnClick", function(self)
-    local houses = GetOwnedHouseList()
-    tAppendAll(houses, GetSharedHouseList())
-    AskWhichHouse(self, "RM_EXPORT_WHICH", houses, function(guid)
-        CH.OpenExportDialog("export", guid)
-    end)
-end)
-
-local HEADER_H = 20
-local PopulateRoomList -- forward declaration; defined below
-
-local sharedDivider = CreateFrame("Frame", nil, mgrScrollChild)
-sharedDivider:SetHeight(HEADER_H)
-sharedDivider:Hide()
-local sharedDividerLabel = sharedDivider:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-sharedDividerLabel:SetPoint("LEFT", 4, 0)
-sharedDividerLabel:SetText(CH.L["RM_SHARED_LAYOUTS"])
-sharedDividerLabel:SetTextColor(0.60, 0.60, 0.60, 1)
-
--- Headers and zone rows live in separate pools. Mixing them would hand a
--- header slot to a zone row (or vice versa) when the list composition changes.
-local headerPool = {}
-
--- Session-only: which houses are expanded in the My Rooms list. Deliberately
--- not persisted to ChamberlainDB. Owned houses defualt open, shared houses
--- default closed, and the user's expand/collapse choices last only until the
--- next reload.
-local expandedHouses = {}
-
-local function IsHouseExpanded(guid, defaultExpanded)
-    local e = expandedHouses[guid]
-    if e == nil then
-        return defaultExpanded
-    end
-    return e
-end
-
-local ICON_EXPANDED = "|TInterface\\Buttons\\UI-MinusButton-Up:14:14:0:0|t "
-local ICON_COLLAPSED = "|TInterface\\Buttons\\UI-PlusButton-Up:14:14:0:0|t "
-
-local function AddSectionHeader(hdrIdx, w, y, text, removeGUID, toggleGUID, isExpanded)
-    local hdr = headerPool[hdrIdx]
-    if not hdr then
-        hdr = CreateFrame("Frame", nil, mgrScrollChild)
-        hdr:SetHeight(HEADER_H)
-        hdr:EnableMouse(true)
-        hdr.hl = hdr:CreateTexture(nil, "HIGHLIGHT")
-        hdr.hl:SetAllPoints()
-        hdr.hl:SetColorTexture(1, 1, 1, 0.06)
-        hdr.label = hdr:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-        hdr.label:SetPoint("LEFT", 4, 0)
-        hdr.label:SetJustifyH("LEFT")
-        hdr.label:SetTextColor(CH.RGBA(CH.COLORS.gold, 1))
-        hdr.label:SetWordWrap(false)
-        hdr.removeBtn = CH.MakeButton(hdr, "RM_REMOVE", 56, 16)
-        hdr.removeBtn:SetPoint("RIGHT", hdr, "RIGHT", -2, 0)
-        headerPool[hdrIdx] = hdr
-    end
-    local prefix = ""
-    if toggleGUID then
-        prefix = isExpanded and ICON_EXPANDED or ICON_COLLAPSED
-    end
-    hdr.label:SetText(prefix .. text)
-    hdr.label:SetPoint("RIGHT", hdr, "RIGHT", removeGUID and -62 or -4, 0)
-    hdr:SetWidth(w)
-    hdr:SetPoint("TOPLEFT", mgrScrollChild, "TOPLEFT", 0, -y)
-    hdr:Show()
-    if toggleGUID then
-        hdr.hl:Show()
-        hdr:SetScript("OnMouseUp", function()
-            expandedHouses[toggleGUID] = not isExpanded
-            PopulateRoomList()
-        end)
-    else
-        hdr.hl:Hide()
-        hdr:SetScript("OnMouseUp", nil)
-    end
-    if removeGUID then
-        hdr.removeBtn:Show()
-        hdr.removeBtn:SetScript("OnClick", function()
-            ChamberlainDB.houses[removeGUID] = nil
-            PopulateRoomList()
-        end)
-    else
-        hdr.removeBtn:Hide()
-    end
-    return y + HEADER_H
-end
-
-local function AddZoneRow(rowIdx, w, y, zone, zoneIdx, houseGUID, canDelete)
-    local row = rowPool[rowIdx]
-    if not row then
-        row = CreateFrame("Frame", nil, mgrScrollChild)
-        row:SetHeight(ROW_H)
-
-        row.bg = row:CreateTexture(nil, "BACKGROUND")
-        row.bg:SetAllPoints()
-
-        row.nameLabel = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-        row.nameLabel:SetPoint("LEFT", 4, 0)
-        row.nameLabel:SetPoint("RIGHT", row, "RIGHT", -98, 0)
-        row.nameLabel:SetJustifyH("LEFT")
-        row.nameLabel:SetWordWrap(false)
-
-        row.delBtn = CH.MakeButton(row, "RM_DELETE", 52, 20)
-        row.delBtn:SetPoint("RIGHT", row, "RIGHT", -2, 0)
-
-        row.editBtn = CH.MakeButton(row, "RM_EDIT", 38, 20)
-        row.editBtn:SetPoint("RIGHT", row.delBtn, "LEFT", -2, 0)
-
-        rowPool[rowIdx] = row
-    end
-
-    row:SetWidth(w)
-    row:SetPoint("TOPLEFT", mgrScrollChild, "TOPLEFT", 0, -y)
-    row:Show()
-    row.bg:SetColorTexture(0, 0, 0, zoneIdx % 2 == 0 and 0.18 or 0)
-    row.nameLabel:SetText(string.format(CH.L["FMT_NAME_DIM_X"], zone.name, CH.ZoneDimText(zone)))
-
-    if canDelete then
-        row.delBtn:Show()
-        row.delBtn:SetScript("OnClick", function()
-            local house = ChamberlainDB.houses[houseGUID]
-            if house then
-                local removed = table.remove(house.zones, zoneIdx)
-                CH.DropZoneStats(house, removed and removed.name)
-                CH.TouchHouse(houseGUID)
-            end
-        end)
-        row.editBtn:Show()
-        row.editBtn:SetScript("OnClick", function()
-            CH.OpenRenameDialog(zone, houseGUID)
-        end)
-    else
-        row.delBtn:Hide()
-        row.editBtn:Hide()
-    end
-
-    return y + ROW_H
-end
-
-PopulateRoomList = function()
-    local owned = GetOwnedHouseList()
-    local shared = GetSharedHouseList()
-
-    local totalZones = 0
-    for _, h in ipairs(owned) do
-        totalZones = totalZones + #h.zones
-    end
-    for _, h in ipairs(shared) do
-        totalZones = totalZones + #h.zones
-    end
-
-    if #owned > 0 then
-        ownerLabel:SetText(CH.L["RM_YOUR_HOUSES"])
-    elseif #shared > 0 then
-        ownerLabel:SetText(CH.L["RM_SHARED_LAYOUTS"])
-    else
-        ownerLabel:SetText(CH.L["RM_NO_ROOMS_YET"])
-    end
-
-    for _, row in ipairs(rowPool) do
-        row:Hide()
-    end
-    for _, hdr in ipairs(headerPool) do
-        hdr:Hide()
-    end
-    sharedDivider:Hide()
-
-    local w = mgrScroll:GetWidth() - 20
-    if w <= 10 then
-        w = 260
-    end
-    mgrScrollChild:SetWidth(w)
-
-    local rowIdx = 0
-    local hdrIdx = 0
-    local y = 0
-
-    for _, houseData in ipairs(owned) do
-        -- Every owned house gets a collapsible header, open by default.
-        local expanded = IsHouseExpanded(houseData.guid, true)
-        hdrIdx = hdrIdx + 1
-        y = AddSectionHeader(hdrIdx, w, y, houseData.label, nil, houseData.guid, expanded)
-        if expanded then
-            for zoneIdx, zone in ipairs(houseData.zones) do
-                rowIdx = rowIdx + 1
-                y = AddZoneRow(rowIdx, w, y, zone, zoneIdx, houseData.guid, true)
-            end
-        end
-    end
-
-    if #shared > 0 then
-        -- The divider is a separator beneath your own houses. With no owned
-        -- houses above it the panel's top label already reads "Shared layouts",
-        -- so showing it here would just duplicate that.
-        if #owned > 0 then
-            sharedDivider:SetWidth(w)
-            sharedDivider:SetPoint("TOPLEFT", mgrScrollChild, "TOPLEFT", 0, -y)
-            sharedDivider:Show()
-            y = y + HEADER_H
-        end
-
-        for _, houseData in ipairs(shared) do
-            -- Shared (not-owned) houses default to collapsed on each reload.
-            local expanded = IsHouseExpanded(houseData.guid, false)
-            hdrIdx = hdrIdx + 1
-            y = AddSectionHeader(hdrIdx, w, y, houseData.label, houseData.guid, houseData.guid, expanded)
-            if expanded then
-                for zoneIdx, zone in ipairs(houseData.zones) do
-                    rowIdx = rowIdx + 1
-                    y = AddZoneRow(rowIdx, w, y, zone, zoneIdx, houseData.guid, false)
-                end
-            end
-        end
-    end
-
-    mgrScrollChild:SetHeight(math.max(y, 1))
-    mgrEmpty:SetShown(totalZones == 0)
-end
-
--- ─────────────────────────────────────────────────────────────────────
--- Party Panel
--- ─────────────────────────────────────────────────────────────────────
-
-local partySubtitle = panelParty:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-partySubtitle:SetPoint("TOPLEFT", 2, -4)
-partySubtitle:SetTextColor(CH.RGBA(CH.COLORS.muted, 1))
-
-CH.MakeSep(panelParty, -18, 0.4)
-
-local partyScroll, partyScrollChild = CH.MakeScrollList(panelParty, "ChamberlainPartyScroll")
-partyScroll:SetPoint("TOPLEFT", panelParty, "TOPLEFT", 0, -22)
-partyScroll:SetPoint("BOTTOMRIGHT", panelParty, "BOTTOMRIGHT", -20, 30)
-
-local partyEmpty = partyScrollChild:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-partyEmpty:SetPoint("TOP", 0, -20)
-partyEmpty:SetText(CH.L["RM_NO_LAYOUTS_FROM_GROUP"])
-partyEmpty:SetTextColor(CH.RGBA(CH.COLORS.dim, 1))
-partyEmpty:Hide()
-
--- More than one house and it asks which, so an alt's house doesn't ride along.
-local shareAllBtn = CH.MakeButton(panelParty, "RM_SHARE_MY_HOUSES", 120, 22)
-shareAllBtn:SetPoint("BOTTOM", panelParty, "BOTTOM", 0, 4)
-shareAllBtn:SetScript("OnClick", function(self)
-    local owned = GetOwnedHouseList()
-    AskWhichHouse(self, "RM_SHARE_WHICH", owned, CH.ShareAll, function(root)
-        root:CreateButton(string.format(CH.L["RM_SHARE_ALL_X"], #owned), function()
-            CH.ShareAll()
-        end)
-    end)
-end)
-
--- Disable the share button while a transfer is in flight so it can't be spammed
--- mid-share. Driven by the send-progress lifecycle in ShareUI (ShowSendProgress
--- on start, HideSendProgress when the queue drains or the send is aborted).
-function CH.SetShareBusy(busy)
-    shareAllBtn:SetEnabled(not busy)
-end
-
-local PARTY_ROW_H = 34
-local partyRowPool = {}
--- Per-house Request debounce: after a click the button stays disabled this many
--- seconds, kept across list repopulates so it can't be spammed.
-local REQUEST_COOLDOWN = 5
-local requestCooldowns = {}
 
 local function GetPartyHouseList()
     local byGUID = {}
@@ -500,96 +177,442 @@ local function GetStatus(guid, bestTimestamp)
     return "current"
 end
 
-local function PopulatePartyList()
-    local list = GetPartyHouseList()
-    local count = #list
+-- ─────────────────────────────────────────────────────────────────────
+-- House list (left)
+-- ─────────────────────────────────────────────────────────────────────
 
-    if not IsInGroup() then
-        partySubtitle:SetText(CH.L["RM_NOT_IN_GROUP"])
-    elseif count == 0 then
-        partySubtitle:SetText(CH.L["RM_NO_MEMBERS_HAVE_ADDON"])
-    else
-        partySubtitle:SetText(
-            string.format(count == 1 and CH.L["RM_N_HOUSE_AVAILABLE_X"] or CH.L["RM_N_HOUSES_AVAILABLE_X"], count)
-        )
+local selected -- guid of the house shown on the right
+local wantGroup = false -- pick the first group map on the next populate
+local query = ""
+local Populate -- forward declaration; defined below
+
+-- A scroll frame has no width before the window first lays out, so the first
+-- popluate goes by the width it's going to have.
+local function FitScrollChild(scroll, child, fallback)
+    local w = scroll:GetWidth()
+    if w <= 10 then
+        w = fallback
+    end
+    child:SetWidth(w)
+    return w
+end
+
+local searchBox = CreateFrame("EditBox", nil, roomMgr, "InputBoxTemplate")
+searchBox:SetSize(LIST_W - 10, 20)
+searchBox:SetPoint("TOPLEFT", roomMgr, "TOPLEFT", 16, -34)
+searchBox:SetAutoFocus(false)
+searchBox:SetMaxLetters(40)
+
+local searchHint = searchBox:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+searchHint:SetPoint("LEFT", 6, 0)
+searchHint:SetText(CH.L["RM_SEARCH_HINT"])
+
+local listScroll, listChild = CH.MakeScrollList(roomMgr, "ChamberlainMgrScroll")
+listScroll:SetPoint("TOPLEFT", roomMgr, "TOPLEFT", 8, -60)
+listScroll:SetPoint("BOTTOMRIGHT", roomMgr, "BOTTOMLEFT", LIST_W - 12, 40)
+
+searchBox:SetScript("OnTextChanged", function(self)
+    searchHint:SetShown(self:GetText() == "")
+    query = string.lower(string.match(self:GetText(), "^%s*(.-)%s*$"))
+    listScroll:SetVerticalScroll(0)
+    Populate()
+end)
+searchBox:SetScript("OnEnterPressed", searchBox.ClearFocus)
+
+local listEmpty = listChild:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+listEmpty:SetPoint("TOPLEFT", 4, -8)
+listEmpty:SetPoint("RIGHT", listChild, "RIGHT", -4, 0)
+listEmpty:SetJustifyH("LEFT")
+listEmpty:SetTextColor(CH.RGBA(CH.COLORS.dim, 1))
+
+local SECTION_H = 18
+local HOUSE_ROW_H = 20
+
+-- Headers and notes are font strings and house rows are buttons, each in its
+-- own pool.
+local lineLabels = {}
+local houseRows = {}
+
+local function LineLabel(i)
+    local fs = lineLabels[i]
+    if not fs then
+        fs = listChild:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+        fs:SetJustifyH("LEFT")
+        fs:SetWordWrap(false)
+        lineLabels[i] = fs
+    end
+    return fs
+end
+
+local function HouseRow(i)
+    local row = houseRows[i]
+    if row then
+        return row
+    end
+    row = CreateFrame("Button", nil, listChild)
+    row:SetHeight(HOUSE_ROW_H)
+
+    local hl = row:CreateTexture(nil, "HIGHLIGHT")
+    hl:SetAllPoints()
+    hl:SetColorTexture(1, 1, 1, 0.06)
+
+    row.sel = row:CreateTexture(nil, "BACKGROUND")
+    row.sel:SetAllPoints()
+    row.sel:SetColorTexture(CH.RGBA(CH.COLORS.frame, 0.22))
+
+    row.tag = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    row.tag:SetPoint("RIGHT", -4, 0)
+    row.tag:SetTextColor(CH.RGBA(CH.COLORS.dim, 1))
+
+    row.label = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    row.label:SetPoint("LEFT", 4, 0)
+    row.label:SetPoint("RIGHT", row.tag, "LEFT", -4, 0)
+    row.label:SetJustifyH("LEFT")
+    row.label:SetWordWrap(false)
+
+    row:SetScript("OnClick", function(self)
+        selected = self.guid
+        Populate()
+    end)
+    houseRows[i] = row
+    return row
+end
+
+local function Matches(item)
+    if query == "" or string.find(string.lower(item.label), query, 1, true) then
+        return true
+    end
+    for _, zone in ipairs(item.zones or {}) do
+        if string.find(string.lower(zone.name or ""), query, 1, true) then
+            return true
+        end
+    end
+    return false
+end
+
+-- The three sections of the list, each item with what the right side needs.
+-- Group maps only show while there is something to fetch, a map you lack or a
+-- newer one than yours. Maps already current sit in their own section anyway.
+local function BuildSections()
+    local shared = GetSharedHouseList()
+    local sharedByGUID = {}
+    for _, item in ipairs(shared) do
+        sharedByGUID[item.guid] = item
     end
 
-    for _, row in ipairs(partyRowPool) do
+    local party = {}
+    local groupItems = {}
+    local partyList = GetPartyHouseList()
+    for _, p in ipairs(partyList) do
+        local status = GetStatus(p.guid, p.bestTimestamp)
+        if status == "not_owned" or status == "newer" then
+            p.status = status
+            party[p.guid] = p
+            -- A newer map than yours shows the rooms of the copy you hold, with
+            -- the owner's secret rooms already left out.
+            local copy = sharedByGUID[p.guid]
+            local item = {
+                guid = p.guid,
+                label = string.format(CH.L["RM_X_HOUSE"], p.owner),
+                tag = CH.L[status == "newer" and "RM_TAG_NEWER" or "RM_TAG_NEW"],
+                zones = copy and copy.zones or {},
+            }
+            if Matches(item) then
+                groupItems[#groupItems + 1] = item
+            end
+        end
+    end
+
+    local function withMatches(list)
+        local out = {}
+        for _, item in ipairs(list) do
+            if Matches(item) then
+                item.tag = tostring(#item.zones)
+                out[#out + 1] = item
+            end
+        end
+        return out
+    end
+
+    local sections = {}
+    if IsInGroup() then
+        local note
+        if query == "" and #groupItems == 0 then
+            note = #partyList == 0 and "RM_NO_MEMBERS_HAVE_ADDON" or "RM_GROUP_NOTHING_NEW"
+        end
+        sections[1] = { key = "RM_IN_GROUP", items = groupItems, note = note }
+    end
+    sections[#sections + 1] = { key = "RM_YOUR_HOUSES", items = withMatches(GetOwnedHouseList()) }
+    sections[#sections + 1] = { key = "RM_SHARED_LAYOUTS", items = withMatches(shared) }
+    return sections, party
+end
+
+-- Lays out the list and returns the item for the selected house.
+local function PopulateList(sections)
+    for _, fs in ipairs(lineLabels) do
+        fs:Hide()
+    end
+    for _, row in ipairs(houseRows) do
         row:Hide()
     end
 
-    local w = partyScroll:GetWidth() - 20
-    if w <= 10 then
-        w = 260
+    local byGUID, firstGUID = {}, nil
+    for _, sec in ipairs(sections) do
+        for _, item in ipairs(sec.items) do
+            byGUID[item.guid] = byGUID[item.guid] or item
+            firstGUID = firstGUID or item.guid
+        end
     end
-    partyScrollChild:SetWidth(w)
-
-    for i, data in ipairs(list) do
-        local row = partyRowPool[i]
-        if not row then
-            row = CreateFrame("Frame", nil, partyScrollChild)
-            row:SetHeight(PARTY_ROW_H)
-
-            row.bg = row:CreateTexture(nil, "BACKGROUND")
-            row.bg:SetAllPoints()
-
-            row.nameLabel = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-            row.nameLabel:SetPoint("TOPLEFT", 4, -4)
-            row.nameLabel:SetPoint("RIGHT", row, "RIGHT", -68, 0)
-            row.nameLabel:SetJustifyH("LEFT")
-            row.nameLabel:SetWordWrap(false)
-
-            row.statusLabel = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-            row.statusLabel:SetPoint("BOTTOMLEFT", 4, 4)
-
-            row.reqBtn = CH.MakeButton(row, "RM_REQUEST", 62, 20)
-            row.reqBtn:SetPoint("RIGHT", row, "RIGHT", -2, 0)
-
-            partyRowPool[i] = row
+    if wantGroup then
+        wantGroup = false
+        local first = sections[1].key == "RM_IN_GROUP" and sections[1].items[1]
+        if first then
+            selected = first.guid
         end
+    end
+    if not byGUID[selected] then
+        selected = byGUID[CH.currentHouseGUID] and CH.currentHouseGUID or firstGUID
+    end
 
-        row:SetWidth(w)
-        row:SetPoint("TOPLEFT", partyScrollChild, "TOPLEFT", 0, -(i - 1) * PARTY_ROW_H)
-        row:Show()
-        row.bg:SetColorTexture(0, 0, 0, i % 2 == 0 and 0.18 or 0)
+    local w = FitScrollChild(listScroll, listChild, LIST_W - 20)
+    local y, lineIdx, rowIdx = 0, 0, 0
+    local function addLine(key, r, g, b)
+        lineIdx = lineIdx + 1
+        local fs = LineLabel(lineIdx)
+        fs:SetText(CH.L[key])
+        fs:SetTextColor(r, g, b)
+        fs:SetPoint("TOPLEFT", listChild, "TOPLEFT", 4, -(y + 5))
+        fs:SetPoint("RIGHT", listChild, "RIGHT", -4, 0)
+        fs:Show()
+        y = y + SECTION_H
+    end
 
-        local displayName = string.format(CH.L["RM_X_HOUSE"], data.owner)
-        if data.isTransitive then
-            displayName = displayName .. string.format(CH.L["RM_VIA_X"], data.bestHolder)
+    for _, sec in ipairs(sections) do
+        if #sec.items > 0 or sec.note then
+            addLine(sec.key, CH.RGBA(CH.COLORS.muted, 1))
+            if sec.note then
+                addLine(sec.note, CH.RGBA(CH.COLORS.dim, 1))
+            end
+            for _, item in ipairs(sec.items) do
+                rowIdx = rowIdx + 1
+                local row = HouseRow(rowIdx)
+                row.guid = item.guid
+                row:SetWidth(w)
+                row:SetPoint("TOPLEFT", listChild, "TOPLEFT", 0, -y)
+                row.label:SetText(item.label)
+                row.tag:SetText(item.tag)
+                row.sel:SetShown(item.guid == selected)
+                row:Show()
+                y = y + HOUSE_ROW_H
+            end
+            y = y + 4
         end
-        row.nameLabel:SetText(displayName)
+    end
 
-        local guid = data.guid
-        local status = GetStatus(guid, data.bestTimestamp)
-        if status == "own" then
-            row.statusLabel:SetText(CH.L["RM_STATUS_YOUR_HOUSE"])
-            row.reqBtn:Disable()
-        elseif status == "not_owned" then
-            row.statusLabel:SetText(CH.L["RM_STATUS_NOT_OWNED"])
-            row.reqBtn:Enable()
-        elseif status == "newer" then
-            row.statusLabel:SetText(CH.L["RM_STATUS_NEWER_AVAILABLE"])
-            row.reqBtn:Enable()
-        else
-            row.statusLabel:SetText(CH.L["RM_STATUS_UP_TO_DATE"])
-            row.reqBtn:Disable()
-        end
-        -- Keep a just-requested house's button disabled until its cooldown ends,
-        -- even though the status above would otherwise re-enable it.
-        if requestCooldowns[guid] and GetTime() - requestCooldowns[guid] < REQUEST_COOLDOWN then
-            row.reqBtn:Disable()
-        end
+    local empty = not firstGUID and lineIdx == 0
+    if empty then
+        listEmpty:SetText(CH.L[query == "" and "RM_NO_ROOMS_YET" or "RM_NO_MATCHES"])
+    end
+    listEmpty:SetShown(empty)
+    listChild:SetHeight(math.max(y, 1))
+    return byGUID[selected]
+end
 
-        row.reqBtn:SetScript("OnClick", function()
-            requestCooldowns[guid] = GetTime()
-            row.reqBtn:Disable()
-            C_Timer.After(REQUEST_COOLDOWN, CH.RefreshPartyTab)
-            CH.RequestLayout(guid)
+-- ─────────────────────────────────────────────────────────────────────
+-- The picked house (right)
+-- ─────────────────────────────────────────────────────────────────────
+
+local detail = CreateFrame("Frame", nil, roomMgr)
+detail:SetPoint("TOPLEFT", roomMgr, "TOPLEFT", LIST_W + 22, -34)
+detail:SetPoint("BOTTOMRIGHT", roomMgr, "BOTTOMRIGHT", -8, 40)
+
+local detailTitle = detail:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+detailTitle:SetPoint("TOPLEFT", 0, 0)
+detailTitle:SetPoint("RIGHT", detail, "RIGHT", -4, 0)
+detailTitle:SetJustifyH("LEFT")
+detailTitle:SetWordWrap(false)
+
+local detailMeta = detail:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+detailMeta:SetPoint("TOPLEFT", 0, -22)
+detailMeta:SetTextColor(CH.RGBA(CH.COLORS.muted, 1))
+
+local detailNote = detail:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+detailNote:SetPoint("TOPLEFT", 0, -36)
+detailNote:SetPoint("RIGHT", detail, "RIGHT", -4, 0)
+detailNote:SetJustifyH("LEFT")
+detailNote:SetWordWrap(false)
+
+local btnMap = CH.MakeButton(detail, "RM_MAP", 72, 22)
+local btnExport = CH.MakeButton(detail, "RM_EXPORT", 72, 22)
+local btnShare = CH.MakeButton(detail, "RM_SHARE", 72, 22)
+local btnRequest = CH.MakeButton(detail, "RM_REQUEST", 72, 22)
+local btnRemove = CH.MakeButton(detail, "RM_REMOVE", 72, 22)
+local actionButtons = { btnMap, btnExport, btnShare, btnRequest, btnRemove }
+
+local function LayoutActions()
+    local prev
+    for _, b in ipairs(actionButtons) do
+        if b:IsShown() then
+            b:ClearAllPoints()
+            if prev then
+                b:SetPoint("LEFT", prev, "RIGHT", 4, 0)
+            else
+                b:SetPoint("TOPLEFT", detail, "TOPLEFT", 0, -54)
+            end
+            prev = b
+        end
+    end
+end
+
+CH.MakeSep(detail, -82, 0.4)
+
+local roomScroll, roomChild = CH.MakeScrollList(detail, "ChamberlainRoomScroll")
+roomScroll:SetPoint("TOPLEFT", detail, "TOPLEFT", 0, -86)
+roomScroll:SetPoint("BOTTOMRIGHT", detail, "BOTTOMRIGHT", -20, 0)
+
+local roomEmpty = roomChild:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+roomEmpty:SetPoint("TOPLEFT", 4, -12)
+roomEmpty:SetPoint("RIGHT", roomChild, "RIGHT", -4, 0)
+roomEmpty:SetJustifyH("LEFT")
+roomEmpty:SetTextColor(CH.RGBA(CH.COLORS.dim, 1))
+
+local ROW_H = 26
+local rowPool = {}
+
+local function AddZoneRow(zoneIdx, w, y, zone, houseGUID, canDelete)
+    local row = rowPool[zoneIdx]
+    if not row then
+        row = CreateFrame("Frame", nil, roomChild)
+        row:SetHeight(ROW_H)
+
+        row.bg = row:CreateTexture(nil, "BACKGROUND")
+        row.bg:SetAllPoints()
+
+        row.nameLabel = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        row.nameLabel:SetPoint("LEFT", 4, 0)
+        row.nameLabel:SetPoint("RIGHT", row, "RIGHT", -98, 0)
+        row.nameLabel:SetJustifyH("LEFT")
+        row.nameLabel:SetWordWrap(false)
+
+        row.delBtn = CH.MakeButton(row, "RM_DELETE", 52, 20)
+        row.delBtn:SetPoint("RIGHT", row, "RIGHT", -2, 0)
+
+        row.editBtn = CH.MakeButton(row, "RM_EDIT", 38, 20)
+        row.editBtn:SetPoint("RIGHT", row.delBtn, "LEFT", -2, 0)
+
+        rowPool[zoneIdx] = row
+    end
+
+    row:SetWidth(w)
+    row:SetPoint("TOPLEFT", roomChild, "TOPLEFT", 0, -y)
+    row:Show()
+    row.bg:SetColorTexture(0, 0, 0, zoneIdx % 2 == 0 and 0.18 or 0)
+    row.nameLabel:SetText(string.format(CH.L["FMT_NAME_DIM_X"], zone.name, CH.ZoneDimText(zone)))
+
+    if canDelete then
+        row.delBtn:Show()
+        row.delBtn:SetScript("OnClick", function()
+            local house = ChamberlainDB.houses[houseGUID]
+            if house then
+                local removed = table.remove(house.zones, zoneIdx)
+                CH.DropZoneStats(house, removed and removed.name)
+                CH.TouchHouse(houseGUID)
+            end
         end)
+        row.editBtn:Show()
+        row.editBtn:SetScript("OnClick", function()
+            CH.OpenRenameDialog(zone, houseGUID)
+        end)
+    else
+        row.delBtn:Hide()
+        row.editBtn:Hide()
     end
 
-    partyScrollChild:SetHeight(math.max(count * PARTY_ROW_H, 1))
-    partyEmpty:SetShown(count == 0)
+    return y + ROW_H
+end
+
+-- Per-house Request debounce: after a click the button stays disabled this many
+-- seconds, kept across list repopulates so it can't be spammed.
+local REQUEST_COOLDOWN = 5
+local requestCooldowns = {}
+local shareBusy = false
+
+local function PopulateDetail(item, p)
+    for _, row in ipairs(rowPool) do
+        row:Hide()
+    end
+    local h = item and ChamberlainDB.houses[item.guid]
+
+    detailTitle:SetText(item and item.label or "")
+    detailMeta:SetText(h and string.format(CH.L["RM_ROOMS_FLOORS_X"], #item.zones, h.floorCount or 1) or "")
+    local note = ""
+    if p then
+        note = CH.L[p.status == "newer" and "RM_GROUP_HAS_NEWER" or "RM_GROUP_HAS_MAP"]
+        if p.isTransitive then
+            note = note .. string.format(CH.L["RM_VIA_X"], p.bestHolder)
+        end
+    end
+    detailNote:SetText(note)
+
+    btnMap:SetShown(h ~= nil)
+    btnExport:SetShown(h ~= nil)
+    btnShare:SetShown(item and item.own or false)
+    btnShare:SetEnabled(not shareBusy)
+    btnRequest:SetShown(p ~= nil)
+    local cooling = item and requestCooldowns[item.guid] and GetTime() - requestCooldowns[item.guid] < REQUEST_COOLDOWN
+    btnRequest:SetEnabled(not cooling)
+    btnRemove:SetShown(h ~= nil and not item.own)
+    LayoutActions()
+
+    local w = FitScrollChild(roomScroll, roomChild, 340)
+    local y = 0
+    for zoneIdx, zone in ipairs(h and item.zones or {}) do
+        y = AddZoneRow(zoneIdx, w, y, zone, item.guid, item.own)
+    end
+    roomChild:SetHeight(math.max(y, 1))
+
+    if item and not h then
+        roomEmpty:SetText(CH.L["RM_NO_MAP_YET"])
+    end
+    roomEmpty:SetShown(item ~= nil and not h)
+end
+
+Populate = function()
+    local sections, party = BuildSections()
+    local item = PopulateList(sections)
+    PopulateDetail(item, item and party[item.guid])
+end
+
+btnMap:SetScript("OnClick", function()
+    CH.OpenFloorPlan(selected)
+end)
+
+btnExport:SetScript("OnClick", function()
+    CH.OpenExportDialog("export", selected)
+end)
+
+btnShare:SetScript("OnClick", function()
+    CH.ShareAll(selected)
+end)
+
+btnRequest:SetScript("OnClick", function()
+    requestCooldowns[selected] = GetTime()
+    btnRequest:Disable()
+    C_Timer.After(REQUEST_COOLDOWN, CH.RefreshGroupMaps)
+    CH.RequestLayout(selected)
+end)
+
+btnRemove:SetScript("OnClick", function()
+    ChamberlainDB.houses[selected] = nil
+    CH.RefreshGroupMaps()
+end)
+
+-- Disable the share button while a transfer is in flight so it can't be spammed
+-- mid-share. Driven by the send-progress lifecycle in ShareUI (ShowSendProgress
+-- on start, HideSendProgress when the queue drains or the send is aborted).
+function CH.SetShareBusy(busy)
+    shareBusy = busy
+    btnShare:SetEnabled(not busy)
 end
 
 -- ─────────────────────────────────────────────────────────────────────
@@ -602,8 +625,8 @@ local shareToggle = CH.MakeToggleButton(panelSettings, "RM_TOGGLE_SHARING", "sha
 shareToggle:SetPoint("TOPLEFT", 4, -22)
 
 -- Receiving lever, separate from sharing. Flipping it off also drops anything
--- already collected (party catalogs, half-finished transfers) so the Party tab
--- doesn't keep offering houses that can no longer arrive.
+-- already collected (party catalogs, half-finished transfers) so the house list
+-- doesn't keep offering maps that can no longer arrive.
 local recvToggle = CH.MakeToggleButton(panelSettings, "RM_TOGGLE_RECEIVING", "receiveEnabled")
 recvToggle:SetPoint("TOPLEFT", 4, -46)
 recvToggle:HookScript("OnClick", function()
@@ -613,9 +636,7 @@ recvToggle:HookScript("OnClick", function()
         if CH.HideReceiveProgress then
             CH.HideReceiveProgress()
         end
-        if CH.RefreshPartyTab then
-            CH.RefreshPartyTab()
-        end
+        CH.RefreshGroupMaps()
     end
 end)
 
@@ -894,42 +915,12 @@ local function RefreshSettingsTab()
 end
 
 -- ─────────────────────────────────────────────────────────────────────
--- Tab Switching
--- ─────────────────────────────────────────────────────────────────────
-
-local activeTab = nil
-
-local function ShowTab(tab)
-    if activeTab == tab then
-        return
-    end
-    activeTab = tab
-    panelMyRooms:SetShown(tab == "myrooms")
-    panelParty:SetShown(tab == "party")
-    tabMyRooms:SetEnabled(tab ~= "myrooms")
-    tabParty:SetEnabled(tab ~= "party")
-    if tab == "myrooms" then
-        PopulateRoomList()
-    end
-    if tab == "party" then
-        PopulatePartyList()
-    end
-end
-
-tabMyRooms:SetScript("OnClick", function()
-    ShowTab("myrooms")
-end)
-tabParty:SetScript("OnClick", function()
-    ShowTab("party")
-end)
-
--- ─────────────────────────────────────────────────────────────────────
 -- Public Api
 -- ─────────────────────────────────────────────────────────────────────
 
-CH.RefreshMyRoomsTab = function()
-    if activeTab == "myrooms" then
-        PopulateRoomList()
+function CH.RefreshRoomList()
+    if roomMgr:IsShown() then
+        Populate()
     end
 end
 
@@ -950,10 +941,9 @@ function CH.RefreshSharingDot()
     CH.SetSharingDot(news)
 end
 
-CH.RefreshPartyTab = function()
-    if activeTab == "party" then
-        PopulatePartyList()
-    end
+-- Call after a group catalog or a received map changes.
+function CH.RefreshGroupMaps()
+    CH.RefreshRoomList()
     CH.RefreshSharingDot()
 end
 
@@ -979,19 +969,20 @@ function CH.ToggleSettings()
     end
 end
 
-function CH.OpenRoomManager(tab)
+-- Opens on the first map your group offers, the one the Sharing dot is about.
+-- With nothing on offer the pick stays where it was.
+function CH.OpenRoomManager()
+    wantGroup = true
     roomMgr:Show()
     roomMgr:Raise()
-    ShowTab(tab or activeTab or "myrooms")
+    Populate()
 end
 
--- Launcher/minimap toggle: open if closed, close if already open. The bar's
--- Rooms and Sharing buttons name a tab each, and the one for the other tab
--- switches over where the window is already up.
-function CH.ToggleRoomManager(tab)
-    if roomMgr:IsShown() and (not tab or tab == activeTab) then
+-- Launcher/minimap toggle: open if closed, close if already open.
+function CH.ToggleRoomManager()
+    if roomMgr:IsShown() then
         roomMgr:Hide()
     else
-        CH.OpenRoomManager(tab)
+        CH.OpenRoomManager()
     end
 end

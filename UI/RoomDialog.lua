@@ -883,7 +883,7 @@ function CH.CreateZoneAt(x, y, mapID, shape)
         minY = y - DEFAULT_HALF,
         maxY = y + DEFAULT_HALF,
         shape = shape == "circle" and "circle" or nil,
-        floor = CH.fpViewedFloor or CH.activeFloor or 1,
+        floor = CH.MapFloor(),
     }
     table.insert(h.zones, z)
     CH.TouchHouse(CH.currentHouseGUID)

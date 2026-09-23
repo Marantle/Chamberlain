@@ -253,7 +253,7 @@ function CH.OpenStairsWizard()
         return
     end
     markBottom, markTop = nil, nil
-    lowerFloor = math.min(CH.fpViewedFloor or CH.activeFloor or 1, (h.floorCount or 2) - 1)
+    lowerFloor = math.min(CH.MapFloor(), (h.floorCount or 2) - 1)
     if lowerFloor < 1 then
         lowerFloor = 1
     end
@@ -424,7 +424,7 @@ function CH.OpenFloorMarkerWizard()
         return
     end
     markerSpot = nil
-    markerFloor = math.min(CH.fpViewedFloor or CH.activeFloor or 1, h.floorCount or 1)
+    markerFloor = math.min(CH.MapFloor(), h.floorCount or 1)
     if markerFloor < 1 then
         markerFloor = 1
     end

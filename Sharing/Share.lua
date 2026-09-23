@@ -595,11 +595,8 @@ function CH.ApplyLayout(houseGUID, data, senderName)
     Debug("ApplyLayout: saved", houseGUID, "(" .. #data.zones .. " zones) from", senderName)
     local houseName = (data.owner and string.format(CH.L["SHARE_X_HOUSE"], data.owner)) or CH.L["SHARE_A_HOUSE"]
     CH.Print(CH.L["SHARE_RECEIVED_X"], #data.zones, houseName, senderName)
-    if CH.RefreshMyRoomsTab then
-        CH.RefreshMyRoomsTab()
-    end
-    if CH.RefreshPartyTab then
-        CH.RefreshPartyTab()
+    if CH.RefreshGroupMaps then
+        CH.RefreshGroupMaps()
     end
     if CH.RebuildFloorPlan then
         CH.RebuildFloorPlan()
@@ -1045,8 +1042,8 @@ function CH.HandleMessage(prefix, payload, channel, fullSender)
         end
         CH.partyCatalogs[sender] = CH.partyCatalogs[sender] or {}
         CH.partyCatalogs[sender][guid] = { owner = owner, timestamp = ts, zoneCount = count }
-        if CH.RefreshPartyTab then
-            CH.RefreshPartyTab()
+        if CH.RefreshGroupMaps then
+            CH.RefreshGroupMaps()
         end
     elseif msgType == "LAYOUT_REQ" then
         local guid = parts[2]
@@ -1336,8 +1333,8 @@ shareFrame:SetScript("OnEvent", function(_, event, arg1, arg2, arg3, arg4)
         CH.HandleMessage(arg1, arg2, arg3, arg4)
     elseif event == "GROUP_ROSTER_UPDATE" then
         wipe(CH.partyCatalogs)
-        if CH.RefreshPartyTab then
-            CH.RefreshPartyTab()
+        if CH.RefreshGroupMaps then
+            CH.RefreshGroupMaps()
         end
         wipe(incompatible)
         wipe(peerVersions)

@@ -71,8 +71,10 @@ end
 -- A zone is drawn on a floor when it's visible to us (secret rooms hide from
 -- visitors), belongs on that floor and isn't a stair anchor we've hidden. The
 -- floor plan asks about the floor it's viewing, the minimap about the active one.
-function FP.ZoneOnFloor(h, zone, floor)
-    if not FP.ZoneVisible(zone) then
+-- ownerView lets the secret rooms in. Each caller passes its own, because the
+-- map can show another house than the minimap does.
+function FP.ZoneOnFloor(h, zone, floor, ownerView)
+    if zone.secret and not ownerView then
         return false
     end
     if zone.noBanner and not ChamberlainDB.settings.showSpotsOnMap then
@@ -266,7 +268,7 @@ local function GetZoneFrame(i)
     -- Click selects for editing. Where rooms overlap, repeated clicks cycle
     -- through every room under the cursor (topmost first), then deselect.
     f:SetScript("OnMouseDown", function(self)
-        if not CH.isOwnHouse then
+        if not FP.CanEdit() then
             return
         end
         local hits = ZonesAtCursor()
@@ -334,7 +336,7 @@ function FP.Build()
 
     if h and h.owner then
         FP.sub:SetText(string.format(CH.L["FP_X_HOUSE"], h.owner))
-    elseif CH.currentHouseGUID then
+    elseif FP.HouseGUID() then
         FP.sub:SetText(CH.L["FP_HOME_INTERIOR"])
     else
         FP.sub:SetText(CH.L["FP_NOT_IN_HOUSE"])
@@ -345,11 +347,11 @@ function FP.Build()
     -- pan, so the view stays put when you take the stairs or page through floors.
     -- A plain rebuild (room edit, dot refresh) leaves everything untouched, which
     -- keeps a dragged handle from chasing a refitting map.
-    if CH.currentHouseGUID ~= lastBuiltGuid then
+    if FP.HouseGUID() ~= lastBuiltGuid then
         FP.ResetView()
         FP.InvalidateFit() -- new house: reframe via EnsureFit below
     end
-    lastBuiltGuid = CH.currentHouseGUID
+    lastBuiltGuid = FP.HouseGUID()
 
     -- Lazily (re)establish the house-wide fit. Only the reframe events invalidate
     -- it (house change above, plus open, reset, canvas resize, and zone changes
@@ -359,13 +361,14 @@ function FP.Build()
 
     local floorCount = FP.RefreshFloorControls(h)
     local viewedFloor = CH.fpViewedFloor
+    local ownerView = FP.OwnerView()
 
     -- Count rooms we'll actually draw on this floor. A floor with no visible rooms
     -- shows the empty state, same as a house with none.
     local visibleCount = 0
     if h and h.zones then
         for _, zone in ipairs(h.zones) do
-            if FP.ZoneOnFloor(h, zone, viewedFloor) then
+            if FP.ZoneOnFloor(h, zone, viewedFloor, ownerView) then
                 visibleCount = visibleCount + 1
             end
         end
@@ -383,7 +386,7 @@ function FP.Build()
         FP.fixBtn:SetShown(suggestFix)
         -- Likewise only for a house with nothing in it, when the archive holds a
         -- map for it. Goes under the fixer nudge if both apply.
-        local suggestArchive = CH.ArchiveWaiting(CH.currentHouseGUID)
+        local suggestArchive = not FP.viewGUID and CH.ArchiveWaiting(CH.currentHouseGUID)
         FP.archiveHint:ClearAllPoints()
         FP.archiveHint:SetPoint("TOP", suggestFix and FP.fixBtn or FP.empty, "BOTTOM", 0, -16)
         FP.archiveHint:SetShown(suggestArchive)
@@ -416,7 +419,7 @@ function FP.Build()
     -- zone index rides on f.zoneIdx for selection and editing.
     local drawn = 0
     for i, zone in ipairs(h.zones) do
-        if FP.ZoneOnFloor(h, zone, viewedFloor) then
+        if FP.ZoneOnFloor(h, zone, viewedFloor, ownerView) then
             -- With X flipped, zone.maxX maps to the left canvas edge, zone.maxY to the top.
             local px, py = FP.WorldToCanvas(zone.maxX, zone.maxY)
             local zw = (zone.maxX - zone.minX) * k
@@ -444,7 +447,9 @@ function FP.Build()
         end
     end
 
-    FP.ShowPlayerDot()
+    if not FP.viewGUID then
+        FP.ShowPlayerDot()
+    end
     FP.UpdateResetButton()
     FP.RefreshEditPanel()
     FP.PositionHandles()

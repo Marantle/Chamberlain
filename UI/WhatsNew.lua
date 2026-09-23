@@ -20,6 +20,18 @@ local _, CH = ...
 -- an `onToggle` run after any of them flips.
 CH.WHATS_NEW = {
     {
+        v = "3.17.0",
+        notes = {
+            "The Rooms window has a new layout. Houses are a short list on the left, and "
+                .. "a click shows the rooms of that house on the right. Search above the list "
+                .. "to find a house by its owner or by a room name.",
+            "Maps your group offers show at the top of the list under In your group. The "
+                .. "Group tab is gone, and each of your houses has its own Share button.",
+            "The Map button in the Rooms window shows the map of any house on the list, even one you are not in.",
+            "The Sharing button on the bar opens the Rooms window now, and the Rooms button is gone.",
+        },
+    },
+    {
         v = "3.16.0",
         notes = {
             "Either click on the speaker in the Chamberlain bar opens the house sounds now, "

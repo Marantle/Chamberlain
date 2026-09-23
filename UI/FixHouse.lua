@@ -126,8 +126,8 @@ Populate = function()
             if CH.RefreshHUDMode then
                 CH.RefreshHUDMode()
             end
-            if CH.RefreshMyRoomsTab then
-                CH.RefreshMyRoomsTab()
+            if CH.RefreshRoomList then
+                CH.RefreshRoomList()
             end
             if CH.RefreshToolbox then
                 CH.RefreshToolbox()

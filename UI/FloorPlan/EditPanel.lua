@@ -62,8 +62,8 @@ local function AdjustSelected(dMinX, dMaxX, dMinY, dMaxY)
     end
     h.updatedAt = GetServerTime()
     FP.Build()
-    if CH.RefreshMyRoomsTab then
-        CH.RefreshMyRoomsTab()
+    if CH.RefreshRoomList then
+        CH.RefreshRoomList()
     end
     CH.QueueBroadcast(CH.currentHouseGUID)
     if CH.RefreshToolbox then
@@ -139,14 +139,14 @@ end)
 
 function FP.RefreshEditPanel()
     local h = FP.CurrentHouse()
-    local zone = CH.isOwnHouse and h and FP.selectedIdx and h.zones[FP.selectedIdx]
+    local zone = FP.CanEdit() and h and FP.selectedIdx and h.zones[FP.selectedIdx]
     if zone then
         editName:SetText(string.format(CH.L["FMT_NAME_DIM_X"], zone.name, CH.ZoneDimText(zone)))
         editPanel:Show()
         editHint:Hide()
     else
         editPanel:Hide()
-        editHint:SetShown(CH.isOwnHouse and h ~= nil and h.zones ~= nil and #h.zones > 0)
+        editHint:SetShown(FP.CanEdit() and h ~= nil and h.zones ~= nil and #h.zones > 0)
     end
 end
 
@@ -256,8 +256,8 @@ local function EndHandleDrag(self)
     if h then
         h.updatedAt = GetServerTime()
     end
-    if CH.RefreshMyRoomsTab then
-        CH.RefreshMyRoomsTab()
+    if CH.RefreshRoomList then
+        CH.RefreshRoomList()
     end
     CH.QueueBroadcast(CH.currentHouseGUID) -- broadcast once on release, not per frame
     if CH.SyncAnchorLatch then
@@ -283,7 +283,7 @@ for i, spec in ipairs(HANDLE_SPECS) do
         fill:SetColorTexture(1, 0.82, 0.10, 1) -- gold grips = resize, matches the ring
     end
     hb:SetScript("OnMouseDown", function(self, button)
-        if button ~= "LeftButton" or not CH.isOwnHouse then
+        if button ~= "LeftButton" or not FP.CanEdit() then
             return
         end
         local h = FP.CurrentHouse()
@@ -315,7 +315,7 @@ function FP.PositionHandles()
     local h = FP.CurrentHouse()
     local zone = (h and FP.selectedIdx) and h.zones[FP.selectedIdx] or nil
     local k = FP.ZoomedScale()
-    if not zone or not CH.isOwnHouse or not k or not FP.ZoneFrameByIdx(FP.selectedIdx) then
+    if not zone or not FP.CanEdit() or not k or not FP.ZoneFrameByIdx(FP.selectedIdx) then
         for _, hb in ipairs(handles) do
             hb:Hide()
         end

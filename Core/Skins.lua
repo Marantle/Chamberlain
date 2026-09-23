@@ -416,8 +416,8 @@ function CH.TouchHouse(guid)
     if CH.RebuildFloorPlan then
         CH.RebuildFloorPlan()
     end
-    if CH.RefreshMyRoomsTab then
-        CH.RefreshMyRoomsTab()
+    if CH.RefreshRoomList then
+        CH.RefreshRoomList()
     end
     -- The launcher's Archive button depends on whether this house has rooms.
     if guid and guid == CH.currentHouseGUID and CH.RefreshHUDMode then

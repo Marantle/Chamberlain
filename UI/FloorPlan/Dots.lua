@@ -145,6 +145,16 @@ floorHint:Hide()
 canvas:SetScript("OnUpdate", function()
     FP.UpdatePanDrag()
 
+    -- Nobody stands in a house picked from the Rooms window. The build pass hid
+    -- the player dot, so only group dots from before can still be up.
+    if FP.viewGUID then
+        for i = 1, #partyDots do
+            partyDots[i]:Hide()
+        end
+        floorHint:Hide()
+        return
+    end
+
     -- The player and party dots live on the active floor. When browsing another
     -- floor, hide every live blip and show a "you're on floor N" reminder instead.
     -- This runs before the scale guard below so the reminder still shows on an

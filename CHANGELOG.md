@@ -1,5 +1,28 @@
 # Changelog
 
+## 3.17.0
+- The Rooms window got a new layout, for players in housing guilds who hold
+  maps from dozens of people. The houses are now a short list on the left, one
+  line each with its number of rooms. Click a house to see its rooms on the
+  right. A search box above the list finds a house by its owner or by the name
+  of one of its rooms.
+- The Group tab is gone. When somebody in your group has a map you don't, or a
+  newer one than yours, it shows at the top of the list under In your group,
+  with a Request button on the right.
+- The Rooms and Sharing buttons on the bar opened the same window, so Rooms is
+  gone and Sharing opens it. It starts on the first map your group offers, the
+  one the gold dot is about. With one or two buttons the bar no longer shrinks,
+  and the buttons grow to fill it, so the now playing names keep their room
+  when you visit a house.
+- A Map button in the Rooms window opens the house map of the house you clicked,
+  from anywhere. You can only look at it. It shows no dots or build tools, and
+  the floor stays where you put it. Secret rooms stay hidden unless the house is
+  yours. The Map button on the bar, or the Build toolbox, brings back the map of
+  the house you stand in.
+- Share My Houses is now a Share button on each of your houses, so you pick
+  the house by clicking it. Export works on the house you clicked too, and the
+  menu that asked which house is gone.
+
 ## 3.16.0
 - Either click on the speaker in the Chamberlain bar now opens the list of
   house sounds, with Mute all at the top. The kinds used to hide behind a right

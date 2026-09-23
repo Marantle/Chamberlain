@@ -90,11 +90,12 @@ local lastX, lastY, lastScale, lastFloor, lastGuid
 -- Pick the rooms of the active floor and paint them. Placing them is left to
 -- the update loop, which runs right after with its position cache cleared.
 local function Rebuild()
-    local h = FP.CurrentHouse()
+    -- the house you stand in, whatever house the floor plan is showing
+    local h = CH.currentHouseGUID and ChamberlainDB.houses[CH.currentHouseGUID]
     shown = 0
     if h and h.zones then
         for i, zone in ipairs(h.zones) do
-            if FP.ZoneOnFloor(h, zone, CH.activeFloor) then
+            if FP.ZoneOnFloor(h, zone, CH.activeFloor, CH.isOwnHouse) then
                 shown = shown + 1
                 local f = tiles[shown] or MakeTile(shown)
                 FP.StyleTile(f, zone, i, false)

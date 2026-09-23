@@ -5,10 +5,11 @@ local _, CH = ...
 -- ─────────────────────────────────────────────────────────────────────
 -- The old position HUD tried to do three jobs at once: show live coords, create
 -- rooms (Mark A / Mark B / Create), and launch the windows. That stacked up to
--- seven buttons. It is now just a small launcher. Build opens the toolbox, Rooms
--- the manager, Sharing the same window on its Group tab. The coordinate readout
--- and the make/fit tools moved to the toolbox (UI/Toolbox.lua). The map has its
--- own button when you're visiting a house you hold a layout for.
+-- seven buttons. It is now just a small launcher. Build opens the toolbox and
+-- Sharing the Rooms window, which holds your houses and the maps of everybody
+-- else. The coordinate readout and the make/fit tools moved to the toolbox
+-- (UI/Toolbox.lua). The map has its own
+-- button when you're visiting a house you hold a layout for.
 --
 -- The row is for the windows you work in. Settings and the mute are icons in
 -- the header, where they cost no width, or the bar grows a button with every
@@ -16,7 +17,9 @@ local _, CH = ...
 
 CH.hud = CreateFrame("Frame", "ChamberlainHUDFrame", UIParent, "BackdropTemplate")
 local hud = CH.hud
-local MIN_WIDTH = 184
+-- Never narrower than this, or a visitor's bar with one or two buttons leaves
+-- the now playing strip in the header next to no room.
+local MIN_WIDTH = 220
 hud:SetSize(MIN_WIDTH, 58)
 hud:SetFrameStrata("MEDIUM")
 CH.SkinWindow(hud, "HUD_TITLE")
@@ -25,10 +28,14 @@ hud:Hide()
 CH.ApplyHUDPos = CH.MakeMovablePersistent(hud, "hudX", "hudY")
 
 local btnBuild = CH.MakeButton(hud, "HUD_BUILD", 60, 22)
-local btnRooms = CH.MakeButton(hud, "HUD_ROOMS", 60, 22)
 local btnMap = CH.MakeButton(hud, "HUD_MAP", 56, 22)
 local btnArchive = CH.MakeButton(hud, "HUD_ARCHIVE", 66, 22)
 local btnSharing = CH.MakeButton(hud, "HUD_SHARING", 66, 22)
+local rowButtons = { btnBuild, btnMap, btnArchive, btnSharing }
+-- Layout stretches them, so each keeps the width it was made with.
+for _, b in ipairs(rowButtons) do
+    b.baseWidth = b:GetWidth()
+end
 
 local function MakeHeaderIcon(texture)
     local b = CreateFrame("Button", nil, hud)
@@ -70,11 +77,8 @@ end)
 btnBuild:SetScript("OnClick", function()
     CH.ToggleToolbox()
 end)
-btnRooms:SetScript("OnClick", function()
-    CH.ToggleRoomManager("myrooms")
-end)
 btnSharing:SetScript("OnClick", function()
-    CH.ToggleRoomManager("party")
+    CH.ToggleRoomManager()
 end)
 
 -- Lit while somebody in the group offers a map of this house, see
@@ -303,7 +307,6 @@ function CH.RefreshNowPlaying()
 end
 
 CH.Tip(btnBuild, "HUD_TT_BUILD")
-CH.Tip(btnRooms, "HUD_TT_ROOMS")
 CH.Tip(btnMap, "HUD_TT_MAP")
 CH.Tip(btnArchive, "HUD_TT_ARCHIVE")
 CH.Tip(btnSharing, "HUD_TT_SHARING")
@@ -312,16 +315,23 @@ CH.Tip(btnSettings, "HUD_TT_SETTINGS")
 CH.Tip(btnSound, "HUD_TT_SOUND")
 
 -- Lay the visible buttons left to right under the header and size the bar to fit.
+-- A row too short for MIN_WIDTH shares out the rest between its buttons, so it
+-- never ends in a gap.
 local function Layout(buttons)
+    local natural = 4 * (#buttons - 1)
+    for _, b in ipairs(buttons) do
+        natural = natural + b.baseWidth
+    end
+    local extra = math.max(0, (MIN_WIDTH - 16 - natural) / #buttons)
     local x = 8
     for _, b in ipairs(buttons) do
+        b:SetWidth(b.baseWidth + extra)
         b:ClearAllPoints()
         b:SetPoint("TOPLEFT", hud, "TOPLEFT", x, -28)
         b:Show()
         x = x + b:GetWidth() + 4
     end
-    -- two buttons alone would leave the header no room for now playing
-    hud:SetWidth(math.max(x + 4, MIN_WIDTH))
+    hud:SetWidth(x + 4)
 end
 
 -- Pick the launcher's buttons for where we are: full set in your own house, a
@@ -335,7 +345,7 @@ function CH.RefreshHUDMode()
         hud:Hide()
         return
     end
-    for _, b in ipairs({ btnBuild, btnRooms, btnMap, btnArchive, btnSharing }) do
+    for _, b in ipairs(rowButtons) do
         b:Hide()
     end
     local guid = CH.currentHouseGUID
@@ -343,14 +353,14 @@ function CH.RefreshHUDMode()
     local buttons
     if CH.isOwnHouse then
         if CH.ArchiveWaiting(guid) then
-            buttons = { btnBuild, btnMap, btnRooms, btnSharing, btnArchive }
+            buttons = { btnBuild, btnMap, btnSharing, btnArchive }
         else
-            buttons = { btnBuild, btnMap, btnRooms, btnSharing }
+            buttons = { btnBuild, btnMap, btnSharing }
         end
     elseif h and h.zones and #h.zones > 0 then
-        buttons = { btnRooms, btnMap, btnSharing }
+        buttons = { btnMap, btnSharing }
     else
-        buttons = { btnRooms, btnSharing }
+        buttons = { btnSharing }
     end
     -- The header's icons run from the right. The gear is always up, the speaker
     -- joins in a house with sounds and the note while update notes are unread.
