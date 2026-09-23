@@ -1,5 +1,15 @@
 # Changelog
 
+## 3.15.0
+- House and floor sound reaches your group even when their map is older than
+  yours. Pick an ambience or a track for the whole house, or for one floor, and
+  everyone who has your map hears it. The arrival sound has worked this way
+  since 3.14.0 and the other two join it now. A room's own sound still needs
+  their map to match yours, because that message names the room by its place in
+  your map and the places move when you add or delete a room.
+- The Archive no longer throws an error when you open it away from your own
+  house. Opening it in a city or in somebody else's house works now.
+
 ## 3.14.0
 - Echoes. A room's sound on entry can carry through the house, so when a guest
   walks into your entrance hall the bell on the door rings for you down in the

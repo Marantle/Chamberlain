@@ -20,6 +20,16 @@ local _, CH = ...
 -- an `onToggle` run after any of them flips.
 CH.WHATS_NEW = {
     {
+        v = "3.15.0",
+        notes = {
+            "Whole house and floor sounds changes now reaches your group even when their map is older "
+                .. "than yours. Pick an ambience or a track for the whole house, or for one "
+                .. "floor, and everyone who has your map hears it.",
+            "A room's own sound still needs their map to match yours. Send yours again with "
+                .. "Share My Houses after you add, move or delete a room.",
+        },
+    },
+    {
         v = "3.14.0",
         notes = {
             "Echoes. A room's sound on entry can carry through the house, so the bell on "

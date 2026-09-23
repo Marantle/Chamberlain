@@ -180,6 +180,10 @@ backup that you made.
   blinks on the Chamberlain bar when an update has notes you did not read.
 - Echoes, the arrival sound and the 3 bells need version 3.14.0 or later on
   both sides. A visitor on an older version sees and hears the rest as before.
+- A sound you pick for the whole house or for a floor reaches your group even
+  when their map is older than yours, from 3.15.0 on both sides. A room's own
+  sound needs their map to match yours, so send it again with Share My Houses
+  after you add, move or delete a room.
 
 ## Features
 

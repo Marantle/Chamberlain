@@ -15,8 +15,11 @@ local win, scroll, scrollChild, emptyLabel, nowStrip
 local headerPool, rowPool = {}, {}
 
 -- The live entry of the house being stood in, if it is yours.
+-- Standing anywhere but your own house, both of these have to come back nil
+-- rather than false, or the callers that ask "is this nil" take a boolean for
+-- a house table.
 local function OwnHouse()
-    local key = CH.isOwnHouse and CH.currentHouseGUID
+    local key = CH.isOwnHouse and CH.currentHouseGUID or nil
     return key and ChamberlainDB.houses[key], key
 end
 
@@ -547,7 +550,7 @@ local function Populate()
             row:SetWidth(w)
             row:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", 0, -y)
             row:Show()
-            local inUse = (inStep ~= nil and inStep.id == e.id) or (hereStep ~= nil and hereStep.id == e.id)
+            local inUse = (inStep and inStep.id == e.id) or (hereStep and hereStep.id == e.id)
             FillRow(row, e, inUse, i % 2 == 0, hereFor)
             y = y + ROW_H
             total = total + 1

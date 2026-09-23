@@ -1182,12 +1182,17 @@ function CH.HandleMessage(prefix, payload, channel, fullSender)
         if not h or not IsTimestamp(newTs) or not value or ChamberlainDB.myHouses[guid] then
             return
         end
-        -- The arrival sound is the one exception to the exact version. It hangs
-        -- on the house and not on the nth room, so a copy that is behind takes
-        -- it as well, as long as the patch is newer than the copy. Such a copy
-        -- keeps its old stamp and still pulls the map for the rest.
+        -- A sound on the house or on a floor is the exception to the exact
+        -- version. Neither one hangs on the nth room, and floors only ever come
+        -- and go at the top, so floor 3 is floor 3 on any copy. A copy that is
+        -- behind takes those as long as the patch is newer than it, then keeps
+        -- its old stamp and still pulls the map for the rest. A room's sound
+        -- can't join them: a stale copy's third room may not be ours. The
+        -- arrival sound has come this way since 3.14.0, the other two since
+        -- 3.15.0.
         local current = h.updatedAt == baseTs
-        if not current and not (kind == "arrival" and newTs > (h.updatedAt or 0)) then
+        local anywhere = where == "H" or where == "F"
+        if not current and not (anywhere and newTs > (h.updatedAt or 0)) then
             return
         end
         if ChamberlainDB.blocks.players[sender] then
