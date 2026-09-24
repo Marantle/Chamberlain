@@ -5,37 +5,69 @@ local _, CH = ...
 -- ─────────────────────────────────────────────────────────────────────
 -- The old position HUD tried to do three jobs at once: show live coords, create
 -- rooms (Mark A / Mark B / Create), and launch the windows. That stacked up to
--- seven buttons. It is now just a small launcher. Build opens the toolbox and
--- Sharing the Rooms window, which holds your houses and the maps of everybody
--- else. The coordinate readout and the make/fit tools moved to the toolbox
--- (UI/Toolbox.lua). The map has its own
--- button when you're visiting a house you hold a layout for.
+-- seven buttons. It is a small launcher now. Build opens the map folded to
+-- its build rail and Sharing the Rooms window, which holds your houses and the
+-- maps of everybody else. The map has its own button when you're visiting a
+-- house you hold a layout for.
 --
 -- The row is for the windows you work in. Settings and the mute are icons in
 -- the header, where they cost no width, or the bar grows a button with every
--- feature (3.13.0).
+-- feature (3.13.0). The header names the room you stand in, and what's playing
+-- gets a line of its own under the buttons (3.17.0).
+--
+-- The bar has two shapes, the card above and the slim strip (hudStrip) for
+-- players who want it out of the way.
 
 CH.hud = CreateFrame("Frame", "ChamberlainHUDFrame", UIParent, "BackdropTemplate")
 local hud = CH.hud
 -- Never narrower than this, or a visitor's bar with one or two buttons leaves
--- the now playing strip in the header next to no room.
-local MIN_WIDTH = 220
-hud:SetSize(MIN_WIDTH, 58)
+-- the room name next to no space.
+local MIN_WIDTH = 250
+local CARD_H = 58
+local PLAYING_H = 20
+local STRIP_H = 30
+hud:SetSize(MIN_WIDTH, CARD_H)
 hud:SetFrameStrata("MEDIUM")
 CH.SkinWindow(hud, "HUD_TITLE")
 hud:Hide()
 
 CH.ApplyHUDPos = CH.MakeMovablePersistent(hud, "hudX", "hudY")
 
-local btnBuild = CH.MakeButton(hud, "HUD_BUILD", 60, 22)
-local btnMap = CH.MakeButton(hud, "HUD_MAP", 56, 22)
-local btnArchive = CH.MakeButton(hud, "HUD_ARCHIVE", 66, 22)
-local btnSharing = CH.MakeButton(hud, "HUD_SHARING", 66, 22)
-local rowButtons = { btnBuild, btnMap, btnArchive, btnSharing }
--- Layout stretches them, so each keeps the width it was made with.
-for _, b in ipairs(rowButtons) do
-    b.baseWidth = b:GetWidth()
+-- The same top hat as the minimap button.
+local hat = hud:CreateTexture(nil, "OVERLAY")
+hat:SetSize(14, 14)
+hat:SetTexture(C_Item.GetItemIconByID(54451) or "Interface/Icons/INV_Misc_QuestionMark")
+hat:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+
+local title = hud.title
+title:SetTextColor(1, 1, 1, 1)
+title:SetJustifyH("LEFT")
+title:SetWordWrap(false)
+
+-- The strip's dividers either side of the buttons.
+local function Divider()
+    local t = hud:CreateTexture(nil, "ARTWORK")
+    t:SetSize(1, 16)
+    t:SetColorTexture(CH.RGBA(CH.COLORS.frame, 0.5))
+    return t
 end
+local divA, divB = Divider(), Divider()
+
+-- A row button with its icon before the label. baseWidth is what the card's
+-- layout stretches from.
+local function NavButton(key, icon, w)
+    local b = CH.MakeButton(hud, key, w, 24)
+    b.key = key
+    b.baseWidth = w
+    b.icon = CH.AddButtonIcon(b, icon, 12)
+    return b
+end
+
+local btnBuild = NavButton("HUD_BUILD", "icon-build", 70)
+local btnMap = NavButton("HUD_MAP", "icon-map", 64)
+local btnArchive = NavButton("HUD_ARCHIVE", "icon-map", 76)
+local btnSharing = NavButton("HUD_SHARING", "icon-share", 80)
+local rowButtons = { btnBuild, btnMap, btnArchive, btnSharing }
 
 local function MakeHeaderIcon(texture)
     local b = CreateFrame("Button", nil, hud)
@@ -48,7 +80,6 @@ local function MakeHeaderIcon(texture)
 end
 
 local btnSettings = MakeHeaderIcon("Interface\\Buttons\\UI-OptionsButton")
-btnSettings:SetPoint("RIGHT", hud, "TOPRIGHT", -8, -13)
 
 -- Update notes nobody has read, for players who turned the What's New window
 -- off (UI/WhatsNew.lua keeps ChamberlainDB.unreadSince for it). The blink is an
@@ -149,6 +180,7 @@ function CH.FillSoundMenu(root)
         end, function()
             ChamberlainDB.settings[key] = not ChamberlainDB.settings[key]
             RefreshSound()
+            CH.RefreshSettingsTab()
         end)
     end
 end
@@ -181,16 +213,14 @@ local function HasAmbience(h)
     end
 end
 
--- Now playing: the header strip right of the title names what the house has
--- on, since the game won't say. Three bars bounce like a level meter and the
--- names slide back and forth when they don't fit. All of it is animatons the
--- client runs, so nothing here ticks.
+-- Now playing names what the house has on, since the game won't say. Three
+-- bars bounce like a level meter and the names slide back and forth when they
+-- don't fit. All of it is animatons the client runs, so nothing here ticks.
+-- On the card it's the bottom line, on the strip a short piece of the row.
 local playing = CreateFrame("Frame", nil, hud)
-playing:SetPoint("LEFT", hud.title, "RIGHT", 10, 0)
--- its right end is set in CH.RefreshHUDMode, by the icons the header has on
 playing:SetHeight(16)
 playing:Hide()
--- It takes the mouse for its hover, which would leave this part of the header
+-- It takes the mouse for its hover, which would leave this part of the bar
 -- dead for dragging, so a drag here is handed on to the bar.
 playing:EnableMouse(true)
 playing:RegisterForDrag("LeftButton")
@@ -200,6 +230,15 @@ end)
 playing:SetScript("OnDragStop", function()
     hud:GetScript("OnDragStop")(hud)
 end)
+
+local playingBg = hud:CreateTexture(nil, "BORDER")
+playingBg:SetPoint("BOTTOMLEFT", 1, 1)
+playingBg:SetPoint("BOTTOMRIGHT", -1, 1)
+playingBg:SetHeight(PLAYING_H)
+playingBg:SetColorTexture(0, 0, 0, 0.35)
+local playingLine = CH.MakeRule(hud)
+playingLine:SetPoint("BOTTOMLEFT", playingBg, "TOPLEFT")
+playingLine:SetPoint("BOTTOMRIGHT", playingBg, "TOPRIGHT")
 
 local meter = {}
 for i, beat in ipairs({ 0.38, 0.52, 0.44 }) do
@@ -240,8 +279,8 @@ fade:SetDuration(0.6)
 
 local SLIDE_SPEED = 20 -- pixels a second
 
--- The names slide only when they are wider than the strip, and how wide that
--- is goes with the buttons the bar has on.
+-- The names slide only when they are wider than their space, and how wide that
+-- is goes with the shape and the buttons the bar has on.
 local function FitNames()
     slide:Stop()
     local over = names:GetUnboundedStringWidth() - clip:GetWidth()
@@ -281,11 +320,143 @@ playing:SetScript("OnLeave", function()
     GameTooltip:Hide()
 end)
 
-local shown -- the text on the strip, so only a real change fades in
+CH.Tip(btnBuild, "HUD_TT_BUILD")
+CH.Tip(btnMap, "HUD_TT_MAP")
+CH.Tip(btnArchive, "HUD_TT_ARCHIVE")
+CH.Tip(btnSharing, "HUD_TT_SHARING")
+CH.Tip(btnNotes, "HUD_TT_NOTES")
+CH.Tip(btnSettings, "HUD_TT_SETTINGS")
+CH.Tip(btnSound, "HUD_TT_SOUND")
+
+-- The room you stand in, for the header. Set from the zone ticker when it
+-- changes, nil between rooms.
+local hudRoom
+
+local function TitleText()
+    local text = hudRoom and hudRoom.name
+    if not text then
+        local owner = CH.currentHouseOwner
+        text = owner and string.format(CH.L["FP_X_HOUSE"], owner) or CH.L["HUD_TITLE"]
+    end
+    local h = CH.currentHouseGUID and ChamberlainDB.houses[CH.currentHouseGUID]
+    if h and (h.floorCount or 1) > 1 then
+        text = text .. "  |cff999999" .. string.format(CH.L["RD_FLOOR_X"], CH.activeFloor or 1) .. "|r"
+    end
+    return text
+end
+
+-- The label beside the icon on the card, the icon alone on the strip. A 12.0
+-- client has no icons and keeps its labels either way.
+local function DressButton(b, strip)
+    local fs = b:GetFontString()
+    if not b.icon then
+        b:SetWidth(b.baseWidth)
+        return b.baseWidth
+    end
+    b.icon:ClearAllPoints()
+    if strip then
+        b:SetText("")
+        b.icon:SetPoint("CENTER")
+        b:SetWidth(26)
+        return 26
+    end
+    b:SetText(CH.L[b.key])
+    fs:ClearAllPoints()
+    fs:SetPoint("LEFT", 20, 0)
+    fs:SetPoint("RIGHT", -4, 0)
+    -- icon and label centred as one: the label sits 8 right of the middle
+    -- unbounded, since coming off the strip the button is still 26 wide
+    b.icon:SetPoint("CENTER", -fs:GetUnboundedStringWidth() / 2 - 2, 0)
+    return b.baseWidth
+end
+
+-- The card puts the room and the icons in the header and the buttons under it.
+-- The buttons share out any width the bar has spare.
+local function LayoutCard(buttons, leftmost, playingShown)
+    hud.header:Show()
+    hud.headerLine:Show()
+    divA:Hide()
+    divB:Hide()
+    hat:ClearAllPoints()
+    hat:SetPoint("LEFT", hud, "TOPLEFT", 9, -13)
+    title:ClearAllPoints()
+    title:SetPoint("LEFT", hat, "RIGHT", 6, 0)
+    title:SetPoint("RIGHT", leftmost, "LEFT", -6, 0)
+    btnSettings:ClearAllPoints()
+    btnSettings:SetPoint("RIGHT", hud, "TOPRIGHT", -8, -13)
+
+    local natural = -(#buttons - 1)
+    for _, b in ipairs(buttons) do
+        natural = natural + DressButton(b, false)
+    end
+    local extra = math.max(0, (MIN_WIDTH - 16 - natural) / #buttons)
+    local x = 8
+    for _, b in ipairs(buttons) do
+        b:SetWidth(b.baseWidth + extra)
+        b:ClearAllPoints()
+        b:SetPoint("TOPLEFT", hud, "TOPLEFT", x, -29)
+        b:Show()
+        x = x + b:GetWidth() - 1
+    end
+    hud:SetWidth(x + 9)
+
+    playing:ClearAllPoints()
+    playing:SetPoint("BOTTOMLEFT", 9, 2)
+    playing:SetPoint("BOTTOMRIGHT", -9, 2)
+    playingBg:SetShown(playingShown)
+    playingLine:SetShown(playingShown)
+    hud:SetHeight(CARD_H + (playingShown and PLAYING_H or 0))
+end
+
+-- The strip has everything on one row, the buttons as icons between two
+-- dividers.
+local function LayoutStrip(buttons, icons, playingShown)
+    hud.header:Hide()
+    hud.headerLine:Hide()
+    playingBg:Hide()
+    playingLine:Hide()
+    hud:SetHeight(STRIP_H)
+
+    hat:ClearAllPoints()
+    hat:SetPoint("LEFT", hud, "LEFT", 8, 0)
+    title:ClearAllPoints()
+    title:SetPoint("LEFT", hat, "RIGHT", 6, 0)
+    title:SetWidth(math.min(title:GetUnboundedStringWidth(), 120))
+
+    local x = 8 + 14 + 6 + title:GetWidth() + 8
+    divA:ClearAllPoints()
+    divA:SetPoint("LEFT", hud, "LEFT", x, 0)
+    divA:Show()
+    x = x + 6
+    for _, b in ipairs(buttons) do
+        local w = DressButton(b, true)
+        b:ClearAllPoints()
+        b:SetPoint("LEFT", hud, "LEFT", x, 0)
+        b:Show()
+        x = x + w + 3
+    end
+    divB:ClearAllPoints()
+    divB:SetPoint("LEFT", hud, "LEFT", x + 3, 0)
+    divB:Show()
+    x = x + 10
+
+    playing:ClearAllPoints()
+    if playingShown then
+        playing:SetPoint("LEFT", hud, "LEFT", x, 0)
+        playing:SetWidth(90)
+        x = x + 96
+    end
+    -- the icons were chained right to left from the gear, so the gear goes last
+    btnSettings:ClearAllPoints()
+    btnSettings:SetPoint("LEFT", hud, "LEFT", x + (icons - 1) * 20, 0)
+    hud:SetWidth(x + icons * 20 + 6)
+end
 
 -- Called from Housing/Ambience.lua whenever a slot gets another file. The
 -- track goes first in gold by the last piece of its path and the hover has all
 -- of it.
+local shown -- the text on the line, so only a real change fades in
+
 function CH.RefreshNowPlaying()
     local musicID, files = CH.NowPlaying()
     local pieces = {}
@@ -297,41 +468,19 @@ function CH.RefreshNowPlaying()
     end
     local text = table.concat(pieces, "   ")
     if text ~= shown then
+        local wasShown = shown ~= nil and shown ~= ""
         shown = text
         names:SetText(text)
         fadeIn:Stop()
         fadeIn:Play()
+        -- the line coming or going changes the bar's shape
+        if wasShown ~= (text ~= "") and hud:IsShown() then
+            CH.RefreshHUDMode()
+            return
+        end
         FitNames()
     end
     playing:SetShown(text ~= "")
-end
-
-CH.Tip(btnBuild, "HUD_TT_BUILD")
-CH.Tip(btnMap, "HUD_TT_MAP")
-CH.Tip(btnArchive, "HUD_TT_ARCHIVE")
-CH.Tip(btnSharing, "HUD_TT_SHARING")
-CH.Tip(btnNotes, "HUD_TT_NOTES")
-CH.Tip(btnSettings, "HUD_TT_SETTINGS")
-CH.Tip(btnSound, "HUD_TT_SOUND")
-
--- Lay the visible buttons left to right under the header and size the bar to fit.
--- A row too short for MIN_WIDTH shares out the rest between its buttons, so it
--- never ends in a gap.
-local function Layout(buttons)
-    local natural = 4 * (#buttons - 1)
-    for _, b in ipairs(buttons) do
-        natural = natural + b.baseWidth
-    end
-    local extra = math.max(0, (MIN_WIDTH - 16 - natural) / #buttons)
-    local x = 8
-    for _, b in ipairs(buttons) do
-        b:SetWidth(b.baseWidth + extra)
-        b:ClearAllPoints()
-        b:SetPoint("TOPLEFT", hud, "TOPLEFT", x, -28)
-        b:Show()
-        x = x + b:GetWidth() + 4
-    end
-    hud:SetWidth(x + 4)
 end
 
 -- Pick the launcher's buttons for where we are: full set in your own house, a
@@ -362,26 +511,43 @@ function CH.RefreshHUDMode()
     else
         buttons = { btnSharing }
     end
-    -- The header's icons run from the right. The gear is always up, the speaker
-    -- joins in a house with sounds and the note while update notes are unread.
-    -- Now playing ends at whichever is leftmost.
+    -- The header's icons run from the gear leftward. The speaker joins in a
+    -- house with sounds and the note while update notes are unread.
     local sounds = h and h.zones and HasAmbience(h)
     btnSound:SetShown(sounds == true)
     if sounds then
         RefreshSound()
     end
     local leftmost = sounds and btnSound or btnSettings
+    local icons = sounds and 2 or 1
     local unread = ChamberlainDB.unreadSince ~= nil
     btnNotes:SetShown(unread)
     if unread then
+        btnNotes:ClearAllPoints()
         btnNotes:SetPoint("RIGHT", leftmost, "LEFT", -4, 0)
         leftmost = btnNotes
+        icons = icons + 1
     end
-    playing:SetPoint("RIGHT", leftmost, "LEFT", -6, 0)
-    Layout(buttons)
+
+    title:SetText(TitleText())
+    local playingShown = shown ~= nil and shown ~= ""
+    playing:SetShown(playingShown)
+    if ChamberlainDB.settings.hudStrip then
+        LayoutStrip(buttons, icons, playingShown)
+    else
+        LayoutCard(buttons, leftmost, playingShown)
+    end
     CH.RefreshSharingDot()
     hud:Show()
     FitNames()
+end
+
+-- The zone ticker's room change. Also the floor, since the header names it.
+function CH.SetHudRoom(zone)
+    hudRoom = zone
+    if hud:IsShown() then
+        CH.RefreshHUDMode()
+    end
 end
 
 -- Hide or show the launcher. The choice persists, so it stays hidden across

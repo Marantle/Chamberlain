@@ -22,6 +22,43 @@
 - Share My Houses is now a Share button on each of your houses, so you pick
   the house by clicking it. Export works on the house you clicked too, and the
   menu that asked which house is gone.
+- The Build toolbox and the house map are one window now. The tools run down
+  its left side and the map fills the rest. Build on the bar opens it folded
+  to just the tools and Map opens all of it. The arrow in the corner switches
+  between the two. The toolbox no longer docks, floats or tears off.
+- The map's own rows of Move, Grow and Shrink arrows are gone. The tools have
+  one arrow pad with a Move, Grow and Shrink switch, and the middle of the pad
+  grows or shrinks every wall at once, like the old Grow and Shrink buttons.
+- Floors are tabs along the top of the map, with + and - next to them in your
+  own house. The sound buttons and the Sound spots and Stairs ticks moved to
+  one row under the map.
+- A map you can only look at gets a house card where the tools would be. It
+  shows whose house it is, how many rooms it has and how old the map is. A
+  Request button turns up when your group has a newer one. Point at a room and
+  the card shows its name, size and sounds. The descriptions stay out of it,
+  since they're for reading in the house.
+- The room editor has three tabs, Room, Yapper and Sound, under a preview of
+  the banner in the room's color. It no longer grows taller on a house with
+  floors. The map's colors are quick picks next to your recent ones.
+- The bar names the room you stand in, and the floor when the house has more
+  than one. Its buttons have icons, and what's playing got its own line under
+  them. Slim bar in Settings shrinks it to a single row of icons.
+- Settings has pages down its left side and a switch with a line of help for
+  each setting. The six kinds of house sound are switches on the Sound page,
+  so the menu that held them is gone from there. The bar's speaker still
+  opens it.
+- Room echoes only go to your group now. Echoes from older versions that still
+  come in through the guild are ignored, and the front door still reaches
+  guildmates.
+- Two new switches on the Sound page decide who hears the door when you walk
+  into a house, one for your group and one for your guild. Turn one off and
+  those players don't hear it.
+- Rooms on the minimap is on for everyone now, visitors included, and this
+  update switches it on once for those who had it off. It only takes over
+  the minimap in a house you have a map of, so a house without one keeps the
+  game's picture. Settings turns it off again.
+- The icons need 12.1. On 12.0 the buttons keep their plain labels and the
+  switches are square.
 
 ## 3.16.0
 - Either click on the speaker in the Chamberlain bar now opens the list of

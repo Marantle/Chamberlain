@@ -18,38 +18,7 @@ CH.SkinWindow(roomMgr, "RM_WINDOW_TITLE")
 roomMgr:Hide()
 table.insert(UISpecialFrames, "ChamberlainRoomManager")
 
--- Settings live in their own window now (opened by the launcher's Settings button
--- or /rooms settings), so the manager is just the house list. The settings
--- panel below and everything built into it is parented here.
-local settingsWin = CreateFrame("Frame", "ChamberlainSettings", UIParent, "BackdropTemplate")
--- No taller than this. UIParent is 768 high at UI scale 1 and shorter as the
--- scale goes up, and the window's buttons sit at its bottom edge.
-settingsWin:SetSize(320, 712)
-settingsWin:SetFrameStrata("DIALOG")
-settingsWin:SetToplevel(true)
-settingsWin:SetPoint("CENTER")
-CH.MakeDraggable(settingsWin)
-CH.SkinWindow(settingsWin, "SET_WINDOW_TITLE")
-settingsWin:Hide()
-table.insert(UISpecialFrames, "ChamberlainSettings")
-
-local panelSettings = CreateFrame("Frame", nil, settingsWin)
-panelSettings:SetPoint("TOPLEFT", settingsWin, "TOPLEFT", 8, -30)
-panelSettings:SetPoint("BOTTOMRIGHT", settingsWin, "BOTTOMRIGHT", -8, 40)
-
-local setClose = CH.MakeButton(settingsWin, "RM_CLOSE", 80, 22)
-setClose:SetPoint("BOTTOMRIGHT", settingsWin, "BOTTOMRIGHT", -10, 10)
-setClose:SetScript("OnClick", function()
-    settingsWin:Hide()
-end)
-
--- A word from the author, tucked down here so it never nags anyone.
-local thanksBtn = CH.MakeButton(settingsWin, "CT_BUTTON", 120, 22)
-thanksBtn:SetPoint("BOTTOMLEFT", settingsWin, "BOTTOMLEFT", 10, 10)
-thanksBtn:SetScript("OnClick", function()
-    settingsWin:Hide()
-    CH.OpenCreatorThanks()
-end)
+-- Settings have their own window in UI/Settings.lua.
 
 local mgrClose = CH.MakeButton(roomMgr, "RM_CLOSE", 80, 22)
 mgrClose:SetPoint("BOTTOMRIGHT", roomMgr, "BOTTOMRIGHT", -10, 10)
@@ -537,6 +506,31 @@ local REQUEST_COOLDOWN = 5
 local requestCooldowns = {}
 local shareBusy = false
 
+function CH.RequestCooling(guid)
+    return requestCooldowns[guid] ~= nil and GetTime() - requestCooldowns[guid] < REQUEST_COOLDOWN
+end
+
+-- Also the Request on the map's house card.
+function CH.RequestGroupMap(guid)
+    requestCooldowns[guid] = GetTime()
+    C_Timer.After(REQUEST_COOLDOWN, CH.RefreshGroupMaps)
+    CH.RequestLayout(guid)
+end
+
+-- The group's best map of one house when it's one you don't have or newer than
+-- yours, with status "not_owned" or "newer". nil otherwise.
+function CH.GroupOffer(guid)
+    for _, p in ipairs(GetPartyHouseList()) do
+        if p.guid == guid then
+            local status = GetStatus(guid, p.bestTimestamp)
+            if status == "not_owned" or status == "newer" then
+                p.status = status
+                return p
+            end
+        end
+    end
+end
+
 local function PopulateDetail(item, p)
     for _, row in ipairs(rowPool) do
         row:Hide()
@@ -559,8 +553,7 @@ local function PopulateDetail(item, p)
     btnShare:SetShown(item and item.own or false)
     btnShare:SetEnabled(not shareBusy)
     btnRequest:SetShown(p ~= nil)
-    local cooling = item and requestCooldowns[item.guid] and GetTime() - requestCooldowns[item.guid] < REQUEST_COOLDOWN
-    btnRequest:SetEnabled(not cooling)
+    btnRequest:SetEnabled(not (item and CH.RequestCooling(item.guid)))
     btnRemove:SetShown(h ~= nil and not item.own)
     LayoutActions()
 
@@ -596,10 +589,8 @@ btnShare:SetScript("OnClick", function()
 end)
 
 btnRequest:SetScript("OnClick", function()
-    requestCooldowns[selected] = GetTime()
     btnRequest:Disable()
-    C_Timer.After(REQUEST_COOLDOWN, CH.RefreshGroupMaps)
-    CH.RequestLayout(selected)
+    CH.RequestGroupMap(selected)
 end)
 
 btnRemove:SetScript("OnClick", function()
@@ -613,305 +604,6 @@ end)
 function CH.SetShareBusy(busy)
     shareBusy = busy
     btnShare:SetEnabled(not busy)
-end
-
--- ─────────────────────────────────────────────────────────────────────
--- Settings Panel
--- ─────────────────────────────────────────────────────────────────────
-
-CH.MakeSectionHeader(panelSettings, "RM_SECTION_SHARING", -6)
-
-local shareToggle = CH.MakeToggleButton(panelSettings, "RM_TOGGLE_SHARING", "shareEnabled")
-shareToggle:SetPoint("TOPLEFT", 4, -22)
-
--- Receiving lever, separate from sharing. Flipping it off also drops anything
--- already collected (party catalogs, half-finished transfers) so the house list
--- doesn't keep offering maps that can no longer arrive.
-local recvToggle = CH.MakeToggleButton(panelSettings, "RM_TOGGLE_RECEIVING", "receiveEnabled")
-recvToggle:SetPoint("TOPLEFT", 4, -46)
-recvToggle:HookScript("OnClick", function()
-    if not ChamberlainDB.settings.receiveEnabled then
-        wipe(CH.partyCatalogs)
-        wipe(CH.pendingLayouts)
-        if CH.HideReceiveProgress then
-            CH.HideReceiveProgress()
-        end
-        CH.RefreshGroupMaps()
-    end
-end)
-
-CH.MakeSep(panelSettings, -70)
-CH.MakeSectionHeader(panelSettings, "RM_SECTION_ROOMS", -76)
-
-local roomTextToggle = CH.MakeToggleButton(panelSettings, "RM_TOGGLE_ROOM_DESCRIPTIONS", "showRoomText")
-roomTextToggle:SetPoint("TOPLEFT", 4, -92)
-
--- Turn the gold room banner off entirely, for players who only want the map. It's
--- personal and local, never shared. Flipping it off drops any banner that's up.
-local bannerToggle = CH.MakeToggleButton(panelSettings, "RM_TOGGLE_SHOW_BANNERS", "bannerEnabled")
-bannerToggle:SetPoint("TOPLEFT", 4, -116)
-bannerToggle:HookScript("OnClick", function()
-    if CH.OnBannerSettingChanged then
-        CH.OnBannerSettingChanged()
-    end
-end)
-
--- The zone ticker reads the setting so flipping it off fades whatever is
--- playing.
-local ambienceToggle = CH.MakeToggleButton(panelSettings, "RM_TOGGLE_AMBIENCE", "ambienceEnabled")
-ambienceToggle:SetPoint("TOPLEFT", 4, -140)
-ambienceToggle:HookScript("OnClick", function()
-    CH.RefreshHudSound()
-end)
-CH.Tip(ambienceToggle, "RM_TT_AMBIENCE")
-
--- The mutes per kind, the same menu as a right click on the bar's speaker.
-local soundKindsBtn = CH.MakeMenuButton(panelSettings, 230, "RM_SOUND_KINDS", function() end, CH.FillSoundMenu)
-soundKindsBtn:SetPoint("TOPLEFT", 4, -164)
-CH.Tip(soundKindsBtn, "RM_TT_SOUND_KINDS")
-
--- A slider row for a number of seconds kept in settings[key]. offKey is the
--- text for zero. The sliders line up in a collumn whatever the labels run to.
--- Hands back the row's refresh for when the window opens.
-local function MakeSecondsRow(y, labelKey, key, minV, maxV, step, offKey, tipKey)
-    local label = panelSettings:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    label:SetPoint("TOPLEFT", 8, y)
-    label:SetText(CH.L[labelKey])
-
-    local slider = CH.MakeSlider(panelSettings, 100, minV, maxV, step)
-    slider:SetPoint("LEFT", panelSettings, "TOPLEFT", 152, y - 6)
-    if tipKey then
-        CH.Tip(slider, tipKey)
-    end
-
-    local value = panelSettings:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    value:SetPoint("LEFT", slider, "RIGHT", 8, 0)
-    value:SetTextColor(CH.RGBA(CH.COLORS.muted, 1))
-
-    local function show(v)
-        value:SetText(v <= 0 and CH.L[offKey] or string.format(CH.L["RM_SECONDS_X"], v))
-    end
-    slider:SetScript("OnValueChanged", function(_, v)
-        v = math.floor(v + 0.5)
-        ChamberlainDB.settings[key] = v
-        show(v)
-    end)
-    return function()
-        local v = ChamberlainDB.settings[key]
-        slider:SetValue(v)
-        show(v)
-    end
-end
-
--- How soon an echo or the front door rings for you again, one row for the
--- same person and one for anybody at all. The first stops at 5, the wait every
--- sender keeps between two echoes of a room (ECHO_SEND_WAIT in Share.lua).
-local refreshPersonWait =
-    MakeSecondsRow(-192, "RM_ECHO_PERSON_WAIT", "echoPersonWait", 5, 180, 5, nil, "RM_TT_ECHO_PERSON_WAIT")
-local refreshRoomWait =
-    MakeSecondsRow(-216, "RM_ECHO_ROOM_WAIT", "echoRoomWait", 0, 60, 5, "RM_ECHO_ROOM_OFF", "RM_TT_ECHO_ROOM_WAIT")
-
--- Banner fade-out: seconds before the room banner fades after it appears. 0 keeps
--- it up until you leave the room.
-local refreshBannerTimeout =
-    MakeSecondsRow(-240, "RM_BANNER_FADE_OUT", "bannerTimeout", 0, 20, 1, "RM_BANNER_OFF_STAYS")
-
-CH.MakeSep(panelSettings, -262)
-CH.MakeSectionHeader(panelSettings, "RM_SECTION_MAPS", -268)
-
--- Class-colored dots for party (and raid) members on the floor plan. Positions
--- are read locally, so the others don't need the addon.
-local groupDotsToggle = CH.MakeToggleButton(panelSettings, "RM_TOGGLE_GROUP_ON_MAP", "showGroupDots")
-groupDotsToggle:SetPoint("TOPLEFT", 4, -284)
-
--- The active floor's rooms drawn on the minimap in place of the still house
--- picture the game shows indoors (UI/MinimapRooms.lua). Square is for addons
--- that square the minimap, since the shape can't be read back.
-local minimapToggle = CH.MakeToggleButton(panelSettings, "RM_TOGGLE_MINIMAP_ROOMS", "minimapRooms")
-minimapToggle:SetPoint("TOPLEFT", 4, -308)
-minimapToggle:HookScript("OnClick", function()
-    CH.RefreshMinimapRooms()
-end)
-
-local squareToggle = CH.MakeToggleButton(panelSettings, "RM_TOGGLE_MINIMAP_SQUARE", "minimapSquare")
-squareToggle:SetPoint("TOPLEFT", 4, -332)
-squareToggle:HookScript("OnClick", function()
-    CH.RefreshMinimapRooms()
-end)
-
-CH.MakeSep(panelSettings, -358)
-CH.MakeSectionHeader(panelSettings, "RM_SECTION_ROOM_NARRATION", -364)
-
--- When on, your personal voices read rooms shared to you that carry no voice
--- (your own rooms always use the per-room voice you set in the room dialog).
-local voiceToggle = CH.MakeToggleButton(panelSettings, "RM_TOGGLE_USE_DEFAULT_VOICES", "voiceDefaultsEnabled")
-voiceToggle:SetPoint("TOPLEFT", 4, -380)
-
-local femLabel = panelSettings:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-femLabel:SetPoint("TOPLEFT", 8, -410)
-femLabel:SetText(CH.L["RM_FEMININE"])
-
-local femVoice = CH.MakeVoiceDropdown(panelSettings, 150, "RM_VOICE_NONE", function()
-    return ChamberlainDB.settings.voiceFemale
-end, function(n)
-    ChamberlainDB.settings.voiceFemale = n
-end)
-femVoice:SetPoint("TOPLEFT", 84, -406)
-
-local femTest = CH.MakeButton(panelSettings, "RM_TEST", 44, 20)
-femTest:SetPoint("LEFT", femVoice, "RIGHT", 6, 0)
-femTest:SetScript("OnClick", function()
-    local v = ChamberlainDB.settings.voiceFemale
-    if v then
-        CH.Speak(CH.L["RM_VOICE_TEST_FEMININE"], v)
-    else
-        CH.Print(CH.L["RM_PICK_FEMININE_FIRST"])
-    end
-end)
-
-local malLabel = panelSettings:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-malLabel:SetPoint("TOPLEFT", 8, -436)
-malLabel:SetText(CH.L["RM_MASCULINE"])
-
-local malVoice = CH.MakeVoiceDropdown(panelSettings, 150, "RM_VOICE_NONE", function()
-    return ChamberlainDB.settings.voiceMale
-end, function(n)
-    ChamberlainDB.settings.voiceMale = n
-end)
-malVoice:SetPoint("TOPLEFT", 84, -432)
-
-local malTest = CH.MakeButton(panelSettings, "RM_TEST", 44, 20)
-malTest:SetPoint("LEFT", malVoice, "RIGHT", 6, 0)
-malTest:SetScript("OnClick", function()
-    local v = ChamberlainDB.settings.voiceMale
-    if v then
-        CH.Speak(CH.L["RM_VOICE_TEST_MASCULINE"], v)
-    else
-        CH.Print(CH.L["RM_PICK_MASCULINE_FIRST"])
-    end
-end)
-
-local voiceNote = panelSettings:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-voiceNote:SetPoint("TOPLEFT", 8, -460)
-voiceNote:SetPoint("RIGHT", panelSettings, "RIGHT", -8, 0)
-voiceNote:SetJustifyH("LEFT")
-voiceNote:SetWordWrap(true)
-voiceNote:SetText(CH.L["RM_VOICE_NOTE"])
-voiceNote:SetTextColor(CH.RGBA(CH.COLORS.dim, 1))
-
-CH.MakeSep(panelSettings, -516)
-CH.MakeSectionHeader(panelSettings, "RM_SECTION_TRUSTED_BLOCKED", -522)
-
-local blockDesc = panelSettings:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-blockDesc:SetPoint("TOPLEFT", 4, -538)
-blockDesc:SetText(CH.L["RM_TRUST_BLOCK_DESC"])
-blockDesc:SetTextColor(CH.RGBA(CH.COLORS.muted, 1))
-
-local blockScroll, blockScrollChild = CH.MakeScrollList(panelSettings, "ChamberlainBlockScroll")
-blockScroll:SetPoint("TOPLEFT", panelSettings, "TOPLEFT", 0, -554)
-blockScroll:SetPoint("BOTTOMRIGHT", panelSettings, "BOTTOMRIGHT", -20, 0)
-
-local blockEmpty = blockScrollChild:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-blockEmpty:SetPoint("TOP", 0, -12)
-blockEmpty:SetText(CH.L["RM_NO_TRUST_OR_BLOCKS"])
-blockEmpty:SetTextColor(CH.RGBA(CH.COLORS.dim, 1))
-blockEmpty:Hide()
-
-local BLOCK_ROW_H = 22
-local blockRowPool = {}
-
-local function PopulateBlockList()
-    for _, row in ipairs(blockRowPool) do
-        row:Hide()
-    end
-
-    local entries = {}
-    local blocks = ChamberlainDB.blocks
-    for playerName, _ in pairs(ChamberlainDB.trusted or {}) do
-        entries[#entries + 1] = { kind = "trusted", key = playerName, label = playerName }
-    end
-    for guid, ownerOrBool in pairs(blocks.houses) do
-        local label = type(ownerOrBool) == "string" and string.format(CH.L["RM_X_HOUSE"], ownerOrBool)
-            or CH.L["RM_UNKNOWN_HOUSE"]
-        entries[#entries + 1] = { kind = "house", key = guid, label = label }
-    end
-    for playerName, _ in pairs(blocks.players) do
-        entries[#entries + 1] = { kind = "player", key = playerName, label = playerName }
-    end
-    table.sort(entries, function(a, b)
-        return a.label < b.label
-    end)
-
-    local w = blockScroll:GetWidth() - 20
-    if w <= 10 then
-        w = 260
-    end
-    blockScrollChild:SetWidth(w)
-
-    for i, entry in ipairs(entries) do
-        local row = blockRowPool[i]
-        if not row then
-            row = CreateFrame("Frame", nil, blockScrollChild)
-            row:SetHeight(BLOCK_ROW_H)
-
-            row.nameLabel = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-            row.nameLabel:SetPoint("LEFT", 4, 0)
-            row.nameLabel:SetPoint("RIGHT", row, "RIGHT", -72, 0)
-            row.nameLabel:SetJustifyH("LEFT")
-            row.nameLabel:SetWordWrap(false)
-
-            row.kindLabel = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-            row.kindLabel:SetPoint("RIGHT", row, "RIGHT", -62, 0)
-
-            row.unblockBtn = CH.MakeButton(row, "RM_UNBLOCK", 58, 18)
-            row.unblockBtn:SetPoint("RIGHT", row, "RIGHT", -2, 0)
-
-            blockRowPool[i] = row
-        end
-
-        row:SetWidth(w)
-        row:SetPoint("TOPLEFT", blockScrollChild, "TOPLEFT", 0, -(i - 1) * BLOCK_ROW_H)
-        row:Show()
-        row.nameLabel:SetText(entry.label)
-        local kindText = entry.kind == "house" and CH.L["RM_KIND_HOUSE"]
-            or entry.kind == "trusted" and CH.L["RM_KIND_TRUSTED"]
-            or CH.L["RM_KIND_PLAYER"]
-        row.kindLabel:SetText(kindText)
-        row.unblockBtn:SetText(entry.kind == "trusted" and CH.L["RM_UNTRUST"] or CH.L["RM_UNBLOCK"])
-
-        local kind, key = entry.kind, entry.key
-        row.unblockBtn:SetScript("OnClick", function()
-            if kind == "house" then
-                ChamberlainDB.blocks.houses[key] = nil
-            elseif kind == "trusted" then
-                ChamberlainDB.trusted[key] = nil
-            else
-                ChamberlainDB.blocks.players[key] = nil
-            end
-            PopulateBlockList()
-        end)
-    end
-
-    blockScrollChild:SetHeight(math.max(#entries * BLOCK_ROW_H, 1))
-    blockEmpty:SetShown(#entries == 0)
-end
-
-local function RefreshSettingsTab()
-    shareToggle:Refresh()
-    recvToggle:Refresh()
-    roomTextToggle:Refresh()
-    bannerToggle:Refresh()
-    ambienceToggle:Refresh()
-    groupDotsToggle:Refresh()
-    minimapToggle:Refresh()
-    squareToggle:Refresh()
-    voiceToggle:Refresh()
-    femVoice:Refresh()
-    malVoice:Refresh()
-    refreshPersonWait()
-    refreshRoomWait()
-    refreshBannerTimeout()
-    PopulateBlockList()
 end
 
 -- ─────────────────────────────────────────────────────────────────────
@@ -930,43 +622,14 @@ end
 -- CH.RefreshHUDMode, which runs when the house changes.
 function CH.RefreshSharingDot()
     local guid = CH.currentHouseGUID
-    local news = false
-    for _, catalog in pairs(guid and CH.partyCatalogs or {}) do
-        local entry = catalog[guid]
-        if entry then
-            local status = GetStatus(guid, entry.timestamp)
-            news = news or status == "not_owned" or status == "newer"
-        end
-    end
-    CH.SetSharingDot(news)
+    CH.SetSharingDot(guid ~= nil and CH.GroupOffer(guid) ~= nil)
 end
 
 -- Call after a group catalog or a received map changes.
 function CH.RefreshGroupMaps()
     CH.RefreshRoomList()
     CH.RefreshSharingDot()
-end
-
--- Exposed so the trust list refreshes when "Always accept from X" is ticked.
-CH.RefreshSettingsTab = function()
-    if settingsWin:IsShown() then
-        RefreshSettingsTab()
-    end
-end
-
-function CH.OpenSettings()
-    settingsWin:Show()
-    settingsWin:Raise()
-    RefreshSettingsTab()
-end
-
--- Launcher toggle: open if closed, close if already open.
-function CH.ToggleSettings()
-    if settingsWin:IsShown() then
-        settingsWin:Hide()
-    else
-        CH.OpenSettings()
-    end
+    CH.RefreshHouseCard()
 end
 
 -- Opens on the first map your group offers, the one the Sharing dot is about.

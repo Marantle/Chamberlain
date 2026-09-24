@@ -39,7 +39,6 @@ Housing\Archive.lua
 Housing\Banner.lua
 Housing\TalkingHead.lua
 UI\HUD.lua
-UI\Toolbox.lua
 UI\MusicPicker.lua
 UI\RoomDialog.lua
 Sharing\Share.lua
@@ -51,6 +50,8 @@ UI\FloorPlan\Floors.lua
 UI\FloorPlan\Tiles.lua
 UI\FloorPlan\EditPanel.lua
 UI\FloorPlan\Dots.lua
+UI\FloorPlan\HouseCard.lua
+UI\Toolbox.lua
 UI\FixHouse.lua
 UI\Archive.lua
 UI\Stairs.lua
@@ -58,3 +59,4 @@ UI\WhatsNew.lua
 UI\CreatorThanks.lua
 UI\Minimap.lua
 UI\MinimapRooms.lua
+UI\Settings.lua

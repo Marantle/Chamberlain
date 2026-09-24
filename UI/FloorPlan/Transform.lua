@@ -8,7 +8,6 @@ local _, CH = ...
 -- FP.WorldToCanvas / FP.CanvasToWorld and size tiles with FP.ZoomedScale().
 
 local FP = CH.FP
-local fp = FP.win
 local canvas = FP.canvas
 
 local PADDING = 24
@@ -134,7 +133,7 @@ function FP.CheckCanvasResize()
 end
 
 -- Reset-view button, shown over the map's bottom-left only while zoomed or panned.
-local resetBtn = CH.MakeButton(fp, "FP_RESET_ZOOM", 86, 18)
+local resetBtn = CH.MakeButton(FP.map, "FP_RESET_ZOOM", 86, 18)
 resetBtn:SetPoint("BOTTOMLEFT", canvas, "BOTTOMLEFT", 4, 4)
 resetBtn:SetFrameLevel(canvas:GetFrameLevel() + 20) -- above the tiles and dots
 resetBtn:Hide()

@@ -187,7 +187,14 @@ local function Apply()
     if not ChamberlainDB then
         return -- another addon poking the minimap during load, before our SavedVariables are in
     end
-    local on = ChamberlainDB.settings.minimapRooms and C_Housing.IsInsideHouse()
+    -- A house we hold no rooms for keeps the game's picture, or a visitor
+    -- without the map would get an empty circle.
+    local h = CH.currentHouseGUID and ChamberlainDB.houses[CH.currentHouseGUID]
+    local on = ChamberlainDB.settings.minimapRooms
+        and C_Housing.IsInsideHouse()
+        and h ~= nil
+        and h.zones ~= nil
+        and #h.zones > 0
     if on then
         MinimapBackdrop.StaticOverlayTexture:Hide()
         ApplyShape()

@@ -29,6 +29,13 @@ CH.WHATS_NEW = {
                 .. "Group tab is gone, and each of your houses has its own Share button.",
             "The Map button in the Rooms window shows the map of any house on the list, even one you are not in.",
             "The Sharing button on the bar opens the Rooms window now, and the Rooms button is gone.",
+            "The Build toolbox and the house map are one window. Build opens just the tools and "
+                .. "Map opens all of it. The arrow in the corner switches between them.",
+            "The room editor has tabs for Room, Yapper and Sound, with a preview of the banner on top.",
+            "The bar shows the room you stand in. Slim bar in Settings makes it a single row of icons.",
+            "Settings has pages down the side and a switch for each setting.",
+            "Your minimap shows the rooms of the house you're in when you have its map. "
+                .. "Rooms on the minimap in Settings turns it off.",
         },
     },
     {

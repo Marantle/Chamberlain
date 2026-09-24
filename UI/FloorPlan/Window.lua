@@ -6,43 +6,107 @@ local _, CH = ...
 -- The window is split across UI\FloorPlan\. This file owns the frame, the
 -- chrome, and the open/close API. Transform.lua holds the world-to-canvas
 -- math and zoom/pan, Floors.lua the floor navigation and add/remove,
--- Tiles.lua the room tiles and the build pass, EditPanel.lua the nudge
--- buttons and drag grips, Dots.lua the live player and party blips.
+-- Tiles.lua the room tiles and the build pass, EditPanel.lua the move and
+-- resize logic with the drag grips, Dots.lua the live player and party blips.
+-- The rail down the left side is the build toolbox (UI/Toolbox.lua) in your
+-- own house and the house card (HouseCard.lua) everywhere else.
 --
--- FP (CH.FP) is the table the files talk through: the two frames, the
--- selection and viewed-floor state, and the cross-file functions. Anything
--- not on it is private to its file. Cross-file calls resolve at call time,
--- so the only load-order rule is that this file comes first in the .toc.
+-- FP (CH.FP) is the table the files talk through. It holds the frames, the
+-- shared state and the cross-file functions. Anything not on it is
+-- private to its file. Cross-file calls resolve at call time, so the only
+-- load-order rule is that this file comes first in the .toc.
 
 local FP = {}
 CH.FP = FP
 
+local RAIL_W = 208
+local MAP_W = 500
+local WIN_H = 520
+
 local fp = CreateFrame("Frame", "ChamberlainFloorPlan", UIParent, "BackdropTemplate")
-fp:SetSize(420, 514)
+fp:SetSize(RAIL_W + 1 + MAP_W, WIN_H)
 fp:SetFrameStrata("DIALOG")
 -- Floor Plan and the Room Manager share the DIALOG strata and overlap. Without
 -- this, the other window's child buttons (a higher frame level) bleed through
 -- this one's background. SetToplevel makes clicking/showing a window lift its
 -- whole subtree above the other.
 fp:SetToplevel(true)
-fp:SetPoint("CENTER", UIParent, "CENTER", 220, 0)
 CH.MakeDraggable(fp)
 CH.SkinWindow(fp, "FP_TITLE", true)
 fp:Hide()
 table.insert(UISpecialFrames, "ChamberlainFloorPlan")
--- The build toolbox docks onto this frame's right edge (UI/Toolbox.lua).
 CH.floorPlan = fp
 FP.win = fp
 
-local fpSub = fp:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-fpSub:SetPoint("TOPLEFT", 10, -27)
-fpSub:SetTextColor(CH.RGBA(CH.COLORS.muted, 1))
+-- Also /rooms reset. The spot isn't saved, so every login starts here.
+function CH.ResetMapPos()
+    fp:ClearAllPoints()
+    fp:SetPoint("CENTER", UIParent, "CENTER", 120, 0)
+end
+CH.ResetMapPos()
+
+local closeBtn = CH.MakeGlyphButton(fp, "x")
+closeBtn:SetPoint("TOPRIGHT", -4, -4)
+closeBtn:SetScript("OnClick", function()
+    fp:Hide()
+end)
+
+local foldBtn = CH.MakeGlyphButton(fp, "«")
+foldBtn:SetPoint("RIGHT", closeBtn, "LEFT", -2, 0)
+foldBtn:SetScript("OnClick", function()
+    ChamberlainDB.settings.mapFolded = not ChamberlainDB.settings.mapFolded
+    FP.ApplyFold()
+end)
+CH.Tip(foldBtn, function()
+    return ChamberlainDB.settings.mapFolded and "FP_TT_UNFOLD" or "FP_TT_FOLD"
+end)
+
+-- Says so in the header when the tools are gone, on a map you can only look at.
+local readOnly = CreateFrame("Frame", nil, fp, "BackdropTemplate")
+readOnly:SetPoint("LEFT", fp.title, "RIGHT", 8, 0)
+readOnly:SetBackdrop(CH.BACKDROP_THIN)
+readOnly:SetBackdropColor(0, 0, 0, 0)
+readOnly:SetBackdropBorderColor(CH.RGBA(CH.COLORS.border, 0.6))
+local readOnlyText = readOnly:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+readOnlyText:SetPoint("CENTER")
+readOnlyText:SetText(CH.L["FP_READ_ONLY"])
+readOnlyText:SetTextColor(CH.RGBA(CH.COLORS.muted, 1))
+readOnly:SetSize(readOnlyText:GetStringWidth() + 12, 16)
+readOnly:Hide()
+
+local rail = CreateFrame("Frame", nil, fp)
+rail:SetPoint("TOPLEFT", 0, -26)
+rail:SetPoint("BOTTOMLEFT")
+rail:SetWidth(RAIL_W)
+FP.rail = rail
+
+-- Everything right of the rail. Hidden while folded, and with it the canvas,
+-- whose OnUpdate then stops too.
+local map = CreateFrame("Frame", nil, fp)
+map:SetPoint("TOPLEFT", rail, "TOPRIGHT", 1, 0)
+map:SetPoint("BOTTOMRIGHT")
+FP.map = map
+
+local divider = map:CreateTexture(nil, "ARTWORK")
+divider:SetWidth(1)
+divider:SetPoint("TOPRIGHT", map, "TOPLEFT")
+divider:SetPoint("BOTTOMRIGHT", map, "BOTTOMLEFT")
+divider:SetColorTexture(CH.RGBA(CH.COLORS.frame, 0.35))
+
+local fpSub = map:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+fpSub:SetPoint("TOPLEFT", 10, -10)
 FP.sub = fpSub
 
-local canvas = CreateFrame("Frame", nil, fp)
-canvas:SetPoint("TOPLEFT", fp, "TOPLEFT", 10, -40)
-canvas:SetPoint("BOTTOMRIGHT", fp, "BOTTOMRIGHT", -10, 124)
+local canvas = CreateFrame("Frame", nil, map)
+canvas:SetPoint("TOPLEFT", map, "TOPLEFT", 10, -32)
+canvas:SetPoint("BOTTOMRIGHT", map, "BOTTOMRIGHT", -10, 36)
 FP.canvas = canvas
+
+-- on the map, since the canvas clips anything drawn past its edges
+local canvasEdge = map:CreateTexture(nil, "BACKGROUND")
+canvasEdge:SetPoint("TOPLEFT", canvas, -1, 1)
+canvasEdge:SetPoint("BOTTOMRIGHT", canvas, 1, -1)
+canvasEdge:SetColorTexture(CH.RGBA(CH.COLORS.border, 0.5))
 
 local canvasBg = canvas:CreateTexture(nil, "BACKGROUND")
 canvasBg:SetAllPoints()
@@ -120,21 +184,13 @@ function FP.FixerCandidate()
     return false
 end
 
-local fpClose = CH.MakeButton(fp, "FP_CLOSE", 80, 22)
--- Bottom-right so it never collides with the Add floor / Add stairs buttons that
--- sit at the bottom-left for your own house.
-fpClose:SetPoint("BOTTOMRIGHT", fp, "BOTTOMRIGHT", -10, 10)
-fpClose:SetScript("OnClick", function()
-    fp:Hide()
-end)
-
 -- Shared state and helpers ------------------------------------------------
 
--- FP.selectedIdx: index into the house's zones of the room selected for editing,
--- or nil. Set by tile clicks and CH.FloorPlanSelect, read everywhere.
+-- FP.selectedIdx: index into the house's zones of the room picked on the rail
+-- (CH.tbSelZone), or nil. Worked out again on every build, read everywhere.
 
 -- Which floor the map is currently showing. Starts on the player's active floor
--- and follows it up and down the stairs. The +/- arrows browse other floors.
+-- and follows it up and down the stairs. The floor tabs browse the others.
 -- Public (not on FP) so the create dialog can default a new room to the floor
 -- you're viewing, and Stairs can seed its pickers from it.
 CH.fpViewedFloor = 1
@@ -159,7 +215,7 @@ function FP.CanEdit()
 end
 
 -- The floor a new room or stair defaults to: the one on the map, unless the map
--- shows another house and a floating toolbox is building in this one.
+-- shows another house while a stairs wizard is still open for this one.
 function CH.MapFloor()
     if FP.viewGUID then
         return CH.activeFloor or 1
@@ -196,14 +252,45 @@ fp:SetScript("OnHide", function()
     if ChamberlainDB and ChamberlainDB.settings then
         ChamberlainDB.settings.floorPlanOpen = false
     end
-    -- A docked toolbox is part of this window, so closing the map puts it away
-    -- too. Without the explicit Hide it would pop back the next time the map
-    -- alone is opened, and the Map button is supposed to open just the map.
-    if CH.toolbox and CH.toolbox:GetParent() == fp and CH.toolbox:IsShown() then
-        CH.toolbox:Hide()
-    end
     FP.viewGUID = nil
 end)
+
+-- Folded, the window is only the rail: the build tools to carry around the
+-- house with the map out of the way. Only your own house folds. The top left
+-- corner stays put, so the rail doesn't jump when the map comes and goes.
+function FP.ApplyFold()
+    local edit = FP.CanEdit()
+    local folded = edit and ChamberlainDB.settings.mapFolded
+    local w = folded and RAIL_W or RAIL_W + 1 + MAP_W
+    local h = folded and FP.foldedHeight or WIN_H
+    if fp:GetWidth() ~= w or fp:GetHeight() ~= h then
+        local left, top = fp:GetLeft(), fp:GetTop()
+        if left then
+            fp:ClearAllPoints()
+            fp:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", left, top)
+        end
+        fp:SetSize(w, h)
+    end
+    map:SetShown(not folded)
+    foldBtn:SetShown(edit)
+    foldBtn.glyph:SetText(folded and "»" or "«")
+    CH.SetWindowTitle(fp, folded and "TB_TITLE" or "FP_TITLE", true)
+    readOnly:SetShown(not edit)
+end
+
+-- The rail holds the build tools on a map you can edit and the house card on
+-- any other. Called from every build pass.
+function FP.RefreshRail(h)
+    local edit = FP.CanEdit()
+    CH.toolbox:SetShown(edit)
+    FP.card:SetShown(not edit)
+    if edit then
+        CH.RefreshToolbox()
+    else
+        FP.RefreshCard(h)
+    end
+    FP.ApplyFold()
+end
 
 -- guid is a house picked in the Rooms window, nil the one you stand in. Moving
 -- between the two starts on floor 1 of the other house, or back on the floor
@@ -214,12 +301,7 @@ function CH.OpenFloorPlan(guid)
     end
     if guid ~= FP.viewGUID then
         FP.viewGUID = guid
-        FP.selectedIdx = nil
         CH.fpViewedFloor = guid and 1 or (CH.activeFloor or 1)
-        -- the docked build tools work on the house you stand in, not this one
-        if guid and CH.toolbox and CH.toolbox:GetParent() == fp then
-            CH.toolbox:Hide()
-        end
     end
     FP.ResetView() -- open at the fitted view
     FP.InvalidateFit() -- reframe on open
@@ -231,13 +313,31 @@ function CH.OpenFloorPlan(guid)
     fp:Raise()
 end
 
--- Launcher/minimap toggle: open if closed, close if already open. A map of
--- another house counts as closed, so the bar's Map button brings back yours.
+-- The bar's Map button opens the whole window or unfolds a folded one, and
+-- closes it when your map already shows. A map of another house counts as
+-- closed, so the button brings back yours.
 function CH.ToggleFloorPlan()
-    if fp:IsShown() and not FP.viewGUID then
+    local s = ChamberlainDB.settings
+    if fp:IsShown() and not FP.viewGUID and not (s.mapFolded and FP.CanEdit()) then
         fp:Hide()
     else
+        s.mapFolded = false
         CH.OpenFloorPlan()
+    end
+end
+
+-- The bar's Build button, the other way round: it folds an open map down to
+-- the rail and closes the rail when that's all there is.
+function CH.OpenToolbox()
+    ChamberlainDB.settings.mapFolded = true
+    CH.OpenFloorPlan()
+end
+
+function CH.ToggleToolbox()
+    if fp:IsShown() and not FP.viewGUID and (ChamberlainDB.settings.mapFolded or not FP.CanEdit()) then
+        fp:Hide()
+    else
+        CH.OpenToolbox()
     end
 end
 

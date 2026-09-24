@@ -1,36 +1,22 @@
 local _, CH = ...
 
 -- ─────────────────────────────────────────────────────────────────────
--- Floor plan: edit panel and drag grips
+-- Floor plan: moving and resizing the selected room, and the drag grips
 -- ─────────────────────────────────────────────────────────────────────
--- Edit panel: click a room on the canvas to select it, then move or resize
--- it a yard at a time. Own house only.
+-- Click a room on the canvas to select it, then move or resize it half a yard
+-- at a time from the pad on the build rail, or drag its grips. Own house only.
 
 local FP = CH.FP
-local fp = FP.win
 local canvas = FP.canvas
-
-local editPanel = CreateFrame("Frame", nil, fp)
-editPanel:SetPoint("TOPLEFT", canvas, "BOTTOMLEFT", 0, -4)
-editPanel:SetPoint("TOPRIGHT", canvas, "BOTTOMRIGHT", 0, -4)
-editPanel:SetHeight(80)
-editPanel:Hide()
-
-local editName = editPanel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-editName:SetPoint("TOPLEFT", 4, 0)
-
-local editHint = fp:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-editHint:SetPoint("TOPLEFT", canvas, "BOTTOMLEFT", 4, -8)
-editHint:SetText(CH.L["FP_EDIT_HINT"])
-editHint:SetTextColor(0.5, 0.5, 0.5, 1)
-editHint:Hide()
 
 local STEP = 0.5 -- yards per button click
 
-local function AdjustSelected(dMinX, dMaxX, dMinY, dMaxY)
+-- Each delta is how many steps a bound moves. The pad on the build rail
+-- (UI/Toolbox.lua) holds the table of them.
+function FP.AdjustSelected(dMinX, dMaxX, dMinY, dMaxY)
     local h = FP.CurrentHouse()
-    local zone = h and FP.selectedIdx and h.zones[FP.selectedIdx]
-    if not zone then
+    local zone = CH.tbSelZone
+    if not h or not zone then
         return
     end
     if zone.shape == "circle" then
@@ -66,87 +52,8 @@ local function AdjustSelected(dMinX, dMaxX, dMinY, dMaxY)
         CH.RefreshRoomList()
     end
     CH.QueueBroadcast(CH.currentHouseGUID)
-    if CH.RefreshToolbox then
-        CH.RefreshToolbox() -- keep the toolbox's size readout in step
-    end
     if CH.SyncAnchorLatch then
         CH.SyncAnchorLatch() -- nudging a stair box onto us shouldn't fire a transition
-    end
-end
-
--- Buttons work in screen space. The map's X axis is mirrored, so screen-left
--- is world +X, screen-up is world +Y. Each entry: label, dMinX, dMaxX, dMinY, dMaxY.
-local function MakeAdjustRow(label, yOff, deltas)
-    local fsLabel = editPanel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    fsLabel:SetPoint("TOPLEFT", 4, yOff - 5)
-    fsLabel:SetText(label)
-    local x = 56
-    for _, d in ipairs(deltas) do
-        local b = CH.MakeButton(editPanel, d[1], 26, 18)
-        b:SetPoint("TOPLEFT", editPanel, "TOPLEFT", x, yOff)
-        b:SetScript("OnClick", function()
-            AdjustSelected(d[2], d[3], d[4], d[5])
-        end)
-        x = x + 28
-    end
-end
-
-MakeAdjustRow(CH.L["FP_MOVE"], -14, {
-    { "<", 1, 1, 0, 0 },
-    { "^", 0, 0, 1, 1 },
-    { "v", 0, 0, -1, -1 },
-    { ">", -1, -1, 0, 0 },
-})
-MakeAdjustRow(CH.L["FP_GROW"], -36, {
-    { "<", 0, 1, 0, 0 },
-    { "^", 0, 0, 0, 1 },
-    { "v", 0, 0, -1, 0 },
-    { ">", -1, 0, 0, 0 },
-})
-MakeAdjustRow(CH.L["FP_SHRINK"], -58, {
-    { "<", 0, -1, 0, 0 },
-    { "^", 0, 0, 0, -1 },
-    { "v", 0, 0, 1, 0 },
-    { ">", 1, 0, 0, 0 },
-})
-
-local function SelectedZone()
-    local h = FP.CurrentHouse()
-    return h and FP.selectedIdx and h.zones[FP.selectedIdx], h
-end
-
-local btnEdit = CH.MakeButton(editPanel, "FP_EDIT", 62, 18)
-btnEdit:SetPoint("TOPRIGHT", editPanel, "TOPRIGHT", -2, -14)
-btnEdit:SetScript("OnClick", function()
-    local zone = SelectedZone()
-    if zone then
-        CH.OpenRenameDialog(zone, CH.currentHouseGUID)
-    end
-end)
-
-local btnDelete = CH.MakeButton(editPanel, "FP_DELETE", 62, 18)
-btnDelete:SetPoint("TOPRIGHT", editPanel, "TOPRIGHT", -2, -36)
-btnDelete:SetScript("OnClick", function()
-    local zone, h = SelectedZone()
-    if not zone or not h then
-        return
-    end
-    table.remove(h.zones, FP.selectedIdx)
-    CH.DropZoneStats(h, zone.name)
-    CH.SetSelection(nil, nil) -- clear it on the toolbox too, then rebuild
-    CH.TouchHouse(CH.currentHouseGUID)
-end)
-
-function FP.RefreshEditPanel()
-    local h = FP.CurrentHouse()
-    local zone = FP.CanEdit() and h and FP.selectedIdx and h.zones[FP.selectedIdx]
-    if zone then
-        editName:SetText(string.format(CH.L["FMT_NAME_DIM_X"], zone.name, CH.ZoneDimText(zone)))
-        editPanel:Show()
-        editHint:Hide()
-    else
-        editPanel:Hide()
-        editHint:SetShown(FP.CanEdit() and h ~= nil and h.zones ~= nil and #h.zones > 0)
     end
 end
 
@@ -206,10 +113,14 @@ local function UpdateHandleDrag()
         if r < 0.5 then
             r = 0.5
         end
+        -- the grid is half a yard, so most frames change nothing
+        if zone.minX == ccx - r then
+            return
+        end
         zone.minX, zone.maxX = ccx - r, ccx + r
         zone.minY, zone.maxY = ccy - r, ccy + r
         FP.TileReposition()
-        FP.RefreshEditPanel()
+        CH.RefreshToolbox()
         return
     end
 
@@ -240,9 +151,12 @@ local function UpdateHandleDrag()
             end
         end
     end
+    if zone.minX == minX and zone.maxX == maxX and zone.minY == minY and zone.maxY == maxY then
+        return
+    end
     zone.minX, zone.maxX, zone.minY, zone.maxY = minX, maxX, minY, maxY
     FP.TileReposition() -- frozen transform: redraw the tile + reposition the grips
-    FP.RefreshEditPanel() -- keep the panel's live "name WxH" in step
+    CH.RefreshToolbox() -- keep the rail's live "name WxH" in step
 end
 
 local function EndHandleDrag(self)

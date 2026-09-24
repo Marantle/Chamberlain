@@ -7,9 +7,14 @@ entered each room.
 
 To make a room, open the Build toolbox and click Square room or Round room. The
 room drops where you stand and the name box opens. To fit the room to the
-walls, select it, walk to a wall and click Snap nearest edge to me. Grow and
-Shrink change its size too. You can also drag the corners of the room on the
-house map.
+walls, select it, walk to a wall and click Snap nearest edge to me. The arrows
+under it move the room, or push and pull one wall at a time. You can also drag
+the corners of the room on the house map.
+
+The Build toolbox and the house map are one window, with the tools down its
+left side. Build on the bar opens it folded to just the tools, for walking
+around the house. Map opens the whole thing, and the arrow in its corner folds
+it or opens it again.
 
 Rooms can overlap. Put a closet inside your bedroom and the smaller room wins
 while you stand in it.
@@ -19,11 +24,11 @@ where you are, and your group members show as dots too. Hover a room to see its
 name and size when the label doesn't fit. The mouse wheel zooms, and a drag on
 an empty patch moves the view. The labels and your dot stay the same size.
 
-The rooms can also take the place of the minimap picture. Indoors the game
-shows a still picture of a house there. Turn on Rooms on the minimap in
-Settings and the rooms of your floor show in its place, with you in the middle.
-The usual minimap buttons zoom it. If a different addon makes your minimap
-square, turn on Square minimap too.
+The rooms also take the place of the minimap picture. Indoors the game shows a
+still picture of a house there. In a house you have a map of, the rooms of your
+floor show in its place, with you in the middle. The usual minimap buttons zoom
+it. Rooms on the minimap in Settings turns it off. If a different addon makes
+your minimap square, turn on Square minimap too.
 
 ## Floors
 
@@ -38,7 +43,7 @@ Chamberlain puts you on the floor of that mark.
 For a tall shaft, a fall or a balcony, drop a Floor pin. A Floor pin works on
 every floor, and you set the floor it sends you to.
 
-The house map has an Add floor button and arrows to look at each floor. Its
+The house map has a tab for each floor, and its + button adds one. Its
 Move to floor button corrects Chamberlain when it has the wrong floor. If your
 stairs spiral, one flight sits above the next. Keep the marks of each flight
 off the same spot, or they trigger each other.
@@ -48,7 +53,8 @@ off the same spot, or they trigger each other.
 A room has more than a name. You can set a color for the banner and the map
 tile. You can write a description and pick a face that reads it in a talking
 head box. Your computer can speak the description in a voice you pick. The
-voice stays on your computer and goes to nobody.
+voice stays on your computer and goes to nobody. The room editor keeps these
+on three tabs, Room, Yapper and Sound, under a preview of the banner.
 
 A room marked Secret stays off the house maps and room lists of your visitors.
 Its banner still fires when they walk in.
@@ -56,7 +62,7 @@ Its banner still fires when they walk in.
 ## Ambience and music
 
 A room can have a background sound. Edit the room and pick a sound from the
-Ambience menu. The menu has more than 100 loops from the game, in short
+Ambience menu on the Sound tab. The menu has more than 100 loops from the game, in short
 categories. A crowded tavern and a slow river are there, and so is Naxxramas.
 The sound fades in when you enter and fades out when you leave.
 
@@ -105,8 +111,9 @@ somebody with Chamberlain walks into the house. The visitor doesn't need your
 map, so a first visit rings too. It rings once for each visit, and a reload
 doesn't ring it.
 
-To hear an echo or an arrival you need the map of the house. You must also
-share a group or a guild with the person who walked in. Each person rings a
+To hear an echo or an arrival you need the map of the house. An echo needs you
+in a group with the person who walked in. An arrival also reaches you through
+a guild you share with them. Each person rings a
 room for you once in 30 seconds, and a slider in Settings changes that. If the
 game's sound is off for you, a chat line tells you who is at the door.
 

@@ -111,7 +111,7 @@ local TOKEN_RATE = 1 -- 1/sec sustained, matching the server's delivery. Higher
 -- overruns it: past ~16-20 messages every other one drops.
 local sendQueue = {} -- background traffic: HELLO, CATALOG, LAYOUT_REQ/DECLINE
 local sendQueueHi = {} -- user-initiated layout transfer (BLOBSTART/BLOB); jumps ahead
-local sendQueueGuild = {} -- echoes for guildmates outside the group, the one thing sent on GUILD
+local sendQueueGuild = {} -- the front door for guildmates outside the group, the one thing sent on GUILD
 local sendTicker
 local tokens = TOKENS_MAX
 local lastTick
@@ -321,6 +321,16 @@ end
 
 function CH.SendEcho(houseGUID, h, zone)
     local group, guild = GroupChannel(), IsInGuild()
+    -- Room echoes stay in the group since 3.17.0, because a guild shouldn't
+    -- hear from every room its members walk into. The front door still reaches both,
+    -- where the player lets it.
+    if zone then
+        guild = false
+    else
+        local s = ChamberlainDB.settings
+        group = s.arrivalSendGroup and group
+        guild = s.arrivalSendGuild and guild
+    end
     if not (group or guild) or not SendingAllowed() then
         return
     end
@@ -1257,6 +1267,11 @@ function CH.HandleMessage(prefix, payload, channel, fullSender)
         end
         -- Room 0 is the front door, sent when somebody arrives. That one takes
         -- no map version since the visitor may not hold the map at all.
+        -- Clients from 3.13.0 to 3.16.0 still send room echoes to the guild,
+        -- and those are dropped here so they ring for the group alone.
+        if n > 0 and channel == "GUILD" then
+            return
+        end
         local zone = n > 0 and h.updatedAt == tonumber(parts[3]) and h.zones[n]
         local file = n == 0 and h.arrival and h.arrival.house or zone and zone.echo and zone.sfx
         if not file then

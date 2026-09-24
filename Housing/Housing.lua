@@ -258,8 +258,10 @@ function CH.CheckHousingState()
         CH.isOwnHouse = false
         CH.zoneLabel:SetText("-")
         CH.hud:Hide()
-        if CH.toolbox then
-            CH.toolbox:Hide()
+        -- the build tools and the map of the house you left go with it, but a
+        -- map picked in the Rooms window stays
+        if not CH.FP.viewGUID then
+            CH.floorPlan:Hide()
         end
         CH.HideBanner(0.8)
         CH.HideTalkingHead()
@@ -267,6 +269,7 @@ function CH.CheckHousingState()
         CH.UpdateAmbience()
         CH.StopRoomSounds()
         CH.ForgetEchoes()
+        CH.SetHudRoom(nil)
         currentZone = nil
         echoZone = nil
         currentAnchor = nil
@@ -380,7 +383,9 @@ function CH.OnHouseInfo(info)
 
     -- The house is identified now, so re-run the HUD layout: the visitor
     -- Floor Plan button depends on knowing the house and its stored layout.
+    -- The minimap only swaps its picture for a house we hold rooms for.
     CH.RefreshHUDMode()
+    CH.RefreshMinimapRooms()
 
     if CH.isOwnHouse and guid then
         CH.MigrateLegacyHouse(guid, CH.currentHouseOwner)
@@ -459,7 +464,7 @@ function CH.CheckZones()
         return
     end
 
-    if CH.isOwnHouse then
+    if CH.coordLabel:IsVisible() then
         CH.coordLabel:SetText(string.format(CH.L["HOUSE_COORD_X"], x, y))
     end
 
@@ -553,6 +558,7 @@ function CH.CheckZones()
     local foundName = found and found.name or nil
     if foundName ~= currentZone then
         currentZone = foundName
+        CH.SetHudRoom(found)
         if found then
             -- Entering a room shows the gold banner with its name. If the room
             -- has a description, the banner's Read button opens the talking-head

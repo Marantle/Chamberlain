@@ -17,6 +17,8 @@ local PALETTE = {
     { 1.00, 0.65, 0.25 },
     { 0.65, 1.00, 0.35 },
 }
+-- the room dialog offers these as quick picks
+FP.PALETTE = PALETTE
 
 local function AnchorGlyph(zone)
     if zone.floorDelta == 1 then
@@ -260,6 +262,7 @@ local function GetZoneFrame(i)
             target.cg,
             target.cb
         )
+        FP.ShowCardRoom(target.zoneIdx)
     end)
     f:SetScript("OnLeave", function()
         GameTooltip:Hide()
@@ -341,6 +344,10 @@ function FP.Build()
     else
         FP.sub:SetText(CH.L["FP_NOT_IN_HOUSE"])
     end
+    FP.RefreshRail(h)
+    -- The rail's pick is the one selection. The index is only where that room
+    -- sits right now, which a delete anywhere can shift.
+    FP.selectedIdx = not FP.viewGUID and h and h.zones and CH.tbSelZone and tIndexOf(h.zones, CH.tbSelZone) or nil
 
     -- A different house reframes to its own bounds and resets the zoom and pan.
     -- Switching floors keeps the shared house-wide frame and your current zoom and
@@ -391,15 +398,8 @@ function FP.Build()
         FP.archiveHint:SetPoint("TOP", suggestFix and FP.fixBtn or FP.empty, "BOTTOM", 0, -16)
         FP.archiveHint:SetShown(suggestArchive)
         FP.archiveBtn:SetShown(suggestArchive)
-        FP.selectedIdx = nil
-        FP.RefreshEditPanel()
         FP.PositionHandles()
         return
-    end
-
-    -- Selection can go stale when rooms are deleted elsewhere
-    if FP.selectedIdx and not h.zones[FP.selectedIdx] then
-        FP.selectedIdx = nil
     end
 
     -- The transform is the shared house-wide fit established by EnsureFit above.
@@ -451,7 +451,6 @@ function FP.Build()
         FP.ShowPlayerDot()
     end
     FP.UpdateResetButton()
-    FP.RefreshEditPanel()
     FP.PositionHandles()
 end
 
@@ -493,6 +492,8 @@ end
 -- Called from RoomManager when zones change so the floor plan stays in sync
 function CH.RebuildFloorPlan()
     FP.minimapDirty = true -- the map may be closed but the minimap still has to know
+    -- a house's first room, or its last one going, swaps the minimap picture
+    CH.RefreshMinimapRooms()
     if FP.win:IsShown() then
         FP.InvalidateFit() -- zones changed (create/delete/share): reframe to new bounds
         FP.Build()
@@ -522,6 +523,6 @@ function CH.FloorPlanSelect(zone, revealFloor)
     if FP.win:IsShown() then
         FP.Build()
     else
-        FP.RefreshEditPanel()
+        CH.RefreshToolbox()
     end
 end

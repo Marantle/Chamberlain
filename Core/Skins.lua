@@ -10,6 +10,7 @@ local BTN = {
     fill = { 0.11, 0.09, 0.06, 0.92 },
     fillHover = { 0.18, 0.15, 0.09, 0.95 },
     fillDown = { 0.05, 0.04, 0.03, 1.00 },
+    fillOn = { 0.36, 0.29, 0.07, 0.95 },
     edge = { 0.55, 0.45, 0.15, 0.80 },
     edgeHover = { 0.95, 0.80, 0.25, 1.00 },
     edgeOff = { 0.30, 0.26, 0.16, 0.50 },
@@ -50,9 +51,9 @@ function CH.MakeButton(parent, key, w, h)
         end
     end)
     b:SetScript("OnLeave", function(self)
-        self:SetBackdropColor(unpack(BTN.fill))
+        self:SetBackdropColor(unpack(self.active and BTN.fillOn or BTN.fill))
         if self:IsEnabled() then
-            self:SetBackdropBorderColor(unpack(BTN.edge))
+            self:SetBackdropBorderColor(unpack(self.active and BTN.edgeHover or BTN.edge))
         else
             self:SetBackdropBorderColor(unpack(BTN.edgeOff))
         end
@@ -72,9 +73,150 @@ function CH.MakeButton(parent, key, w, h)
         self:SetBackdropBorderColor(unpack(BTN.edgeOff))
     end)
     b:SetScript("OnEnable", function(self)
-        self:SetBackdropBorderColor(unpack(BTN.edge))
+        self:SetBackdropBorderColor(unpack(self.active and BTN.edgeHover or BTN.edge))
     end)
     return b
+end
+
+-- Lit fill and a white label, for the picked button of a row that works like
+-- a switch (Move / Grow / Shrink on the build rail).
+function CH.SetButtonActive(b, on)
+    b.active = on or nil
+    b:SetNormalFontObject(on and GameFontHighlightSmall or GameFontNormalSmall)
+    -- the colours OnLeave would set, without its GameTooltip:Hide()
+    if not b:IsMouseOver() then
+        b:SetBackdropColor(unpack(on and BTN.fillOn or BTN.fill))
+        if b:IsEnabled() then
+            b:SetBackdropBorderColor(unpack(on and BTN.edgeHover or BTN.edge))
+        end
+    end
+    if b.TintIcon then
+        b.TintIcon(b:IsMouseOver())
+    end
+end
+
+-- SVG art from Media. It needs CreateVectorGraphics, which 12.0 clients don't
+-- have, so this hands back nil there and the caller keeps its plain text.
+-- The svgs are drawn white and tinted with SetVertexColor.
+local MEDIA = "Interface\\AddOns\\Chamberlain\\Media\\"
+
+function CH.MakeIcon(parent, file, size, layer)
+    if not parent.CreateVectorGraphics then
+        return
+    end
+    local v = parent:CreateVectorGraphics()
+    v:SetSVG(MEDIA .. file .. ".svg")
+    v:SetDrawLayer(layer or "ARTWORK")
+    v:SetSize(size, size)
+    return v
+end
+
+-- An icon on a MakeButton that follows its label: gold, white on hover or while
+-- active, grey when disabled. An svg can't be a button texture, so it rides on
+-- top and the button's scripts recolor it. The caller anchors it. nil on 12.0.
+function CH.AddButtonIcon(btn, file, size)
+    local icon = CH.MakeIcon(btn, file, size, "OVERLAY")
+    if not icon then
+        return
+    end
+    local function tint(hot)
+        if not btn:IsEnabled() then
+            icon:SetVertexColor(0.5, 0.5, 0.5)
+        elseif hot or btn.active then
+            icon:SetVertexColor(1, 1, 1)
+        else
+            icon:SetVertexColor(CH.RGBA(CH.COLORS.tipGold, 1))
+        end
+    end
+    btn:HookScript("OnEnter", function()
+        tint(true)
+    end)
+    -- a script passes the button first, which tint would read as hot
+    local function settle()
+        tint(false)
+    end
+    btn:HookScript("OnLeave", settle)
+    btn:HookScript("OnEnable", settle)
+    btn:HookScript("OnDisable", settle)
+    btn.TintIcon = tint
+    tint(false)
+    return icon
+end
+
+-- The small gold letter buttons that sit in a window's header, x to close and
+-- the fold arrows. White under the mouse.
+function CH.MakeGlyphButton(parent, glyph)
+    local b = CreateFrame("Button", nil, parent)
+    b:SetSize(18, 18)
+    b.glyph = b:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    b.glyph:SetAllPoints()
+    b.glyph:SetText(glyph)
+    b.glyph:SetTextColor(1, 0.84, 0, 1)
+    b:SetScript("OnEnter", function(self)
+        self.glyph:SetTextColor(1, 1, 1, 1)
+    end)
+    b:SetScript("OnLeave", function(self)
+        self.glyph:SetTextColor(1, 0.84, 0, 1)
+    end)
+    return b
+end
+
+-- Text tabs over a faint line, the picked one gold with a bar under it.
+-- onPick(i) runs when a tab is clicked. row:Select(i) only marks one.
+function CH.MakeTabs(parent, keys, onPick)
+    local row = CreateFrame("Frame", nil, parent)
+    row:SetHeight(24)
+    local base = CH.MakeRule(row, 0.35)
+    base:SetPoint("BOTTOMLEFT")
+    base:SetPoint("BOTTOMRIGHT")
+
+    local tabs = {}
+    function row:Select(i)
+        self.current = i
+        for n, t in ipairs(tabs) do
+            if n == i then
+                t.label:SetTextColor(CH.RGBA(CH.COLORS.gold, 1))
+            else
+                t.label:SetTextColor(CH.RGBA(CH.COLORS.muted, 1))
+            end
+            t.bar:SetShown(n == i)
+        end
+    end
+
+    local prev
+    for i, key in ipairs(keys) do
+        local t = CreateFrame("Button", nil, row)
+        t.label = t:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        t.label:SetPoint("BOTTOM", 0, 7)
+        t.label:SetText(CH.L[key])
+        t:SetSize(t.label:GetStringWidth() + 8, 24)
+        if prev then
+            t:SetPoint("BOTTOMLEFT", prev, "BOTTOMRIGHT", 12, 0)
+        else
+            t:SetPoint("BOTTOMLEFT")
+        end
+        t.bar = t:CreateTexture(nil, "OVERLAY")
+        t.bar:SetHeight(2)
+        t.bar:SetPoint("BOTTOMLEFT")
+        t.bar:SetPoint("BOTTOMRIGHT")
+        t.bar:SetColorTexture(CH.RGBA(CH.COLORS.frame, 1))
+        t:SetScript("OnClick", function()
+            row:Select(i)
+            onPick(i)
+        end)
+        t:SetScript("OnEnter", function()
+            if row.current ~= i then
+                t.label:SetTextColor(1, 1, 1, 1)
+            end
+        end)
+        t:SetScript("OnLeave", function()
+            row:Select(row.current)
+        end)
+        tabs[i] = t
+        prev = t
+    end
+    row:Select(1)
+    return row
 end
 
 -- Shared window skin: dark navy gradient, 1px gold frame, gold-tinted header
@@ -195,10 +337,16 @@ end
 -- Thin full-width divider line. alpha defaults to the faint 0.25 used between
 -- settings sections. Pass a higher value for a more visible rule.
 function CH.MakeSep(parent, yOff, alpha)
-    local t = parent:CreateTexture(nil, "ARTWORK")
-    t:SetHeight(1)
+    local t = CH.MakeRule(parent, alpha)
     t:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, yOff)
     t:SetPoint("TOPRIGHT", parent, "TOPRIGHT", 0, yOff)
+    return t
+end
+
+-- The same faint 1px line with no anchors, for the caller to lay across a row.
+function CH.MakeRule(parent, alpha)
+    local t = parent:CreateTexture(nil, "ARTWORK")
+    t:SetHeight(1)
     t:SetColorTexture(CH.RGBA(CH.COLORS.sep, alpha or 0.25))
     return t
 end

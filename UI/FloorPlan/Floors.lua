@@ -5,59 +5,56 @@ local _, CH = ...
 -- ─────────────────────────────────────────────────────────────────────
 
 local FP = CH.FP
-local fp = FP.win
+local map = FP.map
 local canvas = FP.canvas
 
--- Floor navigation row, top-right of the window. Hidden on single-floor houses.
-local floorHeader = fp:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-floorHeader:SetPoint("TOPRIGHT", fp, "TOPRIGHT", -62, -27)
-floorHeader:SetTextColor(0.85, 0.78, 0.55, 1)
+-- Floor tabs, one small button per floor in the map's top right corner, with
+-- + and - after them on your own house to add or remove the top floor. Tabs
+-- are pooled since a house can gain floors while the map is open.
+local SetViewedFloor -- defined below the buttons
 
-local floorUp = CH.MakeButton(fp, "+", 20, 18)
-local floorDown = CH.MakeButton(fp, "-", 20, 18)
-floorUp:SetPoint("RIGHT", fp, "TOPRIGHT", -10, -36)
-floorDown:SetPoint("RIGHT", floorUp, "LEFT", -2, 0)
-floorHeader:SetPoint("RIGHT", floorDown, "LEFT", -6, 0)
+local floorTabs = {}
+local function FloorTab(n)
+    local tab = floorTabs[n]
+    if not tab then
+        tab = CH.MakeButton(map, "", 22, 20)
+        tab:SetText(tostring(n))
+        tab:SetScript("OnClick", function()
+            SetViewedFloor(n)
+        end)
+        floorTabs[n] = tab
+    end
+    return tab
+end
+
+local addFloorBtn = CH.MakeButton(map, "", 22, 20)
+addFloorBtn:SetText("+")
+CH.Tip(addFloorBtn, "FP_ADD_FLOOR")
+
+local removeFloorBtn = CH.MakeButton(map, "", 22, 20)
+removeFloorBtn:SetText("-")
+CH.Tip(removeFloorBtn, "FP_TT_REMOVE_FLOOR")
+removeFloorBtn:SetScript("OnClick", function()
+    CH.RemoveTopFloor()
+end)
 
 -- Override: when you're browsing a floor you're not standing on, this tells
 -- Chamberlain you've actually moved there. Shown only when the viewed floor and
 -- the active floor disagree.
-local moveBtn = CH.MakeButton(fp, "FP_MOVE_HERE", 110, 18)
-moveBtn:SetPoint("TOPRIGHT", floorUp, "BOTTOMRIGHT", 0, -4)
+local moveBtn = CH.MakeButton(map, "FP_MOVE_HERE", 110, 18)
+moveBtn:SetPoint("TOPRIGHT", canvas, "TOPRIGHT", -4, -4)
 moveBtn:Hide()
 moveBtn:SetScript("OnClick", function()
     CH.SetActiveFloor(CH.fpViewedFloor)
 end)
-
--- These three sit over the canvas's top-right corner, which is mouse-enabled and
--- clips its children. Without lifting them above the canvas (as resetBtn does),
--- the canvas swallows their clicks even though they draw on top. moveBtn sits
--- fully inside the canvas region. The +/- buttons overlap its top edge.
-floorUp:SetFrameLevel(canvas:GetFrameLevel() + 20)
-floorDown:SetFrameLevel(canvas:GetFrameLevel() + 20)
+-- The canvas is mouse-enabled and clips its children, so a button over it has
+-- to sit above it or the canvas swallows the clicks.
 moveBtn:SetFrameLevel(canvas:GetFrameLevel() + 20)
 
--- Floor / stair management lives at the bottom-left, own house only.
-local addFloorBtn = CH.MakeButton(fp, "FP_ADD_FLOOR", 76, 22)
-addFloorBtn:SetPoint("BOTTOMLEFT", fp, "BOTTOMLEFT", 10, 10)
-addFloorBtn:Hide()
-
-local removeFloorBtn = CH.MakeButton(fp, "FP_REMOVE_FLOOR", 86, 22)
-removeFloorBtn:SetPoint("LEFT", addFloorBtn, "RIGHT", 4, 0)
-removeFloorBtn:Hide()
-removeFloorBtn:SetScript("OnClick", function()
-    if CH.RemoveTopFloor then
-        CH.RemoveTopFloor()
-    end
-end)
-
--- Stairs are placed from the HUD (where you stand); the floor plan only manages
--- structure (floors) and the map view, so the only stair control here is whether
--- they're drawn. Checked by default, and the setting persists.
 -- A "show this kind of thing on the map" checkbox over a settings key. The
 -- label is parented to the check so the pair shows and hides as one.
 local function MakeMapCheck(key, labelKey, titleKey, bodyKey)
-    local check = CreateFrame("CheckButton", nil, fp, "UICheckButtonTemplate")
+    local check = CreateFrame("CheckButton", nil, map, "UICheckButtonTemplate")
     check:SetSize(22, 22)
     check.label = check:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     check.label:SetText(CH.L[labelKey])
@@ -78,18 +75,17 @@ local function MakeMapCheck(key, labelKey, titleKey, bodyKey)
     return check
 end
 
+-- Bannerless rooms, the sound spots, pile up over the real rooms on a map that
+-- uses a lot of them. Stairs are placed from the build rail where you stand, so
+-- the only stair control here is whether they're drawn. Both sit on the row
+-- under the map and persist.
+local spotsCheck = MakeMapCheck("showSpotsOnMap", "FP_SHOW_SPOTS", "FP_SHOW_SPOTS_TT_TITLE", "FP_SHOW_SPOTS_TT_BODY")
+spotsCheck:SetPoint("BOTTOMLEFT", map, "BOTTOMLEFT", 6, 6)
+spotsCheck.label:SetPoint("LEFT", spotsCheck, "RIGHT", 2, 0)
+
 local stairsCheck =
     MakeMapCheck("showStairsOnMap", "FP_SHOW_STAIRS", "FP_SHOW_STAIRS_TT_TITLE", "FP_SHOW_STAIRS_TT_BODY")
-stairsCheck:SetPoint("LEFT", removeFloorBtn, "RIGHT", 16, 0)
 stairsCheck.label:SetPoint("LEFT", stairsCheck, "RIGHT", 2, 0)
-
--- Bannerless rooms, the sound spots. They pile up over the real rooms on a map
--- that uses a lot of them. The bottom row is full on a multi-floor house so
--- this one sits in the map's corner, label to its left.
-local spotsCheck = MakeMapCheck("showSpotsOnMap", "FP_SHOW_SPOTS", "FP_SHOW_SPOTS_TT_TITLE", "FP_SHOW_SPOTS_TT_BODY")
-spotsCheck:SetPoint("BOTTOMRIGHT", canvas, "BOTTOMRIGHT", -2, 2)
-spotsCheck:SetFrameLevel(canvas:GetFrameLevel() + 20)
-spotsCheck.label:SetPoint("RIGHT", spotsCheck, "LEFT", -2, 0)
 
 -- One line of a sound menu, the whole house when floor is nil. What is set
 -- shows in gold after the label, so the menu reads as an overview before
@@ -129,11 +125,11 @@ local function AddArrivalEntry(root, guid, label)
     AddPickerEntry(root, guid, label, "arrival", nil, "arrival")
 end
 
--- A button over the map's top left whose menu lists the whole house and then
+-- A button on the row under the map whose menu lists the whole house and then
 -- each floor, own house only. The button's own label never changes. houseOnly
 -- is for a sound that has no floors.
 local function MakeSoundButton(labelKey, tipKey, addEntry, onClose, houseOnly)
-    local btn = CH.MakeMenuButton(fp, 80, labelKey, function() end, function(root)
+    local btn = CH.MakeMenuButton(map, 72, labelKey, function() end, function(root)
         local guid = CH.currentHouseGUID
         addEntry(root, guid, CH.L["FP_AMBIENCE_HOUSE"])
         -- one floor is the whole house, no point offering it twice
@@ -145,18 +141,22 @@ local function MakeSoundButton(labelKey, tipKey, addEntry, onClose, houseOnly)
             addEntry(root, guid, string.format(CH.L["FP_AMBIENCE_FLOOR_X"], floor), floor)
         end
     end, onClose)
-    btn:SetFrameLevel(canvas:GetFrameLevel() + 20)
     btn:Hide()
     CH.Tip(btn, tipKey)
     return btn
 end
 
-local ambienceBtn = MakeSoundButton("FP_AMBIENCE", "FP_TT_AMBIENCE", AddAmbienceEntry, CH.StopAmbiencePreview)
-ambienceBtn:SetPoint("TOPLEFT", canvas, "TOPLEFT", 4, -4)
-local musicBtn = MakeSoundButton("FP_MUSIC", "FP_TT_MUSIC", AddMusicEntry)
-musicBtn:SetPoint("LEFT", ambienceBtn, "RIGHT", 4, 0)
 local arrivalBtn = MakeSoundButton("FP_ARRIVAL", "FP_TT_ARRIVAL", AddArrivalEntry, nil, true)
-arrivalBtn:SetPoint("LEFT", musicBtn, "RIGHT", 4, 0)
+arrivalBtn:SetPoint("BOTTOMRIGHT", map, "BOTTOMRIGHT", -10, 7)
+local musicBtn = MakeSoundButton("FP_MUSIC", "FP_TT_MUSIC", AddMusicEntry)
+musicBtn:SetPoint("RIGHT", arrivalBtn, "LEFT", -4, 0)
+local ambienceBtn = MakeSoundButton("FP_AMBIENCE", "FP_TT_AMBIENCE", AddAmbienceEntry, CH.StopAmbiencePreview)
+ambienceBtn:SetPoint("RIGHT", musicBtn, "LEFT", -4, 0)
+
+local soundsLabel = map:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+soundsLabel:SetPoint("RIGHT", ambienceBtn, "LEFT", -8, 0)
+soundsLabel:SetText(CH.L["FP_SOUNDS"])
+soundsLabel:SetTextColor(CH.RGBA(CH.COLORS.dim, 1))
 
 local function HasSpots(h)
     for _, zone in ipairs(h.zones) do
@@ -166,20 +166,12 @@ local function HasSpots(h)
     end
 end
 
-local function SetViewedFloor(n)
+SetViewedFloor = function(n)
     local h = FP.CurrentHouse()
     local count = (h and h.floorCount) or 1
     CH.fpViewedFloor = math.max(1, math.min(count, n))
-    FP.selectedIdx = nil -- a selection on the old floor would no longer be visible
     FP.Build()
 end
-
-floorUp:SetScript("OnClick", function()
-    SetViewedFloor(CH.fpViewedFloor + 1)
-end)
-floorDown:SetScript("OnClick", function()
-    SetViewedFloor(CH.fpViewedFloor - 1)
-end)
 
 addFloorBtn:SetScript("OnClick", function()
     local h = FP.CurrentHouse()
@@ -299,10 +291,9 @@ function CH.RemoveTopFloor()
     end
 end
 
--- Drive the whole floor row for a build pass: clamp the viewed floor to the
--- current count, show the +/- arrows and "Floor N / M" label on multi-floor
--- houses, and the owner-only add/remove/stairs controls. Returns floorCount so
--- the build doesn't recount. Called from FP.Build.
+-- Clamps the viewed floor and lays out the tabs and the owner's controls for
+-- a build pass. Returns floorCount so the build doesn't recount. Called from
+-- FP.Build.
 function FP.RefreshFloorControls(h)
     local floorCount = (h and h.floorCount) or 1
     if CH.fpViewedFloor > floorCount then
@@ -311,52 +302,80 @@ function FP.RefreshFloorControls(h)
     if CH.fpViewedFloor < 1 then
         CH.fpViewedFloor = 1
     end
+    local tools = FP.CanEdit() and h ~= nil
 
+    -- Right to left from the corner: -, +, then the tabs from the top floor down.
+    local row = {}
+    local canRemove = tools and floorCount > 1
+    if canRemove then
+        row[#row + 1] = removeFloorBtn
+    end
+    removeFloorBtn:SetShown(canRemove)
+    if tools then
+        row[#row + 1] = addFloorBtn
+    end
+    addFloorBtn:SetShown(tools)
+    for n, tab in pairs(floorTabs) do
+        tab:SetShown(floorCount > 1 and n <= floorCount)
+    end
     if floorCount > 1 then
-        floorHeader:SetText(string.format(CH.L["FP_FLOOR_COUNT_X"], CH.fpViewedFloor, floorCount))
-        floorHeader:Show()
-        floorUp:Show()
-        floorDown:Show()
-        floorUp:SetEnabled(CH.fpViewedFloor < floorCount)
-        floorDown:SetEnabled(CH.fpViewedFloor > 1)
-        -- Offer the override only while browsing a floor you're not standing on,
-        -- in the house you're standing in.
-        if not FP.viewGUID and CH.fpViewedFloor ~= (CH.activeFloor or 1) then
-            moveBtn:SetText(string.format(CH.L["FP_MOVE_TO_FLOOR_X"], CH.fpViewedFloor))
-            moveBtn:Show()
-        else
-            moveBtn:Hide()
+        for n = floorCount, 1, -1 do
+            local tab = FloorTab(n)
+            CH.SetButtonActive(tab, n == CH.fpViewedFloor)
+            row[#row + 1] = tab
         end
+    end
+    for i, b in ipairs(row) do
+        b:ClearAllPoints()
+        if i == 1 then
+            b:SetPoint("TOPRIGHT", map, "TOPRIGHT", -10, -7)
+        else
+            b:SetPoint("RIGHT", row[i - 1], "LEFT", -2, 0)
+        end
+    end
+
+    -- Offer the override only while browsing a floor you're not standing on,
+    -- in the house you're standing in.
+    if floorCount > 1 and not FP.viewGUID and CH.fpViewedFloor ~= (CH.activeFloor or 1) then
+        moveBtn:SetText(string.format(CH.L["FP_MOVE_TO_FLOOR_X"], CH.fpViewedFloor))
+        moveBtn:Show()
     else
-        floorHeader:Hide()
-        floorUp:Hide()
-        floorDown:Hide()
         moveBtn:Hide()
     end
-    local tools = FP.CanEdit() and h ~= nil
-    addFloorBtn:SetShown(tools)
+
     ambienceBtn:SetShown(tools)
     musicBtn:SetShown(tools)
     arrivalBtn:SetShown(tools)
-    -- Removing the top floor only makes sense once there are 2+ floors.
-    removeFloorBtn:SetShown(tools and floorCount > 1)
+    soundsLabel:SetShown(tools)
+
+    local spots = h ~= nil and h.zones ~= nil and HasSpots(h)
+    spotsCheck:SetShown(spots)
+    spotsCheck:SetChecked(ChamberlainDB.settings.showSpotsOnMap)
     -- The Show stairs toggle appears whenever the house has stairs to show/hide.
     stairsCheck:SetShown(floorCount > 1)
     stairsCheck:SetChecked(ChamberlainDB.settings.showStairsOnMap)
-    spotsCheck:SetShown(h ~= nil and h.zones ~= nil and HasSpots(h))
-    spotsCheck:SetChecked(ChamberlainDB.settings.showSpotsOnMap)
+    stairsCheck:ClearAllPoints()
+    if spots then
+        stairsCheck:SetPoint("LEFT", spotsCheck.label, "RIGHT", 10, 0)
+    else
+        stairsCheck:SetPoint("BOTTOMLEFT", map, "BOTTOMLEFT", 6, 6)
+    end
     return floorCount
 end
 
 -- Called from Housing when the player's active floor changes (took the stairs):
 -- snap the viewed floor to follow them, so the map shows where they now are.
 function CH.OnActiveFloorChanged()
+    -- the bar's header names the floor
+    if CH.hud:IsShown() then
+        CH.RefreshHUDMode()
+    end
     -- your stairs say nothing about the floors of a house picked in the Rooms window
     if FP.viewGUID then
         return
     end
     CH.fpViewedFloor = CH.activeFloor or 1
-    if fp:IsShown() then
+    if FP.win:IsShown() then
         FP.Build()
     end
 end

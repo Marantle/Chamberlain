@@ -78,12 +78,6 @@ events:SetScript("OnEvent", function(_, event, arg1)
         if ChamberlainDB.hudY == nil then
             ChamberlainDB.hudY = 0
         end
-        if ChamberlainDB.toolboxX == nil then
-            ChamberlainDB.toolboxX = -300
-        end
-        if ChamberlainDB.toolboxY == nil then
-            ChamberlainDB.toolboxY = -40
-        end
         if ChamberlainDB.bannerX == nil then
             ChamberlainDB.bannerX = 0
         end
@@ -117,6 +111,10 @@ events:SetScript("OnEvent", function(_, event, arg1)
         -- The map ping on every room left in 3.14.0 since a room has its own
         -- entry sound. Its old setting goes out of the saved data with it.
         ChamberlainDB.settings.entrySound = nil
+        -- The floating toolbox's spot and dock flag, gone in 3.17.0 when it
+        -- became the map window's rail.
+        ChamberlainDB.toolboxX, ChamberlainDB.toolboxY = nil, nil
+        ChamberlainDB.settings.toolboxDocked = nil
         if ChamberlainDB.settings.hudHidden == nil then
             ChamberlainDB.settings.hudHidden = false
         end
@@ -151,6 +149,13 @@ events:SetScript("OnEvent", function(_, event, arg1)
                 ChamberlainDB.settings[key] = ChamberlainDB.settings.echoes
             end
         end
+        -- The other way round: whether walking in rings the door for your group
+        -- and for your guild (3.17.0).
+        for _, key in ipairs({ "arrivalSendGroup", "arrivalSendGuild" }) do
+            if ChamberlainDB.settings[key] == nil then
+                ChamberlainDB.settings[key] = true
+            end
+        end
         -- Seconds before the same person rings a room for you again, and before
         -- anybody at all does (0 for no such wait). See the ECHO handler.
         if ChamberlainDB.settings.echoPersonWait == nil then
@@ -181,20 +186,27 @@ events:SetScript("OnEvent", function(_, event, arg1)
             ChamberlainDB.settings.showGroupDots = true
         end
         -- Draw the active floor's rooms on the minimap in place of the still
-        -- house picture the game shows indoors. Off until asked for.
-        if ChamberlainDB.settings.minimapRooms == nil then
-            ChamberlainDB.settings.minimapRooms = false
+        -- house picture the game shows indoors. Off until asked for up to
+        -- 3.16.0, on since, so visitors see a map there too. Everyone gets it
+        -- switched on once, since an old off can't tell a choice from the
+        -- default. Settings turns it back off for good.
+        if not ChamberlainDB.settings.minimapRoomsOn then
+            ChamberlainDB.settings.minimapRoomsOn = true
+            ChamberlainDB.settings.minimapRooms = true
         end
         -- Cut those rooms square rather than round, for addons that square the
         -- minimap (Leatrix Plus and such). The shape can't be read back.
         if ChamberlainDB.settings.minimapSquare == nil then
             ChamberlainDB.settings.minimapSquare = false
         end
-        -- Glue the build toolbox to the house map's right edge so they act as
-        -- one window. Dragging the toolbox off flips this false; the « button
-        -- in its header flips it back. (3.3.0)
-        if ChamberlainDB.settings.toolboxDocked == nil then
-            ChamberlainDB.settings.toolboxDocked = true
+        -- The house map folded down to its build rail. The bar's Build button
+        -- opens it folded and Map opens it whole. (3.17.0)
+        if ChamberlainDB.settings.mapFolded == nil then
+            ChamberlainDB.settings.mapFolded = false
+        end
+        -- The launcher as one slim row instead of the card. (3.17.0)
+        if ChamberlainDB.settings.hudStrip == nil then
+            ChamberlainDB.settings.hudStrip = false
         end
         -- Draw stair anchors on the floor plan. On by default. The floor plan has a
         -- "Show stairs" checkbox to hide them for a cleaner map.
@@ -272,9 +284,6 @@ events:SetScript("OnEvent", function(_, event, arg1)
         C_ChatInfo.RegisterAddonMessagePrefix("CH")
         C_ChatInfo.RegisterAddonMessagePrefix(CH.ECHO_PREFIX)
         CH.ApplyHUDPos()
-        if CH.ApplyToolboxLayout then
-            CH.ApplyToolboxLayout()
-        end
     elseif event == "PLAYER_LOGIN" then
         if ChamberlainDB.bannerY == nil then
             -- 25% from top = UIParent height * 0.25 above centre
@@ -345,16 +354,12 @@ SlashCmdList["CH"] = function(msg)
     elseif cmd == "reset" then
         ChamberlainDB.hudX = -320
         ChamberlainDB.hudY = 0
-        ChamberlainDB.toolboxX = -300
-        ChamberlainDB.toolboxY = -40
         ChamberlainDB.bannerX = 0
         ChamberlainDB.bannerY = math.floor(UIParent:GetHeight() * 0.25)
         ChamberlainDB.thX = 0
         ChamberlainDB.thY = math.floor(UIParent:GetHeight() * 0.12)
         CH.ApplyHUDPos()
-        if CH.ApplyToolboxLayout then
-            CH.ApplyToolboxLayout()
-        end
+        CH.ResetMapPos()
         CH.ApplyBannerPos()
         CH.ApplyTalkingHeadPos()
         CH.Print(CH.L["CMD_POSITIONS_RESET"])
