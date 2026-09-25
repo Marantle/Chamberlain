@@ -345,14 +345,9 @@ local function TitleText()
     return text
 end
 
--- The label beside the icon on the card, the icon alone on the strip. A 12.0
--- client has no icons and keeps its labels either way.
+-- The label beside the icon on the card, the icon alone on the strip.
 local function DressButton(b, strip)
     local fs = b:GetFontString()
-    if not b.icon then
-        b:SetWidth(b.baseWidth)
-        return b.baseWidth
-    end
     b.icon:ClearAllPoints()
     if strip then
         b:SetText("")

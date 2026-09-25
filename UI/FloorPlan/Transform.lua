@@ -135,7 +135,7 @@ end
 -- Reset-view button, shown over the map's bottom-left only while zoomed or panned.
 local resetBtn = CH.MakeButton(FP.map, "FP_RESET_ZOOM", 86, 18)
 resetBtn:SetPoint("BOTTOMLEFT", canvas, "BOTTOMLEFT", 4, 4)
-resetBtn:SetFrameLevel(canvas:GetFrameLevel() + 20) -- above the tiles and dots
+resetBtn:SetFrameLevel(FP.Level("buttons"))
 resetBtn:Hide()
 resetBtn:SetScript("OnClick", function()
     FP.ResetView()
@@ -239,8 +239,12 @@ function FP.UpdatePanDrag()
         return
     end
     local mx, my = FP.CanvasCursor()
+    local oldX, oldY = panX, panY
     panX = panStartX + (mx - dragSX)
     panY = panStartY + (my - dragSY)
     ClampPan()
-    FP.TileReposition()
+    -- a held button with a still mouse moves nothing
+    if panX ~= oldX or panY ~= oldY then
+        FP.TileReposition()
+    end
 end

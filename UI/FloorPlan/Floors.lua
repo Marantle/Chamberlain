@@ -49,7 +49,7 @@ moveBtn:SetScript("OnClick", function()
 end)
 -- The canvas is mouse-enabled and clips its children, so a button over it has
 -- to sit above it or the canvas swallows the clicks.
-moveBtn:SetFrameLevel(canvas:GetFrameLevel() + 20)
+moveBtn:SetFrameLevel(FP.Level("buttons"))
 
 -- A "show this kind of thing on the map" checkbox over a settings key. The
 -- label is parented to the check so the pair shows and hides as one.
@@ -77,7 +77,7 @@ end
 
 -- Bannerless rooms, the sound spots, pile up over the real rooms on a map that
 -- uses a lot of them. Stairs are placed from the build rail where you stand, so
--- the only stair control here is whether they're drawn. Both sit on the row
+-- the only stair control here is box or icon. Both sit on the row
 -- under the map and persist.
 local spotsCheck = MakeMapCheck("showSpotsOnMap", "FP_SHOW_SPOTS", "FP_SHOW_SPOTS_TT_TITLE", "FP_SHOW_SPOTS_TT_BODY")
 spotsCheck:SetPoint("BOTTOMLEFT", map, "BOTTOMLEFT", 6, 6)
@@ -351,7 +351,7 @@ function FP.RefreshFloorControls(h)
     local spots = h ~= nil and h.zones ~= nil and HasSpots(h)
     spotsCheck:SetShown(spots)
     spotsCheck:SetChecked(ChamberlainDB.settings.showSpotsOnMap)
-    -- The Show stairs toggle appears whenever the house has stairs to show/hide.
+    -- Show stairs only matters once there's a second floor to have stairs to.
     stairsCheck:SetShown(floorCount > 1)
     stairsCheck:SetChecked(ChamberlainDB.settings.showStairsOnMap)
     stairsCheck:ClearAllPoints()

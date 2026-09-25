@@ -60,13 +60,8 @@ end)
 -- Every row's refresh, run when the window opens.
 local refreshers = {}
 
--- svg art with a flat white square for 12.0, both tinted the same way.
 local function Art(parent, file, w, h, layer)
     local a = CH.MakeIcon(parent, file, w, layer)
-    if not a then
-        a = parent:CreateTexture(nil, layer)
-        a:SetColorTexture(1, 1, 1, 1)
-    end
     a:SetSize(w, h)
     return a
 end
@@ -216,6 +211,16 @@ SecondsRow(pageRooms, {
     indent = true,
 })
 SwitchRow(pageRooms, "RM_TOGGLE_ROOM_DESCRIPTIONS", "SET_HINT_DESCRIPTIONS", "showRoomText")
+
+-- How your banner looks.
+local styleRow = Row(pageRooms, "SET_BANNER_STYLE", "SET_HINT_BANNER_STYLE", 140)
+local stylePicker = CH.MakeBannerStylePicker(pageRooms, 120)
+stylePicker:SetPoint("TOPLEFT", styleRow, "TOPLEFT", 0, -4)
+stylePicker:SetPoint("TOPRIGHT", styleRow, "TOPRIGHT", 0, -4)
+pageRooms.y = pageRooms.y + 80
+refreshers[#refreshers + 1] = function()
+    stylePicker:Refresh()
+end
 
 -- ── Sound ────────────────────────────────────────────────────────────
 local pageSound = Page("SET_PAGE_SOUND")

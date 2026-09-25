@@ -34,19 +34,15 @@ end
 -- ── Add tools ────────────────────────────────────────────────────────
 Header("TB_ADD_HEADER", -10)
 
--- A tall button with its icon over the label. Without svg support it's the
--- label alone, centred as usual.
+-- A tall button with its icon over the label.
 local function AddTile(key, icon, col, row)
     local b = CH.MakeButton(tb, key, 91, 40)
     b:SetPoint("TOPLEFT", PAD + col * 97, -28 - row * 46)
-    local art = CH.AddButtonIcon(b, icon, 14)
-    if art then
-        art:SetPoint("TOP", 0, -6)
-        local fs = b:GetFontString()
-        fs:ClearAllPoints()
-        fs:SetPoint("BOTTOMLEFT", 4, 6)
-        fs:SetPoint("BOTTOMRIGHT", -4, 6)
-    end
+    CH.AddButtonIcon(b, icon, 14):SetPoint("TOP", 0, -6)
+    local fs = b:GetFontString()
+    fs:ClearAllPoints()
+    fs:SetPoint("BOTTOMLEFT", 4, 6)
+    fs:SetPoint("BOTTOMRIGHT", -4, 6)
     return b
 end
 
@@ -99,16 +95,12 @@ for i, m in ipairs(MODES) do
     end)
 end
 
--- One cell of the 3x3 pad. The arrows are svgs and a 12.0 client gets the old
--- letters instead.
-local function PadButton(dir, col, row, fallback)
+-- One cell of the 3x3 pad, an arrow on all but the middle one.
+local function PadButton(dir, col, row)
     local b = CH.MakeButton(tb, "", 26, 22)
     b:SetPoint("TOPLEFT", PAD + col * 29, -212 - row * 25)
-    local art = dir ~= "all" and CH.AddButtonIcon(b, "arrow-" .. dir, 10)
-    if art then
-        art:SetPoint("CENTER")
-    else
-        b:SetText(fallback)
+    if dir ~= "all" then
+        CH.AddButtonIcon(b, "arrow-" .. dir, 10):SetPoint("CENTER")
     end
     b:SetScript("OnClick", function()
         local d = mode[dir]
@@ -118,12 +110,12 @@ local function PadButton(dir, col, row, fallback)
 end
 
 local padBtns = {
-    PadButton("up", 1, 0, "^"),
-    PadButton("left", 0, 1, "<"),
-    PadButton("right", 2, 1, ">"),
-    PadButton("down", 1, 2, "v"),
+    PadButton("up", 1, 0),
+    PadButton("left", 0, 1),
+    PadButton("right", 2, 1),
+    PadButton("down", 1, 2),
 }
-local padAll = PadButton("all", 1, 1, "")
+local padAll = PadButton("all", 1, 1)
 CH.Tip(padAll, function()
     return mode == GROW and "TB_TT_GROW_ALL" or "TB_TT_SHRINK_ALL"
 end)

@@ -30,14 +30,14 @@ overlay:Hide()
 
 local bg = overlay:CreateTexture(nil, "BACKGROUND")
 bg:SetAllPoints()
-bg:SetColorTexture(0.025, 0.02, 0.015, 1)
+bg:SetColorTexture(FP.GROUND[1], FP.GROUND[2], FP.GROUND[3], 1)
 
--- Round cut matching the stock minimap, put on every texture (labels can't be
--- masked so they hide near the rim instead). Left off for square minimaps,
+-- Round cut matching the stock minimap, put on every texture (the icons can't
+-- be masked so they hide near the rim instead). Left off for square minimaps,
 -- where the frame's clipping does the job.
 local rim = overlay:CreateMaskTexture()
 rim:SetAllPoints()
-rim:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+rim:SetTexture(FP.ROUND_MASK, "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
 local round = false
 
 local function SetRim(tex, on)
@@ -53,12 +53,49 @@ local me = FP.MakeBlip(overlay, overlay:GetFrameLevel() + 2)
 me:SetPoint("CENTER")
 me:Show() -- blips start hidden but this one never moves or goes away
 
+-- A room here is two textures and a round mask right on the overlay, with the
+-- same fields as a house map tile so FP.SetTileRound works on both. Frames
+-- on one level stack in no set order, and there's no room for a level per
+-- room under the minimap's own buttons. Textures on one frame do stack by
+-- draw layer and sublevel, which Rebuild sets from how deep each room sits.
+-- No names at this size since the house map has them (3.18.0).
 local function MakeTile(i)
-    local f = FP.MakeTile(overlay)
-    SetRim(f.fill, round)
-    SetRim(f.border, round)
-    tiles[i] = f
-    return f
+    local t = {}
+    t.border = overlay:CreateTexture()
+    t.fill = overlay:CreateTexture()
+    t.fill:SetPoint("TOPLEFT", t.border, "TOPLEFT", 1, -1)
+    t.fill:SetPoint("BOTTOMRIGHT", t.border, "BOTTOMRIGHT", -1, 1)
+    t.mask = overlay:CreateMaskTexture()
+    t.mask:SetAllPoints(t.border)
+    t.mask:SetTexture(FP.ROUND_MASK, "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+    SetRim(t.fill, round)
+    SetRim(t.border, round)
+    tiles[i] = t
+    return t
+end
+
+local function ShowTile(t, on)
+    t.border:SetShown(on)
+    t.fill:SetShown(on)
+    if t.icon and not on then
+        t.icon:Hide()
+    end
+end
+
+-- Draw slots from the bottom up, two per depth (the border and then the fill
+-- over it), through BORDER and ARTWORK's sublevels -8 to 7. That makes 16
+-- depths, far more than rooms in rooms ever nest.
+local MAX_DEPTH = 16
+
+local function SetDepth(t, d)
+    local s = d * 2 - 1
+    t.border:SetDrawLayer(s <= 16 and "BORDER" or "ARTWORK", (s - 1) % 16 - 8)
+    s = s + 1
+    t.fill:SetDrawLayer(s <= 16 and "BORDER" or "ARTWORK", (s - 1) % 16 - 8)
+end
+
+local function Overlap(a, b)
+    return a.minX < b.maxX and b.minX < a.maxX and a.minY < b.maxY and b.minY < a.maxY
 end
 
 local function MakeBlip(i)
@@ -75,9 +112,9 @@ local function ApplyShape()
     end
     round = want
     SetRim(bg, round)
-    for _, f in ipairs(tiles) do
-        SetRim(f.fill, round)
-        SetRim(f.border, round)
+    for _, t in ipairs(tiles) do
+        SetRim(t.fill, round)
+        SetRim(t.border, round)
     end
     for _, bf in ipairs(blips) do
         SetRim(bf.tex, round)
@@ -85,28 +122,41 @@ local function ApplyShape()
 end
 
 local shown = 0 -- tiles in use, dense from 1
+local order = {} -- FP.DrawOrder's list, kept between rebuilds
+local depth = {} -- each drawn room's depth, by draw order
 local lastX, lastY, lastScale, lastFloor, lastGuid
 
 -- Pick the rooms of the active floor and paint them. Placing them is left to
 -- the update loop, which runs right after with its position cache cleared.
+-- The draw order is biggest first, so a room sits one step over the deepest
+-- room it overlaps that came before it.
 local function Rebuild()
     -- the house you stand in, whatever house the floor plan is showing
     local h = CH.currentHouseGUID and ChamberlainDB.houses[CH.currentHouseGUID]
     shown = 0
     if h and h.zones then
-        for i, zone in ipairs(h.zones) do
-            if FP.ZoneOnFloor(h, zone, CH.activeFloor, CH.isOwnHouse) then
-                shown = shown + 1
-                local f = tiles[shown] or MakeTile(shown)
-                FP.StyleTile(f, zone, i, false)
-                f.zone = zone
-                f.labelW = f.label:GetStringWidth()
-                f:Show()
+        local zones = h.zones
+        for n, i in ipairs(FP.DrawOrder(h, CH.activeFloor, CH.isOwnHouse, order)) do
+            local t = tiles[n] or MakeTile(n)
+            local zone = zones[i]
+            local d = 1
+            for m = 1, n - 1 do
+                if depth[m] >= d and Overlap(zone, zones[order[m]]) then
+                    d = depth[m] + 1
+                end
             end
+            depth[n] = math.min(d, MAX_DEPTH)
+            SetDepth(t, depth[n])
+            FP.SetTileRound(t, zone.shape == "circle")
+            t.marker = FP.PaintTile(t.border, t.fill, zone, i, false, false)
+            FP.SetTileIcon(t, overlay, t.border, t.marker)
+            t.zone = zone
+            ShowTile(t, true)
+            shown = n
         end
     end
     for i = shown + 1, #tiles do
-        tiles[i]:Hide()
+        ShowTile(tiles[i], false)
     end
     FP.PaintBlip(me, "player")
     FP.minimapDirty = false
@@ -126,7 +176,7 @@ overlay:SetScript("OnUpdate", function()
     end
     local w = Minimap:GetWidth()
     local s = w / YARDS_ACROSS[Minimap:GetZoom() + 1]
-    -- How far out from the centre a label or blip may sit and still clear the
+    -- How far out from the centre an icon or blip may sit and still clear the
     -- ring. Square minimaps clip at the edge instead.
     local reach = round and (w * 0.5 - 6) or math.huge
 
@@ -135,21 +185,22 @@ overlay:SetScript("OnUpdate", function()
     if px ~= lastX or py ~= lastY or s ~= lastScale then
         lastX, lastY, lastScale = px, py, s
         for i = 1, shown do
-            local f = tiles[i]
-            local z = f.zone
-            -- Like the house map: higher world X to the left, higher Y up.
+            local t = tiles[i]
+            local z = t.zone
+            -- Like the house map: higher world X to the left, higher Y up. The
+            -- fill, the mask and the icon all hang off the border.
             local ox = (px - (z.minX + z.maxX) * 0.5) * s
             local oy = ((z.minY + z.maxY) * 0.5 - py) * s
-            local tw = math.max((z.maxX - z.minX) * s, 4)
-            f:ClearAllPoints()
-            f:SetPoint("CENTER", overlay, "CENTER", ox, oy)
-            f:SetSize(tw, math.max((z.maxY - z.minY) * s, 4))
-            -- The label shows while the far corner of its text box is still inside
-            -- the ring. A long name is already clipped to its tile, so the tile
-            -- width caps the box.
-            local hw = math.min(f.labelW, tw) * 0.5 + math.abs(ox)
-            local hh = 7 + math.abs(oy)
-            f.label:SetShown(hw * hw + hh * hh <= reach * reach)
+            t.border:ClearAllPoints()
+            t.border:SetPoint("CENTER", overlay, "CENTER", ox, oy)
+            t.border:SetSize(math.max((z.maxX - z.minX) * s, 4), math.max((z.maxY - z.minY) * s, 4))
+            -- A stairs or sound icon shows while its far corner is still inside
+            -- the ring.
+            if t.icon and t.marker then
+                local d = math.abs(ox) + 8
+                local e = math.abs(oy) + 8
+                t.icon:SetShown(d * d + e * e <= reach * reach)
+            end
         end
     end
 

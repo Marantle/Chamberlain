@@ -3,7 +3,7 @@ export
 
 ADDON          := Chamberlain
 VERSION        := $(shell grep "^\#\# Version:" $(ADDON).toc | awk '{print $$3}')
-TOC_VERSION    := $(shell grep "^\#\# Interface:" $(ADDON).toc | awk '{print $$3}')
+TOC_VERSION    := $(shell grep "^\#\# Interface:" $(ADDON).toc | awk '{print $$NF}')
 TOC_DISPLAY    := $(shell echo $(TOC_VERSION) | awk '{printf "%d.%d.%d", substr($$0,1,2), substr($$0,3,2), substr($$0,5,2)}')
 CODE_VERSION   := $(shell grep "^CH.VERSION" Core/Core.lua | awk -F'"' '{print $$2}')
 CURSE_PROJECT  := 1573197

@@ -1,5 +1,30 @@
 # Changelog
 
+## 3.18.0
+- The house map draws its rooms more clearly. A small room now always sits on
+  top of the big room around it, whichever was made first, so a closet no
+  longer hides under its bedroom.
+- Room names are pale with a shadow, so they read on any room color. The
+  fills are a dark wash of the room's color with a crisp edge.
+- A name sits in the middle of its room, and moves to the top left corner only
+  when a smaller room covers the middle. Names never overlap each other, and
+  where two would, the bigger room keeps its name. A room too small for even a
+  few letters leaves its name to the hover.
+- Stairs and sound spots show as a small icon instead of a named box, on the
+  map and on the minimap. Show stairs on the map used to hide them. Now it
+  draws each stair's box under its icon, for lining them up.
+- The minimap draws the rooms without their names, which crowded it at that
+  size. The house map still has them.
+- A faint grid every 8 yards sits behind the rooms, with a scale bar in the
+  corner that follows the zoom.
+- The room banner comes in ten styles and starts on the new Plaque. Pick
+  another under Banner style on the Rooms page of Settings, or in the What's
+  New note, each with a sample. Zone text looks like the game's own zone names
+  and Original is the banner as it was. Seven more sit in the menu to try, and
+  all but Original have a Read button that's a book in a small frame in the
+  room's color. The choice stays on your computer, so everyone sees their own.
+- The web site draws shared houses the same way.
+
 ## 3.17.0
 - The Rooms window got a new layout, for players in housing guilds who hold
   maps from dozens of people. The houses are now a short list on the left, one

@@ -5,6 +5,10 @@ room, a gold banner shows its name. The banner fades out when you leave. The
 addon takes its name from the manor officer who announced guests as they
 entered each room.
 
+The banner has ten looks to pick from in Settings, one of them like the
+game's own zone names. Only you see the look you pick, so a visitor sees the
+room in their own.
+
 To make a room, open the Build toolbox and click Square room or Round room. The
 room drops where you stand and the name box opens. To fit the room to the
 walls, select it, walk to a wall and click Snap nearest edge to me. The arrows
@@ -21,8 +25,10 @@ while you stand in it.
 
 The house map draws all your rooms to scale, each in its own color. A dot shows
 where you are, and your group members show as dots too. Hover a room to see its
-name and size when the label doesn't fit. The mouse wheel zooms, and a drag on
-an empty patch moves the view. The labels and your dot stay the same size.
+name and size when the label doesn't fit. A small room always sits on top of
+the room around it, and stairs and sound spots show as small icons. The mouse
+wheel zooms, and a drag on an empty patch moves the view. The labels and your
+dot stay the same size.
 
 The rooms also take the place of the minimap picture. Indoors the game shows a
 still picture of a house there. In a house you have a map of, the rooms of your
@@ -62,8 +68,9 @@ Its banner still fires when they walk in.
 ## Ambience and music
 
 A room can have a background sound. Edit the room and pick a sound from the
-Ambience menu on the Sound tab. The menu has more than 100 loops from the game, in short
-categories. A crowded tavern and a slow river are there, and so is Naxxramas.
+Ambience menu on the Sound tab. The menu has more than 100 loops from the game,
+in short categories. A crowded tavern and a slow river are there, and so is
+Naxxramas.
 The sound fades in when you enter and fades out when you leave.
 
 For a fireplace or a fountain, drop a small room on it, give it the sound and

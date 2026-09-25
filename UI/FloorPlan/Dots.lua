@@ -46,7 +46,7 @@ function FP.PaintBlip(bf, unit)
 end
 
 -- Player dot: receives the mouse for its tooltip.
-local dotFrame = FP.MakeBlip(canvas, canvas:GetFrameLevel() + 10)
+local dotFrame = FP.MakeBlip(canvas, FP.Level("dots"))
 FP.SetBlip(dotFrame.tex, 1, 0.85, 0) -- gold until the class colour lands
 dotFrame:EnableMouse(true)
 dotFrame:SetScript("OnEnter", function(self)
@@ -61,6 +61,7 @@ end)
 local function MakeCornerMarker(label, r, g, b)
     local mf = CreateFrame("Frame", nil, canvas)
     mf:SetSize(9, 9)
+    mf:SetFrameLevel(FP.Level("dots"))
     mf:Hide()
     local tex = mf:CreateTexture(nil, "BORDER")
     tex:SetAllPoints()
@@ -107,7 +108,7 @@ local function GetPartyDot(i)
     if partyDots[i] then
         return partyDots[i]
     end
-    local pd = FP.MakeBlip(canvas, canvas:GetFrameLevel() + 10)
+    local pd = FP.MakeBlip(canvas, FP.Level("dots"))
     pd:EnableMouse(true)
     pd:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_CURSOR")

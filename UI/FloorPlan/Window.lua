@@ -102,15 +102,31 @@ canvas:SetPoint("TOPLEFT", map, "TOPLEFT", 10, -32)
 canvas:SetPoint("BOTTOMRIGHT", map, "BOTTOMRIGHT", -10, 36)
 FP.canvas = canvas
 
+-- Frame levels over the canvas. The game keeps no order between sibling
+-- frames on one level, so each room tile takes its own, one per step of the
+-- draw order (Tiles.lua), and everything that must stay over the rooms sits
+-- above the most a house can draw. These are steps over the canvas, whose own
+-- level moves each time the window is rasied.
+local LEVEL = { tiles = 1, tilesMax = 150, labels = 160, dots = 165, grips = 170, buttons = 175 }
+
+function FP.Level(key)
+    return canvas:GetFrameLevel() + LEVEL[key]
+end
+
 -- on the map, since the canvas clips anything drawn past its edges
 local canvasEdge = map:CreateTexture(nil, "BACKGROUND")
 canvasEdge:SetPoint("TOPLEFT", canvas, -1, 1)
 canvasEdge:SetPoint("BOTTOMRIGHT", canvas, 1, -1)
 canvasEdge:SetColorTexture(CH.RGBA(CH.COLORS.border, 0.5))
 
+-- The dark the map and the minimap draw on. Room fills mix into it too.
+FP.GROUND = { 0.025, 0.02, 0.015 }
+-- the round cut for circle rooms and the stock minimap
+FP.ROUND_MASK = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
+
 local canvasBg = canvas:CreateTexture(nil, "BACKGROUND")
 canvasBg:SetAllPoints()
-canvasBg:SetColorTexture(0.025, 0.02, 0.015, 1)
+canvasBg:SetColorTexture(FP.GROUND[1], FP.GROUND[2], FP.GROUND[3], 1)
 
 local fpEmpty = canvas:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 fpEmpty:SetPoint("CENTER")

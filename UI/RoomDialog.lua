@@ -61,35 +61,22 @@ editBox:SetPoint("LEFT", mainSwatch, "RIGHT", 12, 0)
 editBox:SetAutoFocus(false)
 editBox:SetMaxLetters(48)
 
--- Drawn like the real banner (Housing/Banner.lua), so a colour pick shows
--- what walking in will look like.
+-- The real banner in your own style (Housing/Banner.lua), shrunk to fit, so
+-- a colour pick shows what walking in will look like.
 local preview = CreateFrame("Frame", nil, dialog)
 preview:SetPoint("TOPLEFT", 12, -66)
 preview:SetPoint("TOPRIGHT", -12, -66)
 preview:SetHeight(38)
-local previewBg = preview:CreateTexture(nil, "BACKGROUND")
-previewBg:SetAllPoints()
-previewBg:SetColorTexture(0, 0, 0, 0.52)
-local function PreviewLine(y)
-    local t = preview:CreateTexture(nil, "ARTWORK")
-    t:SetHeight(1)
-    t:SetPoint(y > 0 and "BOTTOMLEFT" or "TOPLEFT", 12, y)
-    t:SetPoint(y > 0 and "BOTTOMRIGHT" or "TOPRIGHT", -12, y)
-    return t
-end
-local previewTop, previewBot = PreviewLine(-5), PreviewLine(5)
-local previewText = preview:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-previewText:SetPoint("LEFT", 18, 0)
-previewText:SetPoint("RIGHT", -18, 0)
-previewText:SetWordWrap(false)
+local previewBanner = CH.MakeBanner(preview)
+previewBanner:SetPoint("CENTER")
+previewBanner:SetScale(0.62)
 
 local function UpdatePreview()
-    local tc = pendingColor or CH.BANNER_TEXT_COLOR
-    local lc = pendingColor or CH.BANNER_LINE_COLOR
-    previewText:SetText(editBox:GetText())
-    previewText:SetTextColor(tc[1], tc[2], tc[3], 1)
-    previewTop:SetColorTexture(lc[1], lc[2], lc[3], 0.9)
-    previewBot:SetColorTexture(lc[1], lc[2], lc[3], 0.9)
+    CH.PaintBanner(previewBanner, editBox:GetText(), pendingColor, false, ChamberlainDB.settings.bannerStyle)
+    -- a long name in a wide style shrinks further to stay inside the dialog.
+    -- The row has no width yet while the dialog is still being built.
+    local room = preview:GetWidth()
+    previewBanner:SetScale(room > 0 and math.min(0.62, room / previewBanner:GetWidth()) or 0.62)
 end
 editBox:HookScript("OnTextChanged", UpdatePreview)
 

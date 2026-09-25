@@ -170,6 +170,8 @@ local function EndHandleDrag(self)
     if h then
         h.updatedAt = GetServerTime()
     end
+    -- a room dragged past another one stacks by its new size from here
+    FP.Build()
     if CH.RefreshRoomList then
         CH.RefreshRoomList()
     end
@@ -182,7 +184,7 @@ end
 for i, spec in ipairs(HANDLE_SPECS) do
     local hb = CreateFrame("Frame", nil, canvas)
     hb:SetSize(spec.move and HANDLE_SIZE + 4 or HANDLE_SIZE, spec.move and HANDLE_SIZE + 4 or HANDLE_SIZE)
-    hb:SetFrameLevel(canvas:GetFrameLevel() + 15) -- above tiles and dots
+    hb:SetFrameLevel(FP.Level("grips"))
     hb:EnableMouse(true)
     hb:Hide()
     local outline = hb:CreateTexture(nil, "ARTWORK")

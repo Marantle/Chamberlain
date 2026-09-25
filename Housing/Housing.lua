@@ -566,12 +566,6 @@ function CH.CheckZones()
             -- left over from the previous room.
             CH.HideTalkingHead()
             if ChamberlainDB.settings.bannerEnabled then
-                local tc = found.color or CH.BANNER_TEXT_COLOR
-                local lc = found.color or CH.BANNER_LINE_COLOR
-                CH.bannerText:SetText(found.name)
-                CH.bannerText:SetTextColor(tc[1], tc[2], tc[3], 1)
-                CH.bannerLineTop:SetColorTexture(lc[1], lc[2], lc[3], 0.90)
-                CH.bannerLineBot:SetColorTexture(lc[1], lc[2], lc[3], 0.90)
                 CH.SetBannerRoom(found)
                 CH.ShowBanner(0.5)
             else

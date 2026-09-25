@@ -17,8 +17,22 @@ local _, CH = ...
 -- back to it, so these are plain strings rather than CH.L keys; the window chrome
 -- (title, buttons) is still localized. A block may also carry `toggles`, a list of
 -- { label key, settings key } pairs drawn as toggle buttons under its notes, plus
--- an `onToggle` run after any of them flips.
+-- an `onToggle` run after any of them flips. `extra` builds anything else to
+-- show under the notes, a frame with a Refresh method.
 CH.WHATS_NEW = {
+    {
+        v = "3.18.0",
+        notes = {
+            "The house map is easier to read. Small rooms sit on top of the big ones around "
+                .. "them, and names are pale so they show on any color.",
+            "Stairs and sound spots are small icons now. Turn on Show stairs on the map to see their boxes under the icons.",
+            "New banner styles. Pick one below, or later in Settings.",
+        },
+        -- the same menu and sample as in Settings
+        extra = function(parent)
+            return CH.MakeBannerStylePicker(parent, 120)
+        end,
+    },
     {
         v = "3.17.0",
         notes = {
@@ -289,6 +303,7 @@ local CONTENT_W = WIN_W - 46 -- frame minus side margins and the scrollbar
 local win, scrollChild
 local linePool = {}
 local togglePool = {} -- by settings key so each block's toggles are built once
+local extras = {} -- each block's extra, by block, built the first time it shows
 local shownThisSession = false
 
 local function AcquireToggle(block, labelKey, key)
@@ -382,6 +397,9 @@ local function Populate(blocks)
     for _, b in pairs(togglePool) do
         b:Hide()
     end
+    for _, f in pairs(extras) do
+        f:Hide()
+    end
     local y, i = -4, 0
     for _, block in ipairs(blocks) do
         i = i + 1
@@ -413,6 +431,16 @@ local function Populate(blocks)
             b:SetPoint("TOPLEFT", 12, y)
             b:Show()
             y = y - 24
+        end
+        if block.extra then
+            local f = extras[block] or block.extra(scrollChild)
+            extras[block] = f
+            f:ClearAllPoints()
+            f:SetPoint("TOPLEFT", 12, y)
+            f:SetWidth(CONTENT_W - 12)
+            f:Refresh()
+            f:Show()
+            y = y - f:GetHeight()
         end
         y = y - 8
     end

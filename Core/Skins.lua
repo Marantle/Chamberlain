@@ -95,30 +95,27 @@ function CH.SetButtonActive(b, on)
     end
 end
 
--- SVG art from Media. It needs CreateVectorGraphics, which 12.0 clients don't
--- have, so this hands back nil there and the caller keeps its plain text.
--- The svgs are drawn white and tinted with SetVertexColor.
+-- SVG art from Media. The svgs are drawn white and tinted with SetVertexColor.
 local MEDIA = "Interface\\AddOns\\Chamberlain\\Media\\"
 
 function CH.MakeIcon(parent, file, size, layer)
-    if not parent.CreateVectorGraphics then
-        return
-    end
     local v = parent:CreateVectorGraphics()
-    v:SetSVG(MEDIA .. file .. ".svg")
+    CH.SetIconFile(v, file)
     v:SetDrawLayer(layer or "ARTWORK")
     v:SetSize(size, size)
     return v
 end
 
+-- Swap the art on an icon from MakeIcon.
+function CH.SetIconFile(v, file)
+    v:SetSVG(MEDIA .. file .. ".svg")
+end
+
 -- An icon on a MakeButton that follows its label: gold, white on hover or while
 -- active, grey when disabled. An svg can't be a button texture, so it rides on
--- top and the button's scripts recolor it. The caller anchors it. nil on 12.0.
+-- top and the button's scripts recolor it. The caller anchors it.
 function CH.AddButtonIcon(btn, file, size)
     local icon = CH.MakeIcon(btn, file, size, "OVERLAY")
-    if not icon then
-        return
-    end
     local function tint(hot)
         if not btn:IsEnabled() then
             icon:SetVertexColor(0.5, 0.5, 0.5)
