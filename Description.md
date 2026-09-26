@@ -5,11 +5,14 @@ room, a gold banner shows its name. The banner fades out when you leave. The
 addon takes its name from the manor officer who announced guests as they
 entered each room.
 
-The banner has eighteen looks to pick from in Settings, one of them like the
-game's own zone names. Eight are old public domain ornaments cut to fit the
-name, a nameplate and a rolled scroll among them. Choose style opens a list
-that shows every look at once. Pick one while you stand in your own house and
-it becomes that house's look, so visitors see your rooms that way unless they
+The banner has 98 looks to pick from in Settings. Ten are drawn, one of them
+like the game's own zone names. Eight are old public domain ornaments cut to
+fit the name, a nameplate and a rolled scroll among them, and nine are
+rainbows. The other 71 come from the game's own art, from the banners it puts
+over its scenarios to a line for every class. Choose style opens a list with
+the groups down the side
+and a search box over them. Pick one while you stand in your own house and it
+becomes that house's look, so visitors see your rooms that way unless they
 keep their own in Settings.
 
 When you walk into a house, a plaque shows the house's name, whose house it is

@@ -21,6 +21,19 @@ local _, CH = ...
 -- show under the notes, a frame with a Refresh method.
 CH.WHATS_NEW = {
     {
+        v = "3.24.0",
+        notes = {
+            "71 new banner styles made from the game's own art, from the scenario banners to "
+                .. "a line for every class.",
+            "The style picker lists its groups down the left and has a search box. A style in "
+                .. "several colors has a chip for each.",
+            "Pick one for your house and your group sees it too, once they have 3.24.0.",
+        },
+        extra = function(parent)
+            return CH.MakeBannerStylePicker(parent, 120)
+        end,
+    },
+    {
         v = "3.23.0",
         notes = {
             "A plaque with the house's name comes up as you walk in, with whose house it is and "

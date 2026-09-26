@@ -1,5 +1,27 @@
 # Changelog
 
+## 3.24.0
+- 71 new banner styles the addon draws from the game's own files, so they
+  look the way they do in the game. Nothing new ships with the addon for
+  them.
+- Scenario has the title banners the game shows over its scenarios, from
+  Midnight's purple gem to the Horde sigil.
+- Plates has the game's window titles, the covenant frames among them.
+- Ribbons has the parchment title ribbon and the Legionfall and Garrison
+  scrolls.
+- Lines has the housing editor's own room label and a line for every class
+  from the Legion artifact window.
+- A style that comes in several colors is one row in the picker, with a
+  color chip for each. Hover a chip to see it and click it to pick it.
+- The banner picker is wider and lists its groups down the left, with a
+  search box over them. It opens on the group of the style you use.
+- A banner grows with a long name. On the scenario banners the ornament keeps
+  its size and the sides stretch, and on the plates and ribbons the middle
+  stretches. The name takes the room's color, except on the parchment
+  ribbons and scrolls, where it's dark ink.
+- Your group needs 3.24.0 to see one of them on your house. An older
+  client shows its own style instead.
+
 ## 3.23.0
 - When you walk into a house, a plaque comes up with its name big and
   glowing, whose house it is under that and the owner's motto under both. It
