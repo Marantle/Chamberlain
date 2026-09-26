@@ -107,36 +107,11 @@ local function Page(titleKey, navKey)
     return p
 end
 
--- A setting's name with its line of help and a faint rule under the row.
--- controlW is the room kept on the right for the switch or slider, and indent
--- tucks the row under the one it belongs to.
+-- A row of CH.MakeSettingRow on page. controlW is the room kept on the right
+-- for the switch or slider, and indent tucks the row under the one it belongs
+-- to.
 local function Row(page, labelKey, hintKey, controlW, indent)
-    local x = indent and 16 or 0
-    local textW = PAGE_W - x - controlW - 10
-    local row = CreateFrame("Frame", nil, page)
-    row:SetPoint("TOPLEFT", x, -page.y)
-    row:SetPoint("TOPRIGHT", page, "TOPRIGHT", 0, -page.y)
-
-    local label = row:CreateFontString(nil, "OVERLAY", hintKey and "GameFontHighlight" or "GameFontHighlightSmall")
-    label:SetPoint("TOPLEFT", 0, -8)
-    label:SetWidth(textW)
-    label:SetJustifyH("LEFT")
-    label:SetText(CH.L[labelKey])
-    local h = 26
-    if hintKey then
-        local hint = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-        hint:SetPoint("TOPLEFT", label, "BOTTOMLEFT", 0, -3)
-        hint:SetWidth(textW)
-        hint:SetJustifyH("LEFT")
-        hint:SetText(CH.L[hintKey])
-        hint:SetTextColor(CH.RGBA(CH.COLORS.dim, 1))
-        h = 8 + label:GetStringHeight() + 3 + hint:GetStringHeight() + 8
-    end
-    row:SetHeight(h)
-
-    local rule = CH.MakeRule(row, 0.18)
-    rule:SetPoint("BOTTOMLEFT")
-    rule:SetPoint("BOTTOMRIGHT")
+    local row, h = CH.MakeSettingRow(page, page.y, indent and 16 or 0, PAGE_W, labelKey, hintKey, controlW)
     page.y = page.y + h
     return row
 end
@@ -225,6 +200,7 @@ refreshers[#refreshers + 1] = function()
     stylePicker:Refresh()
 end
 SwitchRow(pageRooms, "SET_OWN_BANNER", "SET_HINT_OWN_BANNER", "ownBannerStyle", CH.RefreshBanner)
+SwitchRow(pageRooms, "SET_PLAQUE", "SET_HINT_PLAQUE", "housePlaque")
 
 -- ── Sound ────────────────────────────────────────────────────────────
 local pageSound = Page("SET_PAGE_SOUND")

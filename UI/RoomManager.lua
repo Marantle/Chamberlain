@@ -48,13 +48,27 @@ divider:SetColorTexture(CH.RGBA(CH.COLORS.sep, 0.5))
 -- House data
 -- ─────────────────────────────────────────────────────────────────────
 
+-- A house goes in the list by the name the game gave it, with whose house it
+-- is on a line under (3.23.0). Without a name, whose house it is is the label.
+local function Name(entry, whose, houseName)
+    entry.label = houseName or whose
+    entry.sub = houseName and whose or nil
+end
+
 -- Collect all zones from owned houses, grouped by house.
 local function GetOwnedHouseList()
     local list = {}
     for guid, _ in pairs(ChamberlainDB.myHouses or {}) do
         local h = ChamberlainDB.houses[guid]
         if h and h.zones and #h.zones > 0 then
-            list[#list + 1] = { guid = guid, owner = h.owner, realm = h.realm, zones = h.zones, own = true }
+            list[#list + 1] = {
+                guid = guid,
+                owner = h.owner,
+                realm = h.realm,
+                name = CH.HouseName(guid),
+                zones = h.zones,
+                own = true,
+            }
         end
     end
 
@@ -68,10 +82,9 @@ local function GetOwnedHouseList()
     for _, entry in ipairs(list) do
         local base = string.format(CH.L["RM_X_HOUSE"], entry.owner or CH.L["RM_HOME_INTERIOR"])
         if nameSeen[base] > 1 and entry.realm then
-            entry.label = string.format(CH.L["RM_HOUSE_LABEL_REALM_X"], base, entry.realm)
-        else
-            entry.label = base
+            base = string.format(CH.L["RM_HOUSE_LABEL_REALM_X"], base, entry.realm)
         end
+        Name(entry, base, entry.name)
     end
 
     table.sort(list, function(a, b)
@@ -94,8 +107,9 @@ local function GetSharedHouseList()
                 end
             end
             if #visible > 0 then
-                local label = string.format(CH.L["RM_X_HOUSE"], h.owner or CH.L["RM_UNKNOWN"])
-                list[#list + 1] = { guid = guid, label = label, zones = visible }
+                local entry = { guid = guid, zones = visible }
+                Name(entry, string.format(CH.L["RM_X_HOUSE"], h.owner or CH.L["RM_UNKNOWN"]), CH.HouseName(guid))
+                list[#list + 1] = entry
             end
         end
     end
@@ -234,10 +248,30 @@ local function HouseRow(i)
     row.tag:SetTextColor(CH.RGBA(CH.COLORS.dim, 1))
 
     row.label = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    row.label:SetPoint("LEFT", 4, 0)
     row.label:SetPoint("RIGHT", row.tag, "LEFT", -4, 0)
     row.label:SetJustifyH("LEFT")
     row.label:SetWordWrap(false)
+
+    -- whose house it is, under a house that has a name of its own
+    row.sub = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    row.sub:SetPoint("BOTTOMLEFT", 4, 3)
+    row.sub:SetPoint("RIGHT", row.tag, "LEFT", -4, 0)
+    row.sub:SetJustifyH("LEFT")
+    row.sub:SetWordWrap(false)
+    row.sub:SetTextColor(CH.RGBA(CH.COLORS.dim, 1))
+
+    -- a row with a sub line is taller and its label hangs from the top
+    function row:SetSub(sub)
+        self.sub:SetText(sub or "")
+        self.label:ClearAllPoints()
+        if sub then
+            self.label:SetPoint("TOPLEFT", 4, -3)
+        else
+            self.label:SetPoint("LEFT", 4, 0)
+        end
+        self.label:SetPoint("RIGHT", self.tag, "LEFT", -4, 0)
+        self:SetHeight(sub and HOUSE_ROW_H + 12 or HOUSE_ROW_H)
+    end
 
     row:SetScript("OnClick", function(self)
         selected = self.guid
@@ -249,6 +283,9 @@ end
 
 local function Matches(item)
     if query == "" or string.find(string.lower(item.label), query, 1, true) then
+        return true
+    end
+    if item.sub and string.find(string.lower(item.sub), query, 1, true) then
         return true
     end
     for _, zone in ipairs(item.zones or {}) do
@@ -369,10 +406,11 @@ local function PopulateList(sections)
                 row:SetWidth(w)
                 row:SetPoint("TOPLEFT", listChild, "TOPLEFT", 0, -y)
                 row.label:SetText(item.label)
+                row:SetSub(item.sub)
                 row.tag:SetText(item.tag)
                 row.sel:SetShown(item.guid == selected)
                 row:Show()
-                y = y + HOUSE_ROW_H
+                y = y + row:GetHeight()
             end
             y = y + 4
         end
@@ -415,9 +453,9 @@ local btnMap = CH.MakeButton(detail, "RM_MAP", 72, 22)
 local btnExport = CH.MakeButton(detail, "RM_EXPORT", 72, 22)
 local btnShare = CH.MakeButton(detail, "RM_SHARE", 72, 22)
 local btnRequest = CH.MakeButton(detail, "RM_REQUEST", 72, 22)
-local btnBanner = CH.MakeButton(detail, "RM_BANNER", 72, 22)
+local btnHouse = CH.MakeButton(detail, "RM_HOUSE", 72, 22)
 local btnRemove = CH.MakeButton(detail, "RM_REMOVE", 72, 22)
-local actionButtons = { btnMap, btnExport, btnShare, btnBanner, btnRequest, btnRemove }
+local actionButtons = { btnMap, btnExport, btnShare, btnHouse, btnRequest, btnRemove }
 
 local function LayoutActions()
     local prev
@@ -539,7 +577,11 @@ local function PopulateDetail(item, p)
     local h = item and ChamberlainDB.houses[item.guid]
 
     detailTitle:SetText(item and item.label or "")
-    detailMeta:SetText(h and string.format(CH.L["RM_ROOMS_FLOORS_X"], #item.zones, h.floorCount or 1) or "")
+    local meta = h and string.format(CH.L["RM_ROOMS_FLOORS_X"], #item.zones, h.floorCount or 1) or ""
+    if item and item.sub then
+        meta = item.sub .. "    " .. meta
+    end
+    detailMeta:SetText(meta)
     local note = ""
     if p then
         note = CH.L[p.status == "newer" and "RM_GROUP_HAS_NEWER" or "RM_GROUP_HAS_MAP"]
@@ -553,7 +595,7 @@ local function PopulateDetail(item, p)
     btnExport:SetShown(h ~= nil)
     btnShare:SetShown(item and item.own or false)
     btnShare:SetEnabled(not shareBusy)
-    btnBanner:SetShown(h ~= nil and item.own)
+    btnHouse:SetShown(h ~= nil and item.own)
     btnRequest:SetShown(p ~= nil)
     btnRequest:SetEnabled(not (item and CH.RequestCooling(item.guid)))
     btnRemove:SetShown(h ~= nil and not item.own)
@@ -590,8 +632,8 @@ btnShare:SetScript("OnClick", function()
     CH.ShareAll(selected)
 end)
 
-btnBanner:SetScript("OnClick", function()
-    CH.OpenBannerPicker(selected)
+btnHouse:SetScript("OnClick", function()
+    CH.OpenHousePanel(selected)
 end)
 
 btnRequest:SetScript("OnClick", function()

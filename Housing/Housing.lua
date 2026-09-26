@@ -256,6 +256,7 @@ function CH.CheckHousingState()
         CH.StopRoomSounds()
         CH.ForgetEchoes()
         CH.SetHudRoom(nil)
+        CH.HidePlaque()
         currentZone = nil
         echoZone = nil
         currentAnchor = nil
@@ -313,6 +314,10 @@ local function Arrive(guid)
     if sound or not h then
         CH.SendEcho(guid)
     end
+    -- the plaque is a walk-in thing too, so a reload in place doesn't bring it back
+    if s.housePlaque then
+        CH.ShowPlaque(guid)
+    end
 end
 
 -- CURRENT_HOUSE_INFO_RECIEVED (Blizzard's spelling). A fixed wait before
@@ -346,6 +351,7 @@ function CH.OnHouseInfo(info)
     end
     CH.currentHouseGUID = guid
     CH.currentHouseOwner = info.ownerName or info.owner
+    CH.currentHouseName = info.houseName
     CH.zoneLabel:SetText(CH.currentHouseOwner or CH.L["HOUSE_HOME_INTERIOR"])
 
     -- Resolve the active floor now that we know which house this is. Done once

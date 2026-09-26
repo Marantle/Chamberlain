@@ -338,12 +338,42 @@ L["RD_DIFFERENT_MAPS"] = "Corners are on different maps, re-mark both in the sam
 L["RD_HOUSE_NOT_IDENTIFIED"] = "House not identified yet, try again in a moment."
 L["RD_ROOM_SAVED_X"] = "Room '%s' saved (%.0f x %.0f yd)."
 
+-- ── House plaque (Housing/Plaque.lua) ──────────────────
+L["PL_ENTERING"] = "You are entering"
+L["PL_MOTTO_X"] = '"%s"'
+L["PL_ROOMS_X"] = "%d rooms"
+L["PL_FLOORS_ROOMS_X"] = "%d floors, %d rooms"
+L["SET_PLAQUE"] = "House plaque"
+L["SET_HINT_PLAQUE"] = "Shows the house's name and motto when you walk in, in your own houses too. On to start with."
+
+-- ── House panel (UI/HousePanel.lua) ──────────────────────────────────
+L["HP_TITLE"] = "House"
+L["HUD_HOUSE"] = "Name this house and set its banner, motto and sounds."
+L["HP_NONE"] = "None"
+L["HP_NAME"] = "Name"
+L["HP_HINT_NAME"] = "What the plaque and the house lists call your house. Leave it empty for the name the game gave it."
+L["HP_NO_NAME"] = "Not known yet"
+L["HP_BANNER"] = "Banner style"
+L["HP_HINT_BANNER"] = "How room names look to visitors with your map."
+L["HP_MOTTO"] = "Motto"
+L["HP_HINT_MOTTO"] = "One line under the house's name on the plaque. Leave it empty for none."
+L["HP_PREVIEW"] = "Preview"
+L["HP_SAVE"] = "Save"
+L["HP_ARRIVAL"] = "Arrival sound"
+L["HP_HINT_ARRIVAL"] = "Rings for everyone inside when somebody walks in."
+L["HP_AMBIENCE"] = "Ambience"
+L["HP_HINT_AMBIENCE"] = "Plays in the whole house. A floor or a room can have its own on the house map."
+L["HP_MUSIC"] = "Music"
+L["HP_HINT_MUSIC"] =
+    "Pick silence here to stop the game's own music. Then the music you set on floors and rooms plays instead."
+L["HP_USE_SILENCE"] = "Use silence"
+
 -- ── Room manager (UI/RoomManager.lua) ────────────────────────────────
 L["RM_WINDOW_TITLE"] = "|cffFFD700Chamberlain|r  Rooms"
 L["RM_TAB_SETTINGS"] = "Settings"
 L["RM_CLOSE"] = "Close"
 L["RM_EXPORT"] = "Export"
-L["RM_BANNER"] = "Banner"
+L["RM_HOUSE"] = "House"
 L["RM_IMPORT"] = "Import"
 L["RM_ARCHIVE"] = "Archive"
 L["RM_X_HOUSE"] = "%s's house"

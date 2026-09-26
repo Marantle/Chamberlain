@@ -4,7 +4,7 @@ local _, CH = ...
 -- Banner style picker
 -- ─────────────────────────────────────────────────────────────────────
 -- Every banner style in one list, each drawn as a small banner, with the
--- picked one big at the top. Banner in the Rooms window opens it for one of
+-- picked one big at the top. The House panel opens it for one of
 -- your houses. Choose style in Settings and What's New opens it for the house
 -- you stand in when it's yours, and for your own style anywhere else.
 

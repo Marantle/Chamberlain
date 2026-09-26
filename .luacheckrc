@@ -18,6 +18,7 @@ read_globals = {
     "UIParent",
     "UIFrameFadeIn",
     "UIFrameFadeOut",
+    "UIFrameFadeRemoveFrame",
     "UISpecialFrames",
     "UnitPosition",
     "UnitName",

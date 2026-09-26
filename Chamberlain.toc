@@ -3,7 +3,7 @@
 ## Notes: Names your housing rooms and announces them as you walk around your house.
 ## Category-enUS: Housing
 ## Category: Housing
-## Version: 3.22.0
+## Version: 3.23.0
 ## Author: Rothirr
 ## IconTexture: 133100
 ## X-Curse-Project-ID: 1573197
@@ -37,6 +37,7 @@ Housing\MusicList.lua
 Housing\Ambience.lua
 Housing\Archive.lua
 Housing\Banner.lua
+Housing\Plaque.lua
 Housing\TalkingHead.lua
 UI\HUD.lua
 UI\MusicPicker.lua
@@ -44,6 +45,7 @@ UI\RoomDialog.lua
 Sharing\Share.lua
 Sharing\ShareUI.lua
 UI\RoomManager.lua
+UI\HousePanel.lua
 UI\FloorPlan\Window.lua
 UI\FloorPlan\Transform.lua
 UI\FloorPlan\Floors.lua

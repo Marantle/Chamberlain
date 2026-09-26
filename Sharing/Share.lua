@@ -241,12 +241,27 @@ end
 -- kind is "ambience" (the value an index into CH.AMBIENCE), "music", "sfx" or
 -- "arrival" (a file id each, sfx for rooms only and new in 3.12.0, arrival for
 -- the house only and new in 3.13.0), 0 on the wire for none. A client that
--- doesn't know a type skips it and pulls the map. banner is the one that isn't
--- a sound, the house's style as its CH.BANNER_IDS number (3.20.0).
-local PATCH_TYPE = { ambience = "AMB", music = "MUS", sfx = "SFX", arrival = "ARR", banner = "BAN" }
-local PATCH_KIND = { AMB = "ambience", MUS = "music", SFX = "sfx", ARR = "arrival", BAN = "banner" }
+-- doesn't know a type skips it and pulls the map. Banner is the house's style
+-- as its CH.BANNER_IDS number (3.20.0). Motto and plaqueName carry the owner's
+-- texts (3.23.0, CH.HOUSE_TEXT), with any | taken out at both ends.
+local PATCH_TYPE = {
+    ambience = "AMB",
+    music = "MUS",
+    sfx = "SFX",
+    arrival = "ARR",
+    banner = "BAN",
+    motto = "MOT",
+    plaqueName = "PNM",
+}
+local PATCH_KIND = {}
+for kind, msg in pairs(PATCH_TYPE) do
+    PATCH_KIND[msg] = kind
+end
 -- where each kind may land: a Room, a Floor, the House
-local PATCH_TARGETS = { ambience = "RFH", music = "RFH", sfx = "R", arrival = "H", banner = "H" }
+local PATCH_TARGETS =
+    { ambience = "RFH", music = "RFH", sfx = "R", arrival = "H", banner = "H", motto = "H", plaqueName = "H" }
+-- the ones that change nothing you hear, so no chat line on arrival
+local PATCH_SILENT = { banner = true, motto = true, plaqueName = true }
 local lastSentNotice = 0
 
 -- quiet skips the chat line, for the later patches of a save that sends a few.
@@ -261,7 +276,7 @@ function CH.SendSoundPatch(houseGUID, kind, baseTs, target, value, quiet, plays,
     local h = ChamberlainDB.houses[houseGUID]
     Send(
         string.format(
-            "%s|%s|%d|%d|%s|%d|%s|%s",
+            "%s|%s|%d|%d|%s|%s|%s|%s",
             PATCH_TYPE[kind],
             houseGUID,
             baseTs or 0,
@@ -601,6 +616,8 @@ function CH.ApplyLayout(houseGUID, data, senderName)
         -- is whatever its maker typed
         if not ChamberlainDB.myHouses[houseGUID] then
             existing.owner = data.owner or existing.owner
+            -- your own house is named by the game, on the way in
+            existing.houseName = data.houseName or existing.houseName
         end
         existing.ownerGUID = data.ownerGUID or existing.ownerGUID
         existing.floorCount = data.floorCount or existing.floorCount or 1
@@ -608,16 +625,21 @@ function CH.ApplyLayout(houseGUID, data, senderName)
         existing.music = data.music
         existing.arrival = data.arrival
         existing.bannerStyle = data.bannerStyle
+        existing.motto = data.motto
+        existing.plaqueName = data.plaqueName
     else
         ChamberlainDB.houses[houseGUID] = {
             owner = data.owner,
             ownerGUID = data.ownerGUID,
+            houseName = data.houseName,
             updatedAt = data.timestamp,
             floorCount = data.floorCount or 1,
             ambience = data.ambience,
             music = data.music,
             arrival = data.arrival,
             bannerStyle = data.bannerStyle,
+            motto = data.motto,
+            plaqueName = data.plaqueName,
             zones = data.zones,
         }
     end
@@ -904,6 +926,10 @@ local function DeserializeLayout(b64)
         -- a number past the end is a style from a newer version, and the
         -- visitor's own shows instead
         bannerStyle = CH.BANNER_IDS[payload.bs],
+        -- the game's name takes the same room as the owner's own
+        houseName = CH.CleanText(payload.hn, CH.HOUSE_TEXT.plaqueName),
+        motto = CH.CleanText(payload.mo, CH.HOUSE_TEXT.motto),
+        plaqueName = CH.CleanText(payload.pn, CH.HOUSE_TEXT.plaqueName),
         zones = zones,
     }
 end
@@ -921,6 +947,9 @@ function CH.ExportLayout(houseGUID)
         ts = h.updatedAt or 0,
         fc = h.floorCount or 1,
         bs = CH.BANNER_ID[h.bannerStyle], -- the owner's banner style (3.20.0)
+        hn = h.houseName, -- the name the game gave the house (3.23.0)
+        mo = h.motto, -- the owner's motto on the plaque (3.23.0)
+        pn = h.plaqueName, -- the owner's own name for the house, over hn (3.23.0)
         zones = {},
     }
     -- House and floor sounds: ha/fa ambience (3.9.0), hm/fm music (3.10.0), ar
@@ -1238,7 +1267,10 @@ function CH.HandleMessage(prefix, payload, channel, fullSender)
         local guid = parts[2]
         local baseTs, newTs = tonumber(parts[3]), tonumber(parts[4])
         local where, n = (parts[5] or ""):match("^(%a)(%d*)$")
-        local value = tonumber(parts[6])
+        local value = parts[6]
+        if not CH.HOUSE_TEXT[kind] then
+            value = tonumber(value)
+        end
         local h = guid and ChamberlainDB.houses[guid]
         if not h or not IsTimestamp(newTs) or not value or ChamberlainDB.myHouses[guid] then
             return
@@ -1296,6 +1328,11 @@ function CH.HandleMessage(prefix, payload, channel, fullSender)
         elseif kind == "banner" then
             h.bannerStyle = CH.BANNER_IDS[value]
             CH.RefreshBanner()
+        elseif CH.HOUSE_TEXT[kind] then
+            -- the space that stands for none cleans down to nil
+            h[kind] = CH.CleanText(value, CH.HOUSE_TEXT[kind])
+            -- the name is what the house list goes by
+            CH.RefreshRoomList()
         elseif where == "H" or n then
             stored = KNOWN[kind](value) and value or nil
             CH.StoreHouseSound(h, kind, n, stored)
@@ -1307,8 +1344,7 @@ function CH.HandleMessage(prefix, payload, channel, fullSender)
             h.updatedAt = newTs
         end
         Debug(msgType, "applied:", guid, parts[5], value, "from", sender)
-        -- no chat line for a banner, the banner itself shows the change
-        if guid == CH.currentHouseGUID and kind ~= "banner" then
+        if guid == CH.currentHouseGUID and not PATCH_SILENT[kind] then
             -- the mute button shows only in a house that has a sound somewhere
             CH.RefreshHUDMode()
             NoteSoundChange(kind, parts[5], sender, place, stored)

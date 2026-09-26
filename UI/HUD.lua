@@ -144,6 +144,25 @@ local muteMark = btnSound:CreateTexture(nil, "OVERLAY")
 muteMark:SetAllPoints()
 muteMark:SetTexture("Interface\\Common\\VoiceChat-Muted")
 
+-- The house panel, in a house of yours. The seal is our own svg, so it gets
+-- tinted like the row buttons' icons instead of a highlight texture.
+local btnHouse = CreateFrame("Button", nil, hud)
+btnHouse:SetSize(16, 16)
+btnHouse.icon = CH.MakeIcon(btnHouse, "icon-seal", 16)
+btnHouse.icon:SetPoint("CENTER")
+btnHouse.icon:SetVertexColor(CH.RGBA(CH.COLORS.tipGold, 1))
+btnHouse:Hide()
+btnHouse:SetScript("OnClick", function()
+    CH.ToggleHousePanel()
+end)
+btnHouse:SetScript("OnEnter", function(self)
+    self.icon:SetVertexColor(1, 1, 1)
+end)
+btnHouse:SetScript("OnLeave", function(self)
+    self.icon:SetVertexColor(CH.RGBA(CH.COLORS.tipGold, 1))
+end)
+CH.Tip(btnHouse, "HUD_HOUSE")
+
 -- The kinds a player can mute one by one, label key and settings key. Either
 -- click on the speaker opens these, under a Mute all that throws the master
 -- switch.
@@ -515,6 +534,15 @@ function CH.RefreshHUDMode()
     end
     local leftmost = sounds and btnSound or btnSettings
     local icons = sounds and 2 or 1
+    -- the panel works on the house's saved entry, so not before the first room
+    local ownHouse = CH.isOwnHouse and h ~= nil
+    btnHouse:SetShown(ownHouse)
+    if ownHouse then
+        btnHouse:ClearAllPoints()
+        btnHouse:SetPoint("RIGHT", leftmost, "LEFT", -4, 0)
+        leftmost = btnHouse
+        icons = icons + 1
+    end
     local unread = ChamberlainDB.unreadSince ~= nil
     btnNotes:SetShown(unread)
     if unread then

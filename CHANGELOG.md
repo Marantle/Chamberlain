@@ -1,5 +1,27 @@
 # Changelog
 
+## 3.23.0
+- When you walk into a house, a plaque comes up with its name big and
+  glowing, whose house it is under that and the owner's motto under both. It
+  fades after a few seconds and sits over the room banner. Every house has a
+  name in the game, so it works in any house, map or no map. Drag it where you
+  want it. House plaque on the Rooms page of Settings turns it off.
+- You can give your house a name of your own in the House panel. It goes on
+  the plaque and in the Rooms list over the name the game gave it. Leave it
+  empty and the game's name is back.
+- A House panel sets the name, the banner style, the motto and the sounds for
+  a whole house, arrival sound included. The house icon on the bar opens it in
+  a house of yours, and House in the Rooms window opens it for the house you
+  picked there. It takes the place of the Banner button.
+- The music row has a Use silence button. Silence for the whole house stops
+  the game's own music, so the music on your floors and rooms is all you hear.
+- Your group gets a new name or motto right away, and both go out with the
+  map and the export string too. Group members need 3.23.0 to see them.
+- The Rooms window lists a house by its name, with whose house it is under
+  that. A map you got from somebody carries the name from
+  3.23.0 on, so older maps keep the old label until they are shared again.
+- The web site shows the house name and the motto.
+
 ## 3.22.0
 - A Rainbow group in the banner picker, nine styles. Arch, Wave, Swoosh
   and Chalk are public domain rainbows cut in two, so the name sits

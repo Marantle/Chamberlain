@@ -10,8 +10,12 @@ game's own zone names. Eight are old public domain ornaments cut to fit the
 name, a nameplate and a rolled scroll among them. Choose style opens a list
 that shows every look at once. Pick one while you stand in your own house and
 it becomes that house's look, so visitors see your rooms that way unless they
-keep their own in Settings. Banner in the Rooms window does the same for any
-of your houses.
+keep their own in Settings.
+
+When you walk into a house, a plaque shows the house's name, whose house it is
+and the owner's motto, then fades. In the House panel you can write your motto
+and give the house a name of your own, next to its banner style and sounds.
+Open it with the house icon on the bar or with House in the Rooms window.
 
 To make a room, open the Build toolbox and click the shape of the room you
 built. All six of the game's shapes are there. The room drops where you stand

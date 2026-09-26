@@ -1,6 +1,6 @@
 local ADDON, CH = ...
 
-CH.VERSION = "3.22.0"
+CH.VERSION = "3.23.0"
 
 -- How often the zone ticker samples your position, in seconds. Drives stair
 -- detection and the per-room time stats both, so they stay in step if it changes.
@@ -82,6 +82,10 @@ events:SetScript("OnEvent", function(_, event, arg1)
             ChamberlainDB.bannerX = 0
         end
         -- bannerY depends on screen height, resolved in PLAYER_LOGIN
+        if ChamberlainDB.plaqueX == nil then
+            ChamberlainDB.plaqueX = 0
+        end
+        -- plaqueY the same
         if ChamberlainDB.thX == nil then
             ChamberlainDB.thX = 0
         end
@@ -232,6 +236,10 @@ events:SetScript("OnEvent", function(_, event, arg1)
         if ChamberlainDB.settings.stairsBothFloors == nil then
             ChamberlainDB.settings.stairsBothFloors = true
         end
+        -- The house's name and its owner's motto as you walk in. (3.23.0)
+        if ChamberlainDB.settings.housePlaque == nil then
+            ChamberlainDB.settings.housePlaque = true
+        end
         -- Whether the floor plan was open last time. Restored on login only when
         -- standing inside a house (see CH.RestoreFloorPlan); outside a house it
         -- stays closed even if it was open when you left.
@@ -308,8 +316,13 @@ events:SetScript("OnEvent", function(_, event, arg1)
             -- Sit the talking head a little below the banner's default spot
             ChamberlainDB.thY = math.floor(UIParent:GetHeight() * 0.12)
         end
+        if ChamberlainDB.plaqueY == nil then
+            -- and the house plaque above the banner, clear of the first room's name
+            ChamberlainDB.plaqueY = math.floor(UIParent:GetHeight() * 0.36)
+        end
         CH.ApplyBannerPos()
         CH.ApplyTalkingHeadPos()
+        CH.ApplyPlaquePos()
         C_Timer.NewTicker(CH.ZONE_TICK, CH.CheckZones)
         -- registered this late so no answer runs CheckHousingState before the
         -- login setup above
@@ -373,9 +386,12 @@ SlashCmdList["CH"] = function(msg)
         ChamberlainDB.bannerY = math.floor(UIParent:GetHeight() * 0.25)
         ChamberlainDB.thX = 0
         ChamberlainDB.thY = math.floor(UIParent:GetHeight() * 0.12)
+        ChamberlainDB.plaqueX = 0
+        ChamberlainDB.plaqueY = math.floor(UIParent:GetHeight() * 0.36)
         CH.ApplyHUDPos()
         CH.ResetMapPos()
         CH.ApplyBannerPos()
+        CH.ApplyPlaquePos()
         CH.ApplyTalkingHeadPos()
         CH.Print(CH.L["CMD_POSITIONS_RESET"])
     elseif cmd == "hud" then

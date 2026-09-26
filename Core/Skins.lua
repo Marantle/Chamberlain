@@ -357,6 +357,40 @@ function CH.MakeRule(parent, alpha)
     return t
 end
 
+-- A setting's name with its line of help and a faint rule under the row, y
+-- down from the top of parent and x in from its left. w is parent's width
+-- and controlW the room kept on the right for the switch or button. Hands
+-- back the row and its height. Settings and the House panel both build theirs
+-- out of it.
+function CH.MakeSettingRow(parent, y, x, w, labelKey, hintKey, controlW)
+    local textW = w - x - controlW - 10
+    local row = CreateFrame("Frame", nil, parent)
+    row:SetPoint("TOPLEFT", x, -y)
+    row:SetPoint("TOPRIGHT", parent, "TOPRIGHT", 0, -y)
+
+    local label = row:CreateFontString(nil, "OVERLAY", hintKey and "GameFontHighlight" or "GameFontHighlightSmall")
+    label:SetPoint("TOPLEFT", 0, -8)
+    label:SetWidth(textW)
+    label:SetJustifyH("LEFT")
+    label:SetText(CH.L[labelKey])
+    local h = 26
+    if hintKey then
+        local hint = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        hint:SetPoint("TOPLEFT", label, "BOTTOMLEFT", 0, -3)
+        hint:SetWidth(textW)
+        hint:SetJustifyH("LEFT")
+        hint:SetText(CH.L[hintKey])
+        hint:SetTextColor(CH.RGBA(CH.COLORS.dim, 1))
+        h = 8 + label:GetStringHeight() + 3 + hint:GetStringHeight() + 8
+    end
+    row:SetHeight(h)
+
+    local rule = CH.MakeRule(row, 0.18)
+    rule:SetPoint("BOTTOMLEFT")
+    rule:SetPoint("BOTTOMRIGHT")
+    return row, h
+end
+
 -- ON/OFF toggle button bound to a boolean in ChamberlainDB.settings[key].
 -- Clicking flips the setting and relabels. Call b:Refresh() to sync the label
 -- to the stored value (e.g. when the panel opens).
@@ -572,6 +606,9 @@ function CH.TouchHouse(guid)
     end
     if CH.RefreshRoomList then
         CH.RefreshRoomList()
+    end
+    if CH.RefreshHousePanel then
+        CH.RefreshHousePanel()
     end
     -- The launcher's Archive button depends on whether this house has rooms.
     if guid and guid == CH.currentHouseGUID and CH.RefreshHUDMode then

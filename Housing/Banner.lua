@@ -103,6 +103,7 @@ local function Line(b, l, r, c, w, y, thick, a, edge)
     l:Show()
     r:Show()
 end
+CH.BannerLine = Line -- the house plaque rules its name off with it
 
 -- The Read button: a book in a small frame, both in the room's colour. It
 -- opens the yapper.
