@@ -14,6 +14,8 @@ local _, CH = ...
 -- The style picker's list, top down. The zone text look comes first. Original
 -- is the banner from before 3.18.0, boxed Read button and all. Found art is
 -- public domain ornament from OpenClipart, cut up in Media as art-*.tga.
+-- Rainbow is four found rainbows cut in two around the name and five flat
+-- stripe bands.
 CH.BANNER_GROUPS = {
     {
         key = "BP_DRAWN",
@@ -24,6 +26,11 @@ CH.BANNER_GROUPS = {
         key = "BP_FOUND",
         hint = "BP_FOUND_HINT",
         styles = { "nameplate", "cartouche", "parchment", "scroll", "pennant", "deco", "nouveau", "filigree" },
+    },
+    {
+        key = "BP_RAINBOW",
+        hint = "BP_RAINBOW_HINT",
+        styles = { "arch", "wave", "swoosh", "chalk", "band", "eight", "pastel", "jewel", "faded" },
     },
 }
 
@@ -49,6 +56,15 @@ CH.BANNER_IDS = {
     "deco",
     "nouveau",
     "filigree",
+    "arch",
+    "wave",
+    "swoosh",
+    "chalk",
+    "band",
+    "eight",
+    "pastel",
+    "jewel",
+    "faded",
 }
 CH.BANNER_ID = {}
 for id, style in ipairs(CH.BANNER_IDS) do
@@ -382,6 +398,7 @@ end
 -- between the two ends. Art with an ink keeps its own colours and the name
 -- takes the ink. The rest is white art tinted to the room.
 local INK = { 0.23, 0.16, 0.07 }
+local WHITE, BLACK = { 1, 1, 1 }, { 0, 0, 0 }
 local ART = {
     nameplate = { h = 64, l = 0.8, c = 0.48, pad = 14, back = { 0, 10, 0 } },
     cartouche = { h = 70, l = 0.51, r = 0.55, c = 0.38, pad = 12, back = { 24, 15, 27 } },
@@ -399,9 +416,17 @@ local ART = {
     deco = { h = 30, l = 3.62, gap = 12 },
     nouveau = { h = 34, l = 2.24, gap = 10 },
     filigree = { h = 34, l = 3.49, gap = 8 },
+    -- the rainbow set, l measured off the cut art
+    arch = { h = 48, l = 0.95, gap = 8, ink = WHITE },
+    wave = { h = 56, l = 1.38, gap = 10, ink = WHITE },
+    swoosh = { h = 60, l = 0.76, gap = 8, ink = WHITE },
+    chalk = { h = 16, l = 7.15, gap = 12, ink = WHITE },
 }
+-- the bands are one cut in five palettes
+for _, pal in ipairs({ "band", "eight", "pastel", "jewel", "faded" }) do
+    ART[pal] = { h = 44, l = 0.6, pad = 10, ink = WHITE }
+end
 local ART_PATH = "Interface\\AddOns\\Chamberlain\\Media\\art-"
-local UNTINTED, BLACK = { 1, 1, 1 }, { 0, 0, 0 }
 
 local function Piece(t, file, c, w, h)
     t:SetTexture(ART_PATH .. file .. ".tga")
@@ -444,7 +469,7 @@ end
 local function DrawArt(b, lc, read, name, a)
     Font(b, FRIZ, a.gap and 21 or 19, "", a.shadow or 1)
     local gw = PlaceGroup(b, read, 0, a.dy)
-    local c = a.ink and UNTINTED or lc
+    local c = a.ink and WHITE or lc
     local h, ew = a.h, a.l * a.h
     local rw = (a.r or a.l) * h
     local p = b.art

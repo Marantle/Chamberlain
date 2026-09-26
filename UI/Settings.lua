@@ -212,11 +212,14 @@ SecondsRow(pageRooms, {
 })
 SwitchRow(pageRooms, "RM_TOGGLE_ROOM_DESCRIPTIONS", "SET_HINT_DESCRIPTIONS", "showRoomText")
 
--- How your banner looks.
-local styleRow = Row(pageRooms, "SET_BANNER_STYLE", "SET_HINT_BANNER_STYLE", 140)
-local stylePicker = CH.MakeBannerStylePicker(pageRooms, 120)
-stylePicker:SetPoint("TOPLEFT", styleRow, "TOPLEFT", 0, -4)
-stylePicker:SetPoint("TOPRIGHT", styleRow, "TOPRIGHT", 0, -4)
+-- How your banner looks. The sample and its button take the bottom 80 px of
+-- the row, under the help, which got long enough in 3.21.0 to run into a
+-- sample hung from the top.
+local styleRow = Row(pageRooms, "SET_BANNER_STYLE", "SET_HINT_BANNER_STYLE", 0)
+styleRow:SetHeight(styleRow:GetHeight() + 80)
+local stylePicker = CH.MakeBannerStylePicker(pageRooms, 80)
+stylePicker:SetPoint("BOTTOMLEFT", styleRow, "BOTTOMLEFT")
+stylePicker:SetPoint("BOTTOMRIGHT", styleRow, "BOTTOMRIGHT")
 pageRooms.y = pageRooms.y + 80
 refreshers[#refreshers + 1] = function()
     stylePicker:Refresh()

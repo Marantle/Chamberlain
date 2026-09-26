@@ -1,5 +1,16 @@
 # Changelog
 
+## 3.22.0
+- A Rainbow group in the banner picker, nine styles. Arch, Wave, Swoosh
+  and Chalk are public domain rainbows cut in two, so the name sits
+  between the halves. Band, Eight stripe, Pastel, Jewel and Faded are a
+  flat band with a swallowtail at each end, one cut in five palettes. They
+  all keep their own colors whatever the room is set to, and the name is
+  white on them. Your group needs 3.22.0 to see one on your house. An
+  older client shows its own style instead.
+- The banner sample on the Rooms page of Settings sits under its help text
+  again. The longer help from 3.21.0 had run into it.
+
 ## 3.21.0
 - Every room shape the game builds is in the Add row now, one icon each,
   the L, the T, the plus and the octagon beside the square and the round

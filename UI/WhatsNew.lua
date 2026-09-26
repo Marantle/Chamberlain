@@ -21,6 +21,15 @@ local _, CH = ...
 -- show under the notes, a frame with a Refresh method.
 CH.WHATS_NEW = {
     {
+        v = "3.22.0",
+        notes = {
+            "Nine rainbow banner styles, their own group in the style picker. Four are old public "
+                .. "domain rainbows cut in two around the name and five are a flat striped band in "
+                .. "different palettes.",
+            "Pick one for yourself, or for your house so your group sees it too. They need 3.22.0 for that.",
+        },
+    },
+    {
         v = "3.21.0",
         notes = {
             "The Build toolbox has all six of the game's room shapes now, and a room drops at the "
