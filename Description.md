@@ -13,11 +13,15 @@ it becomes that house's look, so visitors see your rooms that way unless they
 keep their own in Settings. Banner in the Rooms window does the same for any
 of your houses.
 
-To make a room, open the Build toolbox and click Square room or Round room. The
-room drops where you stand and the name box opens. To fit the room to the
-walls, select it, walk to a wall and click Snap nearest edge to me. The arrows
-under it move the room, or push and pull one wall at a time. You can also drag
-the corners of the room on the house map.
+To make a room, open the Build toolbox and click the shape of the room you
+built. All six of the game's shapes are there. The room drops where you stand
+at the size the game builds it, and the name box opens. Quick resize switches a square
+or an octagon between the game's sizes, and Rotate turns an L or a T. To fit
+the room to the walls, select it, walk to a wall and click Slide to me, then do
+the same at a wall facing the other way. A square can also stretch one wall to
+you, and the arrows under it push and pull one wall at a time. The other shapes
+keep their shape and grow or shrink as a whole. You can also drag the grips of
+the room on the house map.
 
 The Build toolbox and the house map are one window, with the tools down its
 left side. Build on the bar opens it folded to just the tools, for walking
@@ -206,11 +210,13 @@ backup that you made.
   when their map is older than yours, from 3.15.0 on both sides. A room's own
   sound needs their map to match yours, so send it again with Share after you
   add, move or delete a room.
+- L, T and plus rooms need version 3.21.0 on both sides. A group member on an
+  older version sees your other rooms and skips these.
 
 ## Features
 
-- Make rooms from the Build toolbox. A square or round room drops where you
-  stand.
+- Make rooms from the Build toolbox. A square, L, T, plus, octagon or round
+  room drops where you stand, at the size the game builds it.
 - A gold banner shows the name of the room when you enter and fades when you
   leave.
 - Background sound for a room, a floor or the house, from more than 100 of the

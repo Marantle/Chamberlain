@@ -278,6 +278,8 @@ SwitchRow(pageMap, "RM_TOGGLE_GROUP_ON_MAP", "SET_HINT_GROUP_DOTS", "showGroupDo
 -- that square the minimap, since the shape can't be read back.
 SwitchRow(pageMap, "RM_TOGGLE_MINIMAP_ROOMS", "SET_HINT_MINIMAP", "minimapRooms", CH.RefreshMinimapRooms)
 SwitchRow(pageMap, "RM_TOGGLE_MINIMAP_SQUARE", "SET_HINT_SQUARE", "minimapSquare", CH.RefreshMinimapRooms, true)
+-- Both landings of a staircase on both floors it joins (Tiles.lua AnchorOnFloor).
+SwitchRow(pageMap, "RM_TOGGLE_STAIRS_BOTH", "SET_HINT_STAIRS_BOTH", "stairsBothFloors", CH.RebuildFloorPlan)
 SwitchRow(pageMap, "RM_TOGGLE_SLIM_BAR", "SET_HINT_SLIM_BAR", "hudStrip", CH.RefreshHUDMode)
 
 -- ── Voices ───────────────────────────────────────────────────────────

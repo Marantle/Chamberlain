@@ -11,41 +11,8 @@ local canvas = FP.canvas
 
 local STEP = 0.5 -- yards per button click
 
--- Each delta is how many steps a bound moves. The pad on the build rail
--- (UI/Toolbox.lua) holds the table of them.
-function FP.AdjustSelected(dMinX, dMaxX, dMinY, dMaxY)
-    local h = FP.CurrentHouse()
-    local zone = CH.tbSelZone
-    if not h or not zone then
-        return
-    end
-    if zone.shape == "circle" then
-        -- Circles ignore direction. A Move button (both bounds of an axis) shifts the
-        -- centre. A Grow/Shrink button changes the radius, kept centred and square so
-        -- it stays a true circle.
-        if dMinX == dMaxX and dMinY == dMaxY then
-            zone.minX, zone.maxX = zone.minX + dMinX * STEP, zone.maxX + dMaxX * STEP
-            zone.minY, zone.maxY = zone.minY + dMinY * STEP, zone.maxY + dMaxY * STEP
-        else
-            local cx = (zone.minX + zone.maxX) * 0.5
-            local cy = (zone.minY + zone.maxY) * 0.5
-            local grow = (dMaxX - dMinX) + (dMaxY - dMinY) > 0
-            local r = (zone.maxX - zone.minX) * 0.5 + (grow and STEP or -STEP)
-            if r < 0.5 then
-                return
-            end
-            zone.minX, zone.maxX = cx - r, cx + r
-            zone.minY, zone.maxY = cy - r, cy + r
-        end
-    else
-        local minX, maxX = zone.minX + dMinX * STEP, zone.maxX + dMaxX * STEP
-        local minY, maxY = zone.minY + dMinY * STEP, zone.maxY + dMaxY * STEP
-        if maxX - minX < 1 or maxY - minY < 1 then
-            return
-        end -- keep at least 1 yd
-        zone.minX, zone.maxX = minX, maxX
-        zone.minY, zone.maxY = minY, maxY
-    end
+-- After an edit lands: stamp the house, redraw and tell the group.
+local function Commit(h)
     h.updatedAt = GetServerTime()
     FP.Build()
     if CH.RefreshRoomList then
@@ -55,6 +22,67 @@ function FP.AdjustSelected(dMinX, dMaxX, dMinY, dMaxY)
     if CH.SyncAnchorLatch then
         CH.SyncAnchorLatch() -- nudging a stair box onto us shouldn't fire a transition
     end
+end
+
+-- Resize a room about its centre, refusing a box under a yard.
+local function SizeAbout(zone, w, h)
+    if w < 1 or h < 1 then
+        return false
+    end
+    local cx, cy = CH.ZoneCentre(zone)
+    CH.BoxAbout(zone, cx, cy, w, h)
+    return true
+end
+
+-- Each delta is how many steps a bound moves. The pad on the build rail
+-- (UI/Toolbox.lua) holds the table of them.
+function FP.AdjustSelected(dMinX, dMaxX, dMinY, dMaxY)
+    local h = FP.CurrentHouse()
+    local zone = CH.tbSelZone
+    if not h or not zone then
+        return
+    end
+    if zone.shape and not (dMinX == dMaxX and dMinY == dMaxY) then
+        -- A shaped room keeps its shape, so any Grow or Shrink button scales it
+        -- about the centre by a yard, both axes together.
+        local grow = (dMaxX - dMinX) + (dMaxY - dMinY) > 0
+        local w = zone.maxX - zone.minX
+        local f = (w + (grow and 2 or -2) * STEP) / w
+        if not SizeAbout(zone, w * f, (zone.maxY - zone.minY) * f) then
+            return
+        end
+    else
+        -- a move, or one wall of a plain room
+        local minX, maxX = zone.minX + dMinX * STEP, zone.maxX + dMaxX * STEP
+        local minY, maxY = zone.minY + dMinY * STEP, zone.maxY + dMaxY * STEP
+        if maxX - minX < 1 or maxY - minY < 1 then
+            return
+        end -- keep at least 1 yd
+        zone.minX, zone.maxX = minX, maxX
+        zone.minY, zone.maxY = minY, maxY
+    end
+    Commit(h)
+end
+
+-- The Quick resize chips and the Game size button: a set box about the centre.
+function FP.SetSelectedBox(w, h)
+    local house, zone = FP.CurrentHouse(), CH.tbSelZone
+    if house and zone and SizeAbout(zone, w, h) then
+        Commit(house)
+    end
+end
+
+-- A quarter turn for an L or a T. The box swaps its sides about the centre
+-- and the mask and the walk-in test read the turn from zone.rot.
+function FP.RotateSelected()
+    local house, zone = FP.CurrentHouse(), CH.tbSelZone
+    if not house or not zone or not zone.shape then
+        return
+    end
+    local r = ((zone.rot or 0) + 1) % 4
+    zone.rot = r > 0 and r or nil
+    SizeAbout(zone, zone.maxY - zone.minY, zone.maxX - zone.minX)
+    Commit(house)
 end
 
 -- ── Drag handles: resize from any edge/corner, move from the centre ──────
@@ -102,23 +130,25 @@ local function UpdateHandleDrag()
     end
     local s = handleSpec
 
-    -- A circle resizes by radius: the rim grips set it to the cursor's distance from
-    -- the (fixed) centre, kept square so it stays a true circle. The centre move grip
-    -- still falls through to the translation path below.
-    if zone.shape == "circle" and not s.move then
-        local ccx = (handleStart.minX + handleStart.maxX) * 0.5
-        local ccy = (handleStart.minY + handleStart.maxY) * 0.5
+    -- A shaped room scales about its (fixed) centre: an edge grip sets how far
+    -- that edge sits from it, and the other axis follows so the shape keeps.
+    -- The centre move grip still falls through to the translation path below.
+    if zone.shape and not s.move then
+        local ccx, ccy = CH.ZoneCentre(handleStart)
+        local w0, h0 = handleStart.maxX - handleStart.minX, handleStart.maxY - handleStart.minY
         local xw, yw = FP.CanvasToWorld(FP.CanvasCursor())
-        local r = SnapHalf(math.sqrt((xw - ccx) * (xw - ccx) + (yw - ccy) * (yw - ccy)))
-        if r < 0.5 then
-            r = 0.5
+        local f
+        if s.mnX or s.mxX then
+            f = SnapHalf(math.abs(xw - ccx) * 2) / w0
+        else
+            f = SnapHalf(math.abs(yw - ccy) * 2) / h0
         end
+        f = math.max(f, 1 / math.min(w0, h0)) -- keep at least 1 yd
         -- the grid is half a yard, so most frames change nothing
-        if zone.minX == ccx - r then
+        if zone.maxX - zone.minX == w0 * f then
             return
         end
-        zone.minX, zone.maxX = ccx - r, ccx + r
-        zone.minY, zone.maxY = ccy - r, ccy + r
+        SizeAbout(zone, w0 * f, h0 * f)
         FP.TileReposition()
         CH.RefreshToolbox()
         return
@@ -168,16 +198,9 @@ local function EndHandleDrag(self)
     CH.editingLayout = false
     local h = FP.CurrentHouse()
     if h then
-        h.updatedAt = GetServerTime()
-    end
-    -- a room dragged past another one stacks by its new size from here
-    FP.Build()
-    if CH.RefreshRoomList then
-        CH.RefreshRoomList()
-    end
-    CH.QueueBroadcast(CH.currentHouseGUID) -- broadcast once on release, not per frame
-    if CH.SyncAnchorLatch then
-        CH.SyncAnchorLatch() -- re-latch so a box dropped on us doesn't fire next tick
+        -- a room dragged past another one stacks by its new size from here, and
+        -- the group hears once, on release
+        Commit(h)
     end
 end
 
@@ -246,14 +269,15 @@ function FP.PositionHandles()
     if zh < 4 then
         zh = 4
     end
-    -- For a circle, keep the centre move grip and the four edge grips, which sit on
-    -- the rim (the box edge midpoints touch the inscribed circle) and drag the radius.
-    -- Hide the corner grips: they'd float off the disc, and a circle has no corners.
-    local round = zone.shape == "circle"
+    -- A shaped room keeps the centre move grip and the four edge grips, which
+    -- sit on a wall for every shape (the box edge midpoints touch even a disc)
+    -- and scale it. The corner grips go: they'd float off a disc or sit in an
+    -- L's missing corner, and there is no single wall to pull there anyway.
+    local shaped = zone.shape ~= nil
     for i, spec in ipairs(HANDLE_SPECS) do
         local hb = handles[i]
         local isEdge = (spec.px == 0.5) ~= (spec.py == 0.5) -- exactly one centred axis
-        if round and not spec.move and not isEdge then
+        if shaped and not spec.move and not isEdge then
             hb:Hide()
         else
             hb:ClearAllPoints()

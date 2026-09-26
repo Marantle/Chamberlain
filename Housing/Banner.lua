@@ -5,7 +5,8 @@ local _, CH = ...
 -- ─────────────────────────────────────────────────────────────────────
 -- The name of the room you walk into, in the room's colour. How it's drawn is
 -- your choice in Settings (bannerStyle), unless the house's owner picked a
--- style for it (h.bannerStyle, 3.20.0) and you haven't turned that off.
+-- style for it (h.bannerStyle, 3.20.0). Keep my style in other houses turns
+-- an owner's pick off, but never your own house's.
 -- CH.MakeBanner builds the pieces once and a style shows the ones it needs,
 -- so the room editor and Settings draw their previews with the same code as
 -- the real banner.
@@ -549,12 +550,16 @@ function CH.SetBannerRoom(zone)
     CH.PaintBanner(banner, zone.name, zone.color, read, CH.HouseBannerStyle(CH.currentHouseGUID))
 end
 
--- The owner's pick for the house wins over yours, unless you keep your own
--- everywhere.
+-- The owner's pick for the house wins over yours, unless you keep your own in
+-- other houses. Your own house's pick always shows, or picking a style there
+-- would change nothing you can see.
 function CH.HouseBannerStyle(guid)
     local s = ChamberlainDB.settings
     local h = ChamberlainDB.houses[guid]
-    return not s.ownBannerStyle and h and h.bannerStyle or s.bannerStyle
+    if h and h.bannerStyle and (ChamberlainDB.myHouses[guid] or not s.ownBannerStyle) then
+        return h.bannerStyle
+    end
+    return s.bannerStyle
 end
 
 -- Settings calls this when the style changes, so a banner that's up redraws.

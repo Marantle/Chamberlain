@@ -1,5 +1,37 @@
 # Changelog
 
+## 3.21.0
+- Every room shape the game builds is in the Add row now, one icon each,
+  the L, the T, the plus and the octagon beside the square and the round
+  room. A room lands at the size the game builds it, so a square starts Tiny
+  and an octagon Small, and Quick resize under the room list switches a
+  square or an octagon between the game's sizes. An L or a T turns a quarter with Rotate, and Game size
+  takes a room you resized by hand back to the size the game builds it at.
+  A new room is named after its shape, so the second round room you drop
+  starts as Round room 2.
+- Edit room has a Copy from button that takes another room's color, yapper,
+  sounds and ticks, and a Shape row that gives the room another shape at the
+  game's size around its middle. Both keep the name and everything you
+  don't change, for a room whose real one you swapped.
+- A shaped room keeps its shape. Grow, Shrink and the grips on the map scale
+  it as a whole about its middle. A square still moves one wall at a time
+  like before.
+- Slide to me moves the picked room so its nearest wall is where you stand,
+  for every shape. Stretch to me is the old Snap nearest edge to me, for
+  squares.
+- On the map an L, T, plus or octagon is cut to its shape, on the minimap
+  too, and its missing corner clicks through to the room under it. Walking
+  into that corner does not count as being in the room either.
+- Always use my style in Settings is now called Keep my style in other
+  houses, and its hint and the Banner style hint say plainly what each does.
+  It no longer hides the style you picked for your own house, which made a
+  new pick there look like it did nothing.
+- Stairs on both floors in Settings, on as before, draws a staircase on both
+  floors it joins. Turn it off and each end shows only on its own floor.
+- Sharing sends an L, T or plus as its centre, size and turn, which is
+  smaller than a box. A group member on an older version sees the rest of
+  your rooms and a note tells you who that is, as with floors.
+
 ## 3.20.1
 - The Sharing to group bar closes when the last part of your house is sent.
   Before, it stayed open until the addon had also told the group about every

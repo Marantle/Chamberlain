@@ -121,8 +121,8 @@ canvasEdge:SetColorTexture(CH.RGBA(CH.COLORS.border, 0.5))
 
 -- The dark the map and the minimap draw on. Room fills mix into it too.
 FP.GROUND = { 0.025, 0.02, 0.015 }
--- the round cut for circle rooms and the stock minimap
-FP.ROUND_MASK = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
+-- the round cut for the stock minimap, the same one circle rooms use
+FP.ROUND_MASK = CH.SHAPES.circle.mask
 
 local canvasBg = canvas:CreateTexture(nil, "BACKGROUND")
 canvasBg:SetAllPoints()

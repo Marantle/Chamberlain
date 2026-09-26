@@ -37,6 +37,9 @@ local peerVersions = {}
 
 -- Floors were added in this version. Older peers read the blob but ignore them.
 local FLOOR_MIN_VERSION = "2.4.0"
+-- The L, T and plus rooms go on the wire without a box (see WriteBox), so
+-- older peers skip them and see the rest.
+local SHAPE_MIN_VERSION = "3.21.0"
 
 -- True if version string a is numerically older than b (compares X.Y.Z parts).
 local function VersionOlder(a, b)
@@ -506,6 +509,21 @@ function CH.SendLayout(houseGUID)
     end
 end
 
+-- Name the group members whose Chamberlain is older than minVersion, in the
+-- note under key, which takes the names, an is or are and the version.
+local function NoteOldPeers(minVersion, key)
+    local old = {}
+    for name, ver in pairs(peerVersions) do
+        if VersionOlder(ver, minVersion) then
+            old[#old + 1] = name
+        end
+    end
+    if #old > 0 then
+        table.sort(old)
+        CH.Print(CH.L[key], table.concat(old, ", "), #old == 1 and CH.L["SHARE_IS"] or CH.L["SHARE_ARE"], minVersion)
+    end
+end
+
 -- Push your own houses to the whole party, or the one house `only` names.
 -- Layouts you received from others are not re-broadcast here (though they can
 -- still be served on request, which is how transitive sharing works).
@@ -537,7 +555,7 @@ function CH.ShareAll(only)
         return
     end
     local names = {}
-    local sharingFloors = false
+    local sharingFloors, sharingShapes = false, false
     for guid, _ in pairs(ChamberlainDB.myHouses) do
         local h = ChamberlainDB.houses[guid]
         if (not only or guid == only) and h and h.zones and #h.zones > 0 then
@@ -545,6 +563,11 @@ function CH.ShareAll(only)
             names[#names + 1] = string.format(CH.L["SHARE_X_HOUSE"], h.owner or CH.L["SHARE_HOME"])
             if (h.floorCount or 1) > 1 then
                 sharingFloors = true
+            end
+            for _, z in ipairs(h.zones) do
+                if z.shape and CH.SHAPES[z.shape].compact then
+                    sharingShapes = true
+                end
             end
         end
     end
@@ -556,22 +579,12 @@ function CH.ShareAll(only)
 
     -- Floors share fine across versions (appended blob fields), but a pre-2.4.0
     -- peer can't display them, so quietly let you know who'll see a flat layout.
+    -- The same for the rooms an older peer skips.
     if sharingFloors then
-        local flat = {}
-        for name, ver in pairs(peerVersions) do
-            if VersionOlder(ver, FLOOR_MIN_VERSION) then
-                flat[#flat + 1] = name
-            end
-        end
-        if #flat > 0 then
-            table.sort(flat)
-            CH.Print(
-                CH.L["SHARE_FLOOR_NOTE_X"],
-                table.concat(flat, ", "),
-                #flat == 1 and CH.L["SHARE_IS"] or CH.L["SHARE_ARE"],
-                FLOOR_MIN_VERSION
-            )
-        end
+        NoteOldPeers(FLOOR_MIN_VERSION, "SHARE_FLOOR_NOTE_X")
+    end
+    if sharingShapes then
+        NoteOldPeers(SHAPE_MIN_VERSION, "SHARE_SHAPE_NOTE_X")
     end
 end
 
@@ -779,6 +792,44 @@ local function ReadHouseSound(kind, house, floors)
     return next(set) and set or nil
 end
 
+-- A room's place on the wire. An L, a T or a plus is always the game's own
+-- shape, so its centre, its size against the game's (left out at 1) and its
+-- quarter turns (left out at 0) say it all, and a client before 3.21.0 skips
+-- it for want of a box. Everything else sends its box, and sh names the
+-- shape drawn in it: circle (3.0.0) or oct (3.21.0), a rectangle otherwise.
+local function WriteBox(e, z)
+    local def = z.shape and CH.SHAPES[z.shape]
+    if def and def.compact then
+        e.cx, e.cy = CH.ZoneCentre(z)
+        local sc = (z.maxX - z.minX) / CH.ShapeSize(z.shape, z.rot)
+        e.sc = sc ~= 1 and sc or nil
+        e.r = z.rot
+    else
+        e.x1, e.x2, e.y1, e.y2 = z.minX, z.maxX, z.minY, z.maxY
+    end
+end
+
+-- The box, shape and turn a zone off the wire stands for, or nil for one we
+-- can't place. A shape we don't know is drawn as a rectangle in its box.
+local function ReadBox(z)
+    local def = CH.SHAPES[z.sh]
+    if def and def.compact then
+        if type(z.cx) ~= "number" or type(z.cy) ~= "number" then
+            return nil
+        end
+        local sc = type(z.sc) == "number" and z.sc > 0 and z.sc or 1
+        local rot = (z.r == 1 or z.r == 2 or z.r == 3) and z.r or nil
+        local w, h = CH.ShapeSize(z.sh, rot)
+        local box = {}
+        CH.BoxAbout(box, z.cx, z.cy, w * sc, h * sc)
+        return box.minX, box.maxX, box.minY, box.maxY, z.sh, rot
+    end
+    if type(z.x1) ~= "number" or type(z.x2) ~= "number" or type(z.y1) ~= "number" or type(z.y2) ~= "number" then
+        return nil
+    end
+    return z.x1, z.x2, z.y1, z.y2, def and z.sh or nil
+end
+
 -- Decode a base64 blob (the bytes inside a "CHB1:" string, or a reassembled BLOB
 -- transfer) into a validated { guid, owner, timestamp, zones } table, or nil.
 -- Shared by string import and the over-the-wire blob receive.
@@ -796,16 +847,11 @@ local function DeserializeLayout(b64)
 
     local zones = {}
     for _, z in ipairs(payload.zones) do
-        if
-            type(z) == "table"
-            and type(z.n) == "string"
-            and type(z.m) == "number"
-            and type(z.x1) == "number"
-            and type(z.x2) == "number"
-            and type(z.y1) == "number"
-            and type(z.y2) == "number"
-            and #zones < 100
-        then
+        local minX, maxX, minY, maxY, shape, rot
+        if type(z) == "table" then
+            minX, maxX, minY, maxY, shape, rot = ReadBox(z)
+        end
+        if minX and type(z.n) == "string" and type(z.m) == "number" and #zones < 100 then
             local color
             if type(z.c) == "table" and type(z.c[1]) == "number" then
                 color = { z.c[1], z.c[2], z.c[3] }
@@ -814,10 +860,12 @@ local function DeserializeLayout(b64)
             zones[#zones + 1] = {
                 name = string.sub(z.n, 1, 48),
                 mapID = z.m,
-                minX = z.x1,
-                maxX = z.x2,
-                minY = z.y1,
-                maxY = z.y2,
+                minX = minX,
+                maxX = maxX,
+                minY = minY,
+                maxY = maxY,
+                shape = shape,
+                rot = rot,
                 color = color,
                 headID = type(z.hi) == "number" and z.hi or nil,
                 headDisplay = type(z.hd) == "number" and z.hd or nil,
@@ -831,9 +879,6 @@ local function DeserializeLayout(b64)
                 sfx = sfx,
                 sfxPlays = sfxPlays,
                 echo = sfx and CH.IsEcho(z.ec) and z.ec or nil,
-                -- Room shape (3.0.0): only "circle" so far. Anything else, or absent
-                -- from older blobs, is a rectangle. Geometry still rides in x1..y2.
-                shape = z.sh == "circle" and "circle" or nil,
                 -- Multi-floor (2.4.0): defaults to floor 1 so pre-floors blobs
                 -- (which omit these) land every room on the ground floor.
                 floor = type(z.fl) == "number" and z.fl or 1,
@@ -896,15 +941,11 @@ function CH.ExportLayout(houseGUID)
         end
     end
     for _, z in ipairs(h.zones) do
-        payload.zones[#payload.zones + 1] = {
+        local e = {
             n = z.name,
             m = z.mapID,
-            x1 = z.minX,
-            x2 = z.maxX,
-            y1 = z.minY,
-            y2 = z.maxY,
             c = z.color,
-            sh = z.shape, -- room shape "circle", or nil for a rectangle (3.0.0)
+            sh = z.shape, -- room shape (3.0.0), nil for a rectangle, see WriteBox
             t = z.rpText, -- room description
             hi = z.headID, -- talking-head index
             hd = z.headDisplay, -- custom head display ID (overrides hi)
@@ -926,6 +967,8 @@ function CH.ExportLayout(houseGUID)
             fd = z.floorDelta, -- relative stair anchor: +1/-1 from current floor
             ff = z.fromFloor, -- stair anchor only fires from this floor (the linked floor)
         }
+        WriteBox(e, z)
+        payload.zones[#payload.zones + 1] = e
     end
     local ok, blob = pcall(function()
         return C_EncodingUtil.EncodeBase64(C_EncodingUtil.CompressString(C_EncodingUtil.SerializeCBOR(payload)))

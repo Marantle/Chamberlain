@@ -46,10 +46,11 @@ local function AnchorOnFloor(h, zone, floor)
         -- Its own floor always. The floor it sends to only when a mate points
         -- back, so a staircase pair can still be aligned from either floor
         -- while a lone switch stays off the map of the floor it lands on.
+        -- Stairs on both floors in Settings turns that off.
         if floor == zone.fromFloor then
             return true
         end
-        return floor == zone.setFloor and HasMate(h, zone)
+        return floor == zone.setFloor and ChamberlainDB.settings.stairsBothFloors and HasMate(h, zone)
     elseif zone.setFloor then
         return true -- floor marker: fires from any floor
     end
@@ -91,13 +92,11 @@ local function MakeTile(parent)
     f.fill:SetPoint("TOPLEFT", f, "TOPLEFT", 1, -1)
     f.fill:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -1, 1)
 
-    -- A round alpha mask, off by default. Circle rooms switch it on (see
-    -- FP.SetTileRound) so the square tile draws as a disc. The box is square for
-    -- a circle, so the inscribed mask matches the room exactly.
+    -- An alpha mask over the whole tile, off by default. A shaped room (round,
+    -- L and so on) puts its cut on both textures through FP.SetTileShape. The
+    -- box is the shape's own box, so the mask matches the room exactly.
     f.mask = f:CreateMaskTexture()
     f.mask:SetAllPoints(f)
-    f.mask:SetTexture(FP.ROUND_MASK, "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
-    f.masked = false
 
     f.label = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     f.label:SetAllPoints()
@@ -107,17 +106,38 @@ local function MakeTile(parent)
     return f
 end
 
--- Toggle a pooled tile between a square room and a round one by masking its fill
--- and border. Tracked on t so a rebuild doesn't stack masks, and so a pooled
--- tile reused for a rectangle drops the mask again. The minimap's tiles too.
-function FP.SetTileRound(t, round)
-    if round == t.masked then
+-- The mask file for a zone's shape, or nil for a plain box. A mask can't be
+-- turned in place, so an L or a T has one file per quarter turn, drawn the
+-- way the map shows them.
+local function MaskFile(zone)
+    local def = zone.shape and CH.SHAPES[zone.shape]
+    if not def then
+        return nil
+    elseif def.rotates then
+        return def.mask .. (zone.rot or 0) .. ".tga"
+    end
+    return def.mask
+end
+
+-- Cut a pooled tile to its room's shape, or back to a plain box. Tracked on t
+-- so a rebuild doesn't stack masks, and so a pooled tile reused for a
+-- rectangle drops its mask again. The minimap's tiles too.
+function FP.SetTileShape(t, zone)
+    local file = MaskFile(zone)
+    if file == t.masked then
         return
     end
-    t.masked = round
-    local apply = round and "AddMaskTexture" or "RemoveMaskTexture"
-    t.border[apply](t.border, t.mask)
-    t.fill[apply](t.fill, t.mask)
+    -- off and on again around a swap, so the textures never keep an old cut
+    if t.masked then
+        t.border:RemoveMaskTexture(t.mask)
+        t.fill:RemoveMaskTexture(t.mask)
+    end
+    if file then
+        t.mask:SetTexture(file, "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+        t.border:AddMaskTexture(t.mask)
+        t.fill:AddMaskTexture(t.mask)
+    end
+    t.masked = file
 end
 
 -- Stairs and sound spots aren't rooms you stand in, so they draw as an icon
@@ -194,7 +214,7 @@ end
 -- colour so the caller can keep it for tooltips. The name is pale so it reads
 -- on any colour. f.iconOnly says the tile is an icon and nothing more.
 local function StyleTile(f, zone, i, selected, stairBoxes)
-    FP.SetTileRound(f, zone.shape == "circle")
+    FP.SetTileShape(f, zone)
     -- A selected tile gets a 2px gold ring. The fill sits 2px in so the border
     -- texture shows through. The pool reuses frames, so the inset goes back to
     -- 1px otherwise.
@@ -223,8 +243,7 @@ local function ZoneBefore(a, b)
     if ma ~= mb then
         return mb
     end
-    local sa = (za.maxX - za.minX) * (za.maxY - za.minY)
-    local sb = (zb.maxX - zb.minX) * (zb.maxY - zb.minY)
+    local sa, sb = CH.ZoneArea(za), CH.ZoneArea(zb)
     if sa ~= sb then
         return sa > sb
     end
@@ -252,8 +271,10 @@ local labelLayer = CreateFrame("Frame", nil, canvas)
 labelLayer:SetAllPoints()
 labelLayer:SetFrameLevel(FP.Level("labels"))
 
--- Zone indices whose rectangle is under the cursor, topmost first (later frames
--- draw on top). Used to cycle selection through overlapping rooms.
+-- Zone indices whose room is under the cursor, topmost first (later frames
+-- draw on top). Used to cycle selection through overlapping rooms. The tile
+-- answers first, then the room's own shape, so an L's missing corner clicks
+-- through to whatever sits under it.
 local function ZonesAtCursor()
     local cx, cy = GetCursorPosition()
     local s = canvas:GetEffectiveScale()
@@ -261,6 +282,7 @@ local function ZonesAtCursor()
         return {}
     end
     cx, cy = cx / s, cy / s
+    local wx, wy = FP.CanvasToWorld(FP.CanvasCursor())
     local hits = {}
     for i = #zonePool, 1, -1 do
         local f = zonePool[i]
@@ -269,7 +291,15 @@ local function ZonesAtCursor()
             -- a marker only answers over its icon, see PlaceTile
             local il, ir, it, ib = f:GetHitRectInsets()
             l, b, w, ht = l and l + il, b and b + ib, w - il - ir, ht - it - ib
-            if l and b and cx >= l and cx <= l + w and cy >= b and cy <= b + ht then
+            if
+                l
+                and b
+                and cx >= l
+                and cx <= l + w
+                and cy >= b
+                and cy <= b + ht
+                and (f.iconOnly or CH.ZoneContains(f.zone, wx, wy))
+            then
                 hits[#hits + 1] = f.zoneIdx
             end
         end
@@ -277,13 +307,22 @@ local function ZonesAtCursor()
     return hits
 end
 
--- Fill GameTooltip with a room's name, dimensions, and dwell time. Shared by the
+-- The size line of a room's tooltip, in yards. A shaped room only has a width.
+local function TipDim(zone)
+    local w, h = zone.maxX - zone.minX, zone.maxY - zone.minY
+    if zone.shape then
+        return string.format(CH.L["FP_WIDE_X"], w)
+    end
+    return string.format(CH.L["FP_DIM_X"], w, h)
+end
+
+-- Fill GameTooltip with a room's name, size and dwell time. Shared by the
 -- hover handler and the click-to-cycle handler so both show the same room.
-local function ShowZoneTooltip(owner, name, w, ht, timeSpent, r, g, b)
+local function ShowZoneTooltip(owner, name, dim, timeSpent, r, g, b)
     GameTooltip:SetOwner(owner, "ANCHOR_CURSOR")
     GameTooltip:ClearLines()
     GameTooltip:AddLine(name, r, g, b)
-    GameTooltip:AddLine(string.format(CH.L["FP_DIM_X"], w, ht), 0.7, 0.7, 0.7)
+    GameTooltip:AddLine(dim, 0.7, 0.7, 0.7)
     if timeSpent and timeSpent >= 1 then
         GameTooltip:AddLine(string.format(CH.L["FP_TIME_HERE_X"], CH.FormatDuration(timeSpent)), 0.7, 0.7, 0.7)
     end
@@ -326,16 +365,7 @@ local function GetZoneFrame(i)
                 end
             end
         end
-        ShowZoneTooltip(
-            self,
-            target.zoneName,
-            target.zoneW,
-            target.zoneH,
-            target.zoneTime,
-            target.cr,
-            target.cg,
-            target.cb
-        )
+        ShowZoneTooltip(self, target.zoneName, target.zoneDim, target.zoneTime, target.cr, target.cg, target.cb)
         FP.ShowCardRoom(target.zoneIdx)
     end)
     f:SetScript("OnLeave", function()
@@ -375,7 +405,7 @@ local function GetZoneFrame(i)
         -- mouse motion or a frame re-show, so a click alone wouldn't update it).
         local sel = FP.selectedIdx and FP.ZoneFrameByIdx(FP.selectedIdx)
         if sel then
-            ShowZoneTooltip(self, sel.zoneName, sel.zoneW, sel.zoneH, sel.zoneTime, sel.cr, sel.cg, sel.cb)
+            ShowZoneTooltip(self, sel.zoneName, sel.zoneDim, sel.zoneTime, sel.cr, sel.cg, sel.cb)
         else
             GameTooltip:Hide() -- nothing selected
         end
@@ -680,8 +710,7 @@ function FP.Build()
         f.zone = zone
         f.zoneIdx = i
         f.zoneName = zone.name
-        f.zoneW = zone.maxX - zone.minX
-        f.zoneH = zone.maxY - zone.minY
+        f.zoneDim = TipDim(zone)
         f.zoneTime = h.stats and h.stats[zone.name] or 0
         f.cr, f.cg, f.cb = r, g, b
         f.labelW = f.label:GetUnboundedStringWidth()

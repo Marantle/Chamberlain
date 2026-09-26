@@ -1,6 +1,6 @@
 local ADDON, CH = ...
 
-CH.VERSION = "3.20.1"
+CH.VERSION = "3.21.0"
 
 -- How often the zone ticker samples your position, in seconds. Drives stair
 -- detection and the per-room time stats both, so they stay in step if it changes.
@@ -226,6 +226,11 @@ events:SetScript("OnEvent", function(_, event, arg1)
         -- Same for the bannerless sound spots, "Sound spots" on the map.
         if ChamberlainDB.settings.showSpotsOnMap == nil then
             ChamberlainDB.settings.showSpotsOnMap = true
+        end
+        -- A staircase's two landings show on both floors it joins, so they
+        -- can be lined up from either. Off, each shows on its own floor. (3.21.0)
+        if ChamberlainDB.settings.stairsBothFloors == nil then
+            ChamberlainDB.settings.stairsBothFloors = true
         end
         -- Whether the floor plan was open last time. Restored on login only when
         -- standing inside a house (see CH.RestoreFloorPlan); outside a house it

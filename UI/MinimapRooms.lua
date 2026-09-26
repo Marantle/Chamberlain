@@ -53,8 +53,8 @@ local me = FP.MakeBlip(overlay, overlay:GetFrameLevel() + 2)
 me:SetPoint("CENTER")
 me:Show() -- blips start hidden but this one never moves or goes away
 
--- A room here is two textures and a round mask right on the overlay, with the
--- same fields as a house map tile so FP.SetTileRound works on both. Frames
+-- A room here is two textures and a mask right on the overlay, with the
+-- same fields as a house map tile so FP.SetTileShape works on both. Frames
 -- on one level stack in no set order, and there's no room for a level per
 -- room under the minimap's own buttons. Textures on one frame do stack by
 -- draw layer and sublevel, which Rebuild sets from how deep each room sits.
@@ -67,7 +67,6 @@ local function MakeTile(i)
     t.fill:SetPoint("BOTTOMRIGHT", t.border, "BOTTOMRIGHT", -1, 1)
     t.mask = overlay:CreateMaskTexture()
     t.mask:SetAllPoints(t.border)
-    t.mask:SetTexture(FP.ROUND_MASK, "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
     SetRim(t.fill, round)
     SetRim(t.border, round)
     tiles[i] = t
@@ -147,7 +146,7 @@ local function Rebuild()
             end
             depth[n] = math.min(d, MAX_DEPTH)
             SetDepth(t, depth[n])
-            FP.SetTileRound(t, zone.shape == "circle")
+            FP.SetTileShape(t, zone)
             t.marker = FP.PaintTile(t.border, t.fill, zone, i, false, false)
             FP.SetTileIcon(t, overlay, t.border, t.marker)
             t.zone = zone

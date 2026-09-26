@@ -33,3 +33,101 @@ CH.BACKDROP_THIN = {
 function CH.RGBA(c, a)
     return c[1], c[2], c[3], a
 end
+
+CH.MEDIA = "Interface\\AddOns\\Chamberlain\\Media\\"
+
+-- The rooms the game builds, measured in a house in September 2026, wall to
+-- wall. Two rooms the game joins share a wall, so at these sizes their boxes
+-- touch and the doorway between them is in one room or the other, never in
+-- neither. A player can't stand closer than WALL to a wall, so the fit tools
+-- put the wall that far past where you stand. Every cross shape is a CORE
+-- square with ARM long stubs, and the game's squares and octagons grow by
+-- two ARM a step.
+CH.WALL = 0.8
+local CORE, ARM = 12, 6
+local SIDE = CORE + ARM -- an L's side, a T's short side
+local SPAN = CORE + 2 * ARM -- a T's long side, a plus's side
+local STEPS = { SPAN, SPAN + 2 * ARM, SPAN + 4 * ARM }
+
+-- A room with a shape keeps it: it scales as a whole and an L or a T turns in
+-- quarters (zone.rot, 0 to 3). Its box in the saved data is the turned box,
+-- so everything that reads minX..maxY still works. cuts are the corners the
+-- box lacks at turn 0, as fractions of it {x0, y0, x1, y1}, and diag is an
+-- octagon's corner cut along each axis. compact shapes go on the wire as
+-- centre, scale and turn instead of a box. mask cuts the map tile, and a
+-- shape that turns has a file per turn, mask-l0.tga to mask-l3.tga.
+local a, b = ARM / SIDE, ARM / SPAN
+CH.SHAPES = {
+    L = {
+        w = SIDE,
+        h = SIDE,
+        rotates = true,
+        compact = true,
+        mask = CH.MEDIA .. "mask-l",
+        cuts = { { 0, 0, a, a } },
+    },
+    T = {
+        w = SPAN,
+        h = SIDE,
+        rotates = true,
+        compact = true,
+        mask = CH.MEDIA .. "mask-t",
+        cuts = { { 0, 0, b, a }, { 1 - b, 0, 1, a } },
+    },
+    plus = {
+        w = SPAN,
+        h = SPAN,
+        compact = true,
+        mask = CH.MEDIA .. "mask-plus.tga",
+        cuts = { { 0, 0, b, b }, { 1 - b, 0, 1, b }, { 0, 1 - b, b, 1 }, { 1 - b, 1 - b, 1, 1 } },
+    },
+    oct = {
+        w = SPAN,
+        h = SPAN,
+        diag = 0.3,
+        mask = CH.MEDIA .. "mask-oct.tga",
+        sizes = { { "TB_SIZE_SMALL", STEPS[1] }, { "TB_SIZE_MEDIUM", STEPS[2] }, { "TB_SIZE_LARGE", STEPS[3] } },
+    },
+    circle = { w = 46.2, h = 46.2, mask = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask" },
+}
+
+-- The shapes as the build rail and the room dialog offer them, in order, with
+-- the icon and the name a fresh room takes. A plain room has no shape.
+CH.SHAPE_LIST = {
+    { icon = "icon-square", name = "TB_ADD_SQUARE" },
+    { shape = "L", icon = "icon-l", name = "TB_ADD_L" },
+    { shape = "T", icon = "icon-t", name = "TB_ADD_T" },
+    { shape = "plus", icon = "icon-plus", name = "TB_ADD_PLUS" },
+    { shape = "oct", icon = "icon-oct", name = "TB_ADD_OCT" },
+    { shape = "circle", icon = "icon-circle", name = "TB_ADD_CIRCLE" },
+}
+
+function CH.ShapeEntry(shape)
+    for _, e in ipairs(CH.SHAPE_LIST) do
+        if e.shape == shape then
+            return e
+        end
+    end
+end
+
+-- How much of its box a shape fills, for picking the smallest room.
+for _, def in pairs(CH.SHAPES) do
+    local keep = 1
+    for _, c in ipairs(def.cuts or {}) do
+        keep = keep - (c[3] - c[1]) * (c[4] - c[2])
+    end
+    if def.diag then
+        keep = 1 - 2 * def.diag * def.diag
+    end
+    def.keep = keep
+end
+CH.SHAPES.circle.keep = math.pi / 4
+
+-- A plain room has no shape and its walls move one by one. These are only the
+-- sizes it starts at, the game's four squares.
+CH.SQUARE_SIZES = {
+    { "TB_SIZE_TINY", CORE },
+    { "TB_SIZE_SMALL", STEPS[1] },
+    { "TB_SIZE_MEDIUM", STEPS[2] },
+    { "TB_SIZE_LARGE", STEPS[3] },
+}

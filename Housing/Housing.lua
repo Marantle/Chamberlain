@@ -33,22 +33,7 @@ local function Circle(zone)
 end
 
 local function IsInZone(zone, x, y, mapID)
-    if zone.mapID ~= mapID then
-        return false
-    end
-    -- Bounding-box reject first: cheap, and it's the whole test for a rectangle.
-    if x < zone.minX or x > zone.maxX or y < zone.minY or y > zone.maxY then
-        return false
-    end
-    if zone.shape == "circle" then
-        local cx, cy, r = Circle(zone)
-        if r <= 0 then
-            return false
-        end
-        local dx, dy = x - cx, y - cy
-        return dx * dx + dy * dy <= r * r
-    end
-    return true
+    return zone.mapID == mapID and CH.ZoneContains(zone, x, y)
 end
 
 -- Yards from a spot to the nearest edge of a room, 0 inside it. Flat, the

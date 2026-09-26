@@ -96,7 +96,7 @@ function CH.SetButtonActive(b, on)
 end
 
 -- SVG art from Media. The svgs are drawn white and tinted with SetVertexColor.
-local MEDIA = "Interface\\AddOns\\Chamberlain\\Media\\"
+local MEDIA = CH.MEDIA
 
 function CH.MakeIcon(parent, file, size, layer)
     local v = parent:CreateVectorGraphics()
@@ -138,6 +138,15 @@ function CH.AddButtonIcon(btn, file, size)
     btn.TintIcon = tint
     tint(false)
     return icon
+end
+
+-- A square icon button for one of CH.SHAPE_LIST, its name on hover. The build
+-- rail's Add row and the room dialog's Shape row are made of these.
+function CH.MakeShapeButton(parent, entry, size)
+    local b = CH.MakeButton(parent, "", size, size)
+    CH.AddButtonIcon(b, entry.icon, size - 12):SetPoint("CENTER")
+    CH.Tip(b, entry.name)
+    return b
 end
 
 -- The small gold letter buttons that sit in a window's header, x to close and

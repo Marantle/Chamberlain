@@ -55,9 +55,16 @@ local mainSwatch = CH.MakeSwatch(dialog, 22)
 mainSwatch:SetPoint("TOPLEFT", 12, -36)
 CH.Tip(mainSwatch, "RD_TT_PICK_COLOR")
 
+-- Copy from takes another room's settings, everything but the name, the
+-- floor and the place, for a room that swaps looks with another.
+local copyBtn = CH.MakeButton(dialog, "RD_COPY_FROM", 80, 22)
+copyBtn:SetPoint("TOPRIGHT", -12, -36)
+CH.Tip(copyBtn, "RD_TT_COPY_FROM")
+
 local editBox = CreateFrame("EditBox", "ChamberlainEditBox", dialog, "InputBoxTemplate")
-editBox:SetSize(PANE_W - 36, 22)
+editBox:SetHeight(22)
 editBox:SetPoint("LEFT", mainSwatch, "RIGHT", 12, 0)
+editBox:SetPoint("RIGHT", copyBtn, "LEFT", -8, 0)
 editBox:SetAutoFocus(false)
 editBox:SetMaxLetters(48)
 
@@ -281,13 +288,51 @@ local function RefreshSwatches()
     clearSwatch:SetPoint("LEFT", last, "RIGHT", 10, 0)
 end
 
+-- ── Shape row ────────────────────────────────────────────────────────
+-- The same six shapes as the build rail. Picking another one rebuilds the
+-- room at the game's size around its middle on Save, keeping everything else,
+-- for a room whose real one got swapped.
+local shapeRow = CreateFrame("Frame", nil, paneRoom)
+shapeRow:SetPoint("TOPLEFT", 0, -48)
+shapeRow:SetPoint("TOPRIGHT", 0, -48)
+shapeRow:SetHeight(26)
+Label(shapeRow, "RD_SHAPE", -7, "RD_SHAPE_TT_TITLE", "RD_SHAPE_TT1", "RD_SHAPE_TT2")
+
+local pendingShape = nil -- a CH.SHAPES key, nil for a plain room
+local shapeBtns = {}
+local function RefreshShapeButtons()
+    for i, e in ipairs(CH.SHAPE_LIST) do
+        CH.SetButtonActive(shapeBtns[i], e.shape == pendingShape)
+    end
+end
+for i, e in ipairs(CH.SHAPE_LIST) do
+    local b = CH.MakeShapeButton(shapeRow, e, 26)
+    b:SetPoint("TOPLEFT", LABEL_W + (i - 1) * 30, 0)
+    b:SetScript("OnClick", function()
+        pendingShape = e.shape
+        RefreshShapeButtons()
+    end)
+    shapeBtns[i] = b
+end
+
+-- Give a room another shape: the game's box for it around the room's old
+-- middle, facing the default way. A plain room keeps the box it had.
+local function ChangeShape(zone, shape)
+    zone.shape = shape
+    zone.rot = nil
+    if shape then
+        local cx, cy = CH.ZoneCentre(zone)
+        CH.BoxAbout(zone, cx, cy, CH.ShapeSize(shape))
+    end
+end
+
 -- ── Floor row (multi-floor houses only) ──────────────────────────────
 -- A "Floor N" dropdown that scopes the room to a floor, plus a "Stairs"
 -- dropdown that turns the room into a stair anchor (absolute "Go to floor N" or
 -- relative "Up/Down one").
 local floorRow = CreateFrame("Frame", nil, paneRoom)
-floorRow:SetPoint("TOPLEFT", 0, -48)
-floorRow:SetPoint("TOPRIGHT", 0, -48)
+floorRow:SetPoint("TOPLEFT", 0, -84)
+floorRow:SetPoint("TOPRIGHT", 0, -84)
 floorRow:SetHeight(22)
 floorRow:Hide()
 
@@ -753,7 +798,7 @@ local function RefreshFloorRow()
     if multi then
         RefreshFloorButtons()
     end
-    local below = multi and floorRow or paletteSwatches[1]
+    local below = multi and floorRow or shapeRow
     roomSep:ClearAllPoints()
     roomSep:SetPoint("TOPLEFT", below, "BOTTOMLEFT", 0, -12)
     roomSep:SetWidth(PANE_W)
@@ -770,6 +815,28 @@ local btnCancel = CH.MakeButton(dialog, "RD_CANCEL", 90, 22)
 btnOK:SetPoint("BOTTOMRIGHT", -12, 8)
 btnCancel:SetPoint("RIGHT", btnOK, "LEFT", -8, 0)
 CH.SetButtonActive(btnOK, true)
+
+-- Fill the fields with a room's settings: its colour, its yapper, its sounds
+-- and its ticks. The name, the shape, the floor and the stairs are its own
+-- and stay, so Copy from can use this too.
+local function FillSettings(zone)
+    pendingHeadID = zone.headID or 1
+    SetPendingColor(zone.color)
+    descBox:SetText(zone.rpText or "")
+    headIdBox:SetText(zone.headDisplay and tostring(zone.headDisplay) or "")
+    speakerBox:SetText(zone.speaker or "")
+    ownerCheck:SetChecked(zone.useOwnerHead)
+    secretCheck:SetChecked(zone.secret)
+    bannerCheck:SetChecked(not zone.noBanner)
+    pendingAmbience = zone.ambience
+    ambienceBtn:Refresh()
+    SetPendingMusic(zone.music)
+    SetPendingSfx(zone.sfx, zone.sfxPlays, zone.echo)
+    SetPendingVoice(zone.voice)
+    UpdateHeadSelection()
+    UpdateHeadIdHint()
+    UpdateDescHint()
+end
 
 local function CloseDialog()
     editBox:ClearFocus()
@@ -799,29 +866,16 @@ function CH.OpenRenameDialog(zone, houseGUID)
     end
     renameTarget = zone
     renameHouseGUID = houseGUID
-    pendingHeadID = zone.headID or 1
     pendingFloor = zone.floor or 1
     pendingSetFloor = zone.setFloor
     pendingFloorDelta = zone.floorDelta
+    pendingShape = zone.shape
     dialog.title:SetText(CH.L["RD_TITLE_EDIT_ROOM"])
     editBox:SetText(zone.name)
-    SetPendingColor(zone.color)
-    descBox:SetText(zone.rpText or "")
-    headIdBox:SetText(zone.headDisplay and tostring(zone.headDisplay) or "")
-    speakerBox:SetText(zone.speaker or "")
-    ownerCheck:SetChecked(zone.useOwnerHead)
-    secretCheck:SetChecked(zone.secret)
-    bannerCheck:SetChecked(not zone.noBanner)
-    pendingAmbience = zone.ambience
-    ambienceBtn:Refresh()
-    SetPendingMusic(zone.music)
-    SetPendingSfx(zone.sfx, zone.sfxPlays, zone.echo)
-    SetPendingVoice(zone.voice)
     RefreshSwatches()
     BuildHeadPicker()
-    UpdateHeadSelection()
-    UpdateHeadIdHint()
-    UpdateDescHint()
+    FillSettings(zone)
+    RefreshShapeButtons()
     RefreshFloorRow()
     tabs:Select(1)
     ShowPane(1)
@@ -829,6 +883,30 @@ function CH.OpenRenameDialog(zone, houseGUID)
     editBox:SetFocus()
     editBox:HighlightText()
 end
+
+-- The rooms of this house Copy from can take settings from: every room but
+-- this one and the stairs.
+copyBtn:SetScript("OnClick", function(self)
+    if not MenuUtil then
+        return
+    end
+    local h = DialogHouse()
+    MenuUtil.CreateContextMenu(self, function(_, root)
+        root:CreateTitle(CH.L["RD_COPY_FROM_TITLE"])
+        local any = false
+        for _, z in ipairs(h and h.zones or {}) do
+            if z ~= renameTarget and not CH.IsAnchor(z) then
+                any = true
+                root:CreateButton(z.name, function()
+                    FillSettings(z)
+                end)
+            end
+        end
+        if not any then
+            root:CreateButton(CH.L["TB_NO_ROOMS"]):SetEnabled(false)
+        end
+    end)
+end)
 
 local function ConfirmZone()
     local name = editBox:GetText():match("^%s*(.-)%s*$")
@@ -873,6 +951,9 @@ local function ConfirmZone()
             renameTarget.floor = pendingFloor or 1
             renameTarget.setFloor = pendingSetFloor
             renameTarget.floorDelta = pendingFloorDelta
+            if pendingShape ~= renameTarget.shape then
+                ChangeShape(renameTarget, pendingShape)
+            end
             CH.PushRecentColor(pendingColor)
             CH.TouchHouse(guid)
             -- A save that changed the sounds and nothing else goes to the group
@@ -926,12 +1007,11 @@ local function ConfirmZone()
 end
 
 -- Drop a new room at a world position. This is the build rail's "add room
--- here": it makes a small default-sized room centred on (x, y), files it under the
--- current house, and returns the zone and its house guid so the caller can select
--- it and open this dialog to name it. shape "circle" makes a round room, stored as
--- a square box. Anything else is a rectangle. Replaces the old Mark A/B flow.
-local DEFAULT_HALF = 4 -- yards: a fresh room is 8x8 (or a circle 8 across), centred on the player
-
+-- here": it makes a room centred on (x, y) at the game's own size for its
+-- shape (the smallest square for a plain room), files it under the current
+-- house, and returns the zone and its house guid so the caller can select it
+-- and open this dialog to name it. shape is a CH.SHAPES key or nil for a
+-- rectangle. Replaces the old Mark A/B flow.
 function CH.CreateZoneAt(x, y, mapID, shape)
     if not CH.currentHouseGUID then
         CH.Print(CH.L["RD_HOUSE_NOT_IDENTIFIED"])
@@ -943,18 +1023,28 @@ function CH.CreateZoneAt(x, y, mapID, shape)
     local h = ChamberlainDB.houses[CH.currentHouseGUID]
     h.owner = CH.currentHouseOwner or h.owner
     h.floorCount = h.floorCount or 1
+    local def = CH.SHAPES[shape]
+    local bw, bh = CH.SQUARE_SIZES[1][2], CH.SQUARE_SIZES[1][2]
+    if def then
+        bw, bh = def.w, def.h
+    end
+    -- Named after its shape and how many of that shape the hosue has, so the
+    -- third round room is Round room 3. Stairs don't count.
+    local nth = 1
+    for _, z in ipairs(h.zones) do
+        if z.shape == shape and not CH.IsAnchor(z) then
+            nth = nth + 1
+        end
+    end
     -- New rooms land on the floor the player is viewing (which tracks the active
     -- floor), so dropping one upstairs files it upstairs.
     local z = {
-        name = string.format(CH.L["TB_DEFAULT_ROOM_X"], #h.zones + 1),
+        name = string.format(CH.L["TB_DEFAULT_ROOM_X"], CH.L[CH.ShapeEntry(shape).name], nth),
         mapID = mapID,
-        minX = x - DEFAULT_HALF,
-        maxX = x + DEFAULT_HALF,
-        minY = y - DEFAULT_HALF,
-        maxY = y + DEFAULT_HALF,
-        shape = shape == "circle" and "circle" or nil,
+        shape = def and shape or nil,
         floor = CH.MapFloor(),
     }
+    CH.BoxAbout(z, x, y, bw, bh)
     table.insert(h.zones, z)
     CH.TouchHouse(CH.currentHouseGUID)
     return z, CH.currentHouseGUID

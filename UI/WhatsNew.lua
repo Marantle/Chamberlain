@@ -21,11 +21,25 @@ local _, CH = ...
 -- show under the notes, a frame with a Refresh method.
 CH.WHATS_NEW = {
     {
+        v = "3.21.0",
+        notes = {
+            "The Build toolbox has all six of the game's room shapes now, and a room drops at the "
+                .. "size the game builds it. Quick resize picks a square's or an octagon's size, and "
+                .. "Rotate turns an L or a T.",
+            "Slide to me moves the picked room so its nearest wall is where you stand. Do it at two "
+                .. "walls that face different ways and the room sits where the real one is. A square "
+                .. "can still stretch one wall to you.",
+            "Edit room can copy another room's settings and change a room's shape, for a room "
+                .. "you swapped in the game.",
+            "Group members need 3.21.0 to see your L, T and plus rooms.",
+        },
+    },
+    {
         v = "3.20.0",
         notes = {
             "You can give your house its own banner style now, and your group sees it. Stand in your "
                 .. "house and use Choose style in Settings, or Banner in the Rooms window.",
-            "Always use my style in Settings keeps your own style in every house.",
+            "Keep my style in other houses in Settings shows your own look in every house.",
         },
         toggles = { { "SET_OWN_BANNER", "ownBannerStyle" } },
         onToggle = function()
