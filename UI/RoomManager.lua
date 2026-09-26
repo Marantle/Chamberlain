@@ -606,7 +606,7 @@ end)
 
 -- Disable the share button while a transfer is in flight so it can't be spammed
 -- mid-share. Driven by the send-progress lifecycle in ShareUI (ShowSendProgress
--- on start, HideSendProgress when the queue drains or the send is aborted).
+-- on start, HideSendProgress after the last chunk or when the send is aborted).
 function CH.SetShareBusy(busy)
     shareBusy = busy
     btnShare:SetEnabled(not busy)

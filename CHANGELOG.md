@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.20.1
+- The Sharing to group bar closes when the last part of your house is sent.
+  Before, it stayed open until the addon had also told the group about every
+  map you hold, which took a long time with many maps, and the Share button
+  stayed off for all of it.
+
 ## 3.20.0
 - You can pick a banner style for each of your houses. Choose style in
   Settings sets it for the house you stand in when it's yours, and the Banner

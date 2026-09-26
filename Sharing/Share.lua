@@ -170,13 +170,16 @@ local function FlushQueue()
         end
     end
 
+    -- The bar is done with the last chunk, or when the group went away and took
+    -- the queue with it. Waiting for the other lanes left it up for as long as
+    -- the catalog of every held house took to trickle out at 1/sec.
+    if sendRoomsTotal > 0 and (sendRoomsDone >= sendRoomsTotal or not channel) then
+        CH.HideSendProgress()
+        sendRoomsTotal, sendRoomsDone = 0, 0
+    end
     if #sendQueueHi == 0 and #sendQueue == 0 and #sendQueueGuild == 0 and sendTicker then
         sendTicker:Cancel()
         sendTicker = nil
-        if sendRoomsTotal > 0 then
-            CH.HideSendProgress()
-            sendRoomsTotal, sendRoomsDone = 0, 0
-        end
     end
 end
 
