@@ -9,9 +9,21 @@ local _, CH = ...
 -- so the room editor and Settings draw their previews with the same code as
 -- the real banner.
 
--- Order of the style menu in Settings. The zone text look comes first.
--- Original is the banner from before 3.18.0, boxed Read button and all.
-CH.BANNER_STYLES = { "zone", "original", "classic", "plaque", "minimal", "seal", "ribbon", "corners", "glow", "wings" }
+-- The style picker's list, top down. The zone text look comes first. Original
+-- is the banner from before 3.18.0, boxed Read button and all. Found art is
+-- public domain ornament from OpenClipart, cut up in Media as art-*.tga.
+CH.BANNER_GROUPS = {
+    {
+        key = "BP_DRAWN",
+        hint = "BP_DRAWN_HINT",
+        styles = { "zone", "original", "classic", "plaque", "minimal", "seal", "ribbon", "corners", "glow", "wings" },
+    },
+    {
+        key = "BP_FOUND",
+        hint = "BP_FOUND_HINT",
+        styles = { "nameplate", "cartouche", "parchment", "scroll", "pennant", "deco", "nouveau", "filigree" },
+    },
+}
 
 local FRIZ, LARGE = GameFontNormalLarge:GetFont()
 -- the face of the game's own zone names, with its stand-ins for Asian clients
@@ -116,6 +128,14 @@ function CH.MakeBanner(parent, onRead)
     b.ribL:SetDrawLayer("BACKGROUND", 1)
     b.ribR:SetDrawLayer("BACKGROUND", 1)
     b.ribBody:SetDrawLayer("BACKGROUND", 2)
+    -- found art draws a dark backing under two ends and a middle, with the
+    -- centre ornament on top
+    b.artBack = b:CreateTexture(nil, "BACKGROUND", nil, 0)
+    b.art = {}
+    b.artTiles = {} -- made as a long name needs them
+    for i, part in ipairs({ "left", "right", "mid", "mid2", "centre" }) do
+        b.art[part] = b:CreateTexture(nil, "BACKGROUND", nil, i < 5 and 1 or 2)
+    end
     b.name = b:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     b.name:SetWordWrap(false)
     b.book = MakeReadButton(b, onRead)
@@ -129,7 +149,10 @@ function CH.MakeBanner(parent, onRead)
     b.read = b.book
 
     b.parts = { b.flat, b.backL, b.backR, b.lineAL, b.lineAR, b.lineBL, b.lineBR, b.stripe }
-    for _, t in ipairs({ b.seal, b.ribL, b.ribR, b.ribBody }) do
+    for _, t in ipairs({ b.seal, b.ribL, b.ribR, b.ribBody, b.artBack }) do
+        b.parts[#b.parts + 1] = t
+    end
+    for _, t in pairs(b.art) do
         b.parts[#b.parts + 1] = t
     end
     for _, t in ipairs(b.corners) do
@@ -142,12 +165,12 @@ function CH.MakeBanner(parent, onRead)
 end
 
 -- Name and Read button side by side as one group, its middle dx off b's
--- middle. Hands back the group's width.
-local function PlaceGroup(b, showRead, dx)
+-- middle and dy above it. Hands back the group's width.
+local function PlaceGroup(b, showRead, dx, dy)
     local tw = b.name:GetStringWidth()
     local w = tw + (showRead and b.read:GetWidth() + 8 or 0)
     b.name:ClearAllPoints()
-    b.name:SetPoint("LEFT", b, "CENTER", dx - w * 0.5, 0)
+    b.name:SetPoint("LEFT", b, "CENTER", dx - w * 0.5, dy or 0)
     b.read:ClearAllPoints()
     b.read:SetPoint("LEFT", b.name, "RIGHT", 8, 0)
     return w
@@ -318,6 +341,140 @@ function STYLES.wings(b, lc, read)
     b.lineBR:Show()
 end
 
+-- Found art. h is how tall it draws, l the width of an end (r of the right
+-- one when they differ) and c of the centre ornament, all in heights
+-- measured off the art. A plate puts the name on its middle, which
+-- stretches, and back is the dark backing's overhang into the left end, its
+-- inset from the top and its overhang into the right end, in pixels. The
+-- backing fills the art's own inner frame. A plate with tiles repeats those
+-- sections of its middle instead (mid1, mid2 and so on, widths in heights),
+-- cut so their torn edges meet in any order. Wings put the name in a gap
+-- between the two ends. Art with an ink keeps its own colours and the name
+-- takes the ink. The rest is white art tinted to the room.
+local INK = { 0.23, 0.16, 0.07 }
+local ART = {
+    nameplate = { h = 64, l = 0.8, c = 0.48, pad = 14, back = { 0, 10, 0 } },
+    cartouche = { h = 70, l = 0.51, r = 0.55, c = 0.38, pad = 12, back = { 24, 15, 27 } },
+    parchment = {
+        h = 72,
+        l = 0.37,
+        r = 0.44,
+        tiles = { 0.148, 0.266, 0.252 },
+        pad = 12,
+        ink = INK,
+        shadow = 0,
+    },
+    scroll = { h = 60, l = 0.28, pad = 14, ink = INK, shadow = 0 },
+    pennant = { h = 48, l = 1.51, pad = 10, dy = -4, ink = { 1, 0.95, 0.86 } },
+    deco = { h = 30, l = 3.62, gap = 12 },
+    nouveau = { h = 34, l = 2.24, gap = 10 },
+    filigree = { h = 34, l = 3.49, gap = 8 },
+}
+local ART_PATH = "Interface\\AddOns\\Chamberlain\\Media\\art-"
+local UNTINTED, BLACK = { 1, 1, 1 }, { 0, 0, 0 }
+
+local function Piece(t, file, c, w, h)
+    t:SetTexture(ART_PATH .. file .. ".tga")
+    t:SetVertexColor(c[1], c[2], c[3])
+    t:SetSize(w, h)
+    t:ClearAllPoints()
+    t:Show()
+end
+
+-- Repeats the sections from the left end on, as many as come closest to w,
+-- then squeezes or stretches them a little so they fill it exactly. Each runs
+-- a pixel under the one before so no seam shows.
+local function Tiles(b, name, c, w, h, tiles)
+    local n, sum = 0, 0
+    local last
+    repeat
+        n = n + 1
+        last = tiles[(n - 1) % #tiles + 1] * h
+        sum = sum + last
+    until sum >= w
+    if n > 1 and w - (sum - last) < sum - w then
+        n, sum = n - 1, sum - last
+    end
+    local k = w / sum
+    local prev = b.art.left
+    for i = 1, n do
+        local t = b.artTiles[i]
+        if not t then
+            t = b:CreateTexture(nil, "BACKGROUND", nil, 1)
+            b.artTiles[i] = t
+            b.parts[#b.parts + 1] = t
+        end
+        local j = (i - 1) % #tiles + 1
+        Piece(t, name .. "-mid" .. j, c, tiles[j] * h * k + 1, h)
+        t:SetPoint("LEFT", prev, "RIGHT", -1, 0)
+        prev = t
+    end
+end
+
+local function DrawArt(b, lc, read, name, a)
+    Font(b, FRIZ, a.gap and 21 or 19, "", a.shadow or 1)
+    local gw = PlaceGroup(b, read, 0, a.dy)
+    local c = a.ink and UNTINTED or lc
+    local h, ew = a.h, a.l * a.h
+    local rw = (a.r or a.l) * h
+    local p = b.art
+    Piece(p.left, name .. "-left", c, ew, h)
+    Piece(p.right, name .. "-right", c, rw, h)
+    if a.gap then
+        local half = gw * 0.5 + a.gap
+        b:SetSize(2 * half + ew + rw, h)
+        p.left:SetPoint("RIGHT", b, "CENTER", -half, 0)
+        p.right:SetPoint("LEFT", b, "CENTER", half, 0)
+        return a.ink
+    end
+    local cw = (a.c or 0) * h
+    local w = math.max(gw + 2 * a.pad, cw + 20)
+    b:SetSize(w + ew + rw, h)
+    p.left:SetPoint("RIGHT", b, "CENTER", -w * 0.5, 0)
+    p.right:SetPoint("LEFT", b, "CENTER", w * 0.5, 0)
+    if a.tiles then
+        Tiles(b, name, c, w, h, a.tiles)
+        return a.ink
+    end
+    -- the middle runs a pixel under each end so no seam shows
+    local mw = (w - cw) * (a.c and 0.5 or 1) + 2
+    Piece(p.mid, name .. "-mid", c, mw, h)
+    p.mid:SetPoint("LEFT", p.left, "RIGHT", -1, 0)
+    if a.c then
+        Piece(p.mid2, name .. "-mid", c, mw, h)
+        p.mid2:SetPoint("RIGHT", p.right, "LEFT", 1, 0)
+        Piece(p.centre, name .. "-centre", c, cw, h)
+        p.centre:SetPoint("CENTER")
+    end
+    if a.back then
+        local back, over = b.artBack, a.back
+        back:ClearAllPoints()
+        back:SetPoint("TOPLEFT", p.left, "TOPRIGHT", -over[1], -over[2])
+        back:SetPoint("BOTTOMRIGHT", p.right, "BOTTOMLEFT", over[3], over[2])
+        Fade(back, BLACK, 0.45, 0.45)
+        back:Show()
+    end
+    return a.ink
+end
+
+for name, a in pairs(ART) do
+    STYLES[name] = function(b, lc, read)
+        return DrawArt(b, lc, read, name, a)
+    end
+end
+
+function CH.BannerStyleName(style)
+    return CH.L["SET_BANNER_" .. style:upper()]
+end
+
+-- The line under a style's name in the picker.
+function CH.BannerStyleNote(style)
+    if style == "zone" or style == "original" or style == "classic" then
+        return "BP_NOTE_" .. style:upper()
+    end
+    return ART[style] and ART[style].ink and "BP_NOTE_OWN" or "BP_NOTE_TINT"
+end
+
 -- Draw name in colour c (nil for the default gold) in style, with or without
 -- the Read button.
 function CH.PaintBanner(b, name, c, read, style)
@@ -332,9 +489,11 @@ function CH.PaintBanner(b, name, c, read, style)
     b.read = old and b.oldRead or b.book
     b.book:SetShown(read and not old)
     b.oldRead:SetShown(read and old)
-    b.book:Tint(lc)
     local draw = STYLES[style] or STYLES.classic
-    draw(b, lc, read)
+    -- art with its own colours hands back the ink for the name and the book
+    local ink = draw(b, lc, read)
+    b.book:Tint(ink or lc)
+    tc = ink or tc
     b.name:SetTextColor(tc[1], tc[2], tc[3], 1)
 end
 
@@ -368,9 +527,21 @@ function CH.RefreshBanner()
     end
 end
 
--- The style menu with a sample banner under it, h tall, the one Settings and
--- the 3.18.0 note in What's New both show. p:Refresh() syncs it to the
--- setting.
+-- Every sample from CH.MakeBannerStylePicker, repainted when the style changes.
+local samples = {}
+
+-- The one way the style changes, from the picker window.
+function CH.SetBannerStyle(style)
+    ChamberlainDB.settings.bannerStyle = style
+    for _, p in ipairs(samples) do
+        p:Refresh()
+    end
+    CH.RefreshBanner()
+end
+
+-- A sample banner in the chosen style with a button that opens the picker, h
+-- tall, the one Settings and the 3.19.0 note in What's New both show.
+-- p:Refresh() syncs it to the setting.
 function CH.MakeBannerStylePicker(parent, h)
     local p = CreateFrame("Frame", nil, parent)
     p:SetHeight(h)
@@ -378,33 +549,16 @@ function CH.MakeBannerStylePicker(parent, h)
     sample:SetPoint("CENTER", 0, -12)
     sample:SetScale(0.85)
 
-    local function Label(style)
-        return CH.L["SET_BANNER_" .. style:upper()]
-    end
-    local function Paint()
+    local choose = CH.MakeButton(p, "SET_BANNER_CHOOSE", 140, 22)
+    choose:SetPoint("TOPRIGHT")
+    choose:SetScript("OnClick", function()
+        CH.OpenBannerPicker()
+    end)
+
+    function p.Refresh()
         CH.PaintBanner(sample, CH.L["SET_BANNER_SAMPLE"], nil, true, ChamberlainDB.settings.bannerStyle)
     end
-
-    p.menu = CH.MakeMenuButton(p, 140, "SET_BANNER_PLAQUE", function()
-        return Label(ChamberlainDB.settings.bannerStyle)
-    end, function(root, btn)
-        for _, style in ipairs(CH.BANNER_STYLES) do
-            root:CreateRadio(Label(style), function()
-                return ChamberlainDB.settings.bannerStyle == style
-            end, function()
-                ChamberlainDB.settings.bannerStyle = style
-                btn:Refresh()
-                Paint()
-                CH.RefreshBanner()
-            end)
-        end
-    end)
-    p.menu:SetPoint("TOPRIGHT")
-
-    function p:Refresh()
-        self.menu:Refresh()
-        Paint()
-    end
+    samples[#samples + 1] = p
     return p
 end
 

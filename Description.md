@@ -5,9 +5,11 @@ room, a gold banner shows its name. The banner fades out when you leave. The
 addon takes its name from the manor officer who announced guests as they
 entered each room.
 
-The banner has ten looks to pick from in Settings, one of them like the
-game's own zone names. Only you see the look you pick, so a visitor sees the
-room in their own.
+The banner has eighteen looks to pick from in Settings, one of them like the
+game's own zone names. Eight are old public domain ornaments cut to fit the
+name, a nameplate and a rolled scroll among them. Choose style opens a list
+that shows every look at once. Only you see the look you pick, so a visitor
+sees the room in their own.
 
 To make a room, open the Build toolbox and click Square room or Round room. The
 room drops where you stand and the name box opens. To fit the room to the

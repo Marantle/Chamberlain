@@ -21,17 +21,25 @@ local _, CH = ...
 -- show under the notes, a frame with a Refresh method.
 CH.WHATS_NEW = {
     {
+        v = "3.19.0",
+        notes = {
+            "Eight new banner styles made from old public domain ornaments, a nameplate "
+                .. "and a rolled scroll among them. They grow with the room name.",
+            "Choose style opens a list of every style drawn as a small banner. Click one to use it.",
+        },
+        -- the same sample and button as in Settings
+        extra = function(parent)
+            return CH.MakeBannerStylePicker(parent, 120)
+        end,
+    },
+    {
         v = "3.18.0",
         notes = {
             "The house map is easier to read. Small rooms sit on top of the big ones around "
                 .. "them, and names are pale so they show on any color.",
             "Stairs and sound spots are small icons now. Turn on Show stairs on the map to see their boxes under the icons.",
-            "New banner styles. Pick one below, or later in Settings.",
+            "New banner styles. Pick one on the Rooms page of Settings.",
         },
-        -- the same menu and sample as in Settings
-        extra = function(parent)
-            return CH.MakeBannerStylePicker(parent, 120)
-        end,
     },
     {
         v = "3.17.0",

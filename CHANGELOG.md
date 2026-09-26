@@ -1,5 +1,19 @@
 # Changelog
 
+## 3.19.0
+- Eight new banner styles made from old public domain ornaments, named
+  Nameplate, Cartouche, Parchment, Scroll, Pennant, Deco, Nouveau and Filigree
+  in the style list. Each one is cut into two ends and a middle that grows
+  with the name, and on Parchment the torn middle repeats instead of
+  stretching. Nameplate, Cartouche and the three wing styles take the room's
+  color like the others. Parchment, Scroll and Pennant keep their own colors
+  and write the name in a color that reads on them.
+- The style menu is now a Choose style button that opens a list of every
+  style, each drawn as a small banner. The one you have picked shows big at
+  the top. Short name and Long name show how a style stretches. A click on
+  a row takes it right away. The same button sits in this release's What's New
+  note, and the 3.18.0 note lost its old style menu.
+
 ## 3.18.0
 - The house map draws its rooms more clearly. A small room now always sits on
   top of the big room around it, whichever was made first, so a closet no
