@@ -8,8 +8,10 @@ entered each room.
 The banner has eighteen looks to pick from in Settings, one of them like the
 game's own zone names. Eight are old public domain ornaments cut to fit the
 name, a nameplate and a rolled scroll among them. Choose style opens a list
-that shows every look at once. Only you see the look you pick, so a visitor
-sees the room in their own.
+that shows every look at once. Pick one while you stand in your own house and
+it becomes that house's look, so visitors see your rooms that way unless they
+keep their own in Settings. Banner in the Rooms window does the same for any
+of your houses.
 
 To make a room, open the Build toolbox and click Square room or Round room. The
 room drops where you stand and the name box opens. To fit the room to the

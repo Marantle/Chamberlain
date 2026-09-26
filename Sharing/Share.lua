@@ -235,11 +235,12 @@ end
 -- kind is "ambience" (the value an index into CH.AMBIENCE), "music", "sfx" or
 -- "arrival" (a file id each, sfx for rooms only and new in 3.12.0, arrival for
 -- the house only and new in 3.13.0), 0 on the wire for none. A client that
--- doesn't know a type skips it and pulls the map.
-local PATCH_TYPE = { ambience = "AMB", music = "MUS", sfx = "SFX", arrival = "ARR" }
-local PATCH_KIND = { AMB = "ambience", MUS = "music", SFX = "sfx", ARR = "arrival" }
+-- doesn't know a type skips it and pulls the map. banner is the one that isn't
+-- a sound, the house's style as its CH.BANNER_IDS number (3.20.0).
+local PATCH_TYPE = { ambience = "AMB", music = "MUS", sfx = "SFX", arrival = "ARR", banner = "BAN" }
+local PATCH_KIND = { AMB = "ambience", MUS = "music", SFX = "sfx", ARR = "arrival", BAN = "banner" }
 -- where each kind may land: a Room, a Floor, the House
-local PATCH_TARGETS = { ambience = "RFH", music = "RFH", sfx = "R", arrival = "H" }
+local PATCH_TARGETS = { ambience = "RFH", music = "RFH", sfx = "R", arrival = "H", banner = "H" }
 local lastSentNotice = 0
 
 -- quiet skips the chat line, for the later patches of a save that sends a few.
@@ -590,6 +591,7 @@ function CH.ApplyLayout(houseGUID, data, senderName)
         existing.ambience = data.ambience
         existing.music = data.music
         existing.arrival = data.arrival
+        existing.bannerStyle = data.bannerStyle
     else
         ChamberlainDB.houses[houseGUID] = {
             owner = data.owner,
@@ -599,6 +601,7 @@ function CH.ApplyLayout(houseGUID, data, senderName)
             ambience = data.ambience,
             music = data.music,
             arrival = data.arrival,
+            bannerStyle = data.bannerStyle,
             zones = data.zones,
         }
     end
@@ -616,6 +619,7 @@ function CH.ApplyLayout(houseGUID, data, senderName)
     if CH.RefreshHUDMode then
         CH.RefreshHUDMode()
     end
+    CH.RefreshBanner()
 end
 
 function CH.ReceiveLayout(houseGUID, data, senderName)
@@ -849,6 +853,9 @@ local function DeserializeLayout(b64)
         ambience = ReadHouseSound("ambience", payload.ha, payload.fa),
         music = ReadHouseSound("music", payload.hm, payload.fm),
         arrival = ReadHouseSound("arrival", payload.ar),
+        -- a number past the end is a style from a newer version, and the
+        -- visitor's own shows instead
+        bannerStyle = CH.BANNER_IDS[payload.bs],
         zones = zones,
     }
 end
@@ -865,6 +872,7 @@ function CH.ExportLayout(houseGUID)
         oguid = h.ownerGUID,
         ts = h.updatedAt or 0,
         fc = h.floorCount or 1,
+        bs = CH.BANNER_ID[h.bannerStyle], -- the owner's banner style (3.20.0)
         zones = {},
     }
     -- House and floor sounds: ha/fa ambience (3.9.0), hm/fm music (3.10.0), ar
@@ -1196,7 +1204,7 @@ function CH.HandleMessage(prefix, payload, channel, fullSender)
         -- its old stamp and still pulls the map for the rest. A room's sound
         -- can't join them: a stale copy's third room may not be ours. The
         -- arrival sound has come this way since 3.14.0, the other two since
-        -- 3.15.0.
+        -- 3.15.0 and the banner style since 3.20.0.
         local current = h.updatedAt == baseTs
         local anywhere = where == "H" or where == "F"
         if not current and not (anywhere and newTs > (h.updatedAt or 0)) then
@@ -1239,6 +1247,9 @@ function CH.HandleMessage(prefix, payload, channel, fullSender)
             stored = zone[kind]
             -- a secret room's name is not for the visitor's chat either
             place = zone.secret and CH.L["SHARE_SOUND_A_ROOM"] or zone.name
+        elseif kind == "banner" then
+            h.bannerStyle = CH.BANNER_IDS[value]
+            CH.RefreshBanner()
         elseif where == "H" or n then
             stored = KNOWN[kind](value) and value or nil
             CH.StoreHouseSound(h, kind, n, stored)
@@ -1250,7 +1261,8 @@ function CH.HandleMessage(prefix, payload, channel, fullSender)
             h.updatedAt = newTs
         end
         Debug(msgType, "applied:", guid, parts[5], value, "from", sender)
-        if guid == CH.currentHouseGUID then
+        -- no chat line for a banner, the banner itself shows the change
+        if guid == CH.currentHouseGUID and kind ~= "banner" then
             -- the mute button shows only in a house that has a sound somewhere
             CH.RefreshHUDMode()
             NoteSoundChange(kind, parts[5], sender, place, stored)

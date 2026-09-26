@@ -21,6 +21,18 @@ local _, CH = ...
 -- show under the notes, a frame with a Refresh method.
 CH.WHATS_NEW = {
     {
+        v = "3.20.0",
+        notes = {
+            "You can give your house its own banner style now, and your group sees it. Stand in your "
+                .. "house and use Choose style in Settings, or Banner in the Rooms window.",
+            "Always use my style in Settings keeps your own style in every house.",
+        },
+        toggles = { { "SET_OWN_BANNER", "ownBannerStyle" } },
+        onToggle = function()
+            CH.RefreshBanner()
+        end,
+    },
+    {
         v = "3.19.0",
         notes = {
             "Eight new banner styles made from old public domain ornaments, a nameplate "

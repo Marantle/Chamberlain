@@ -209,6 +209,7 @@ function CH.RepairHouseKey(oldKey)
         h.ambience = h.ambience or old.ambience
         h.music = h.music or old.music
         h.arrival = h.arrival or old.arrival
+        h.bannerStyle = h.bannerStyle or old.bannerStyle
     end
 
     CH.StampHouseMap(h)

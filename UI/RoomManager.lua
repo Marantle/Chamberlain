@@ -415,8 +415,9 @@ local btnMap = CH.MakeButton(detail, "RM_MAP", 72, 22)
 local btnExport = CH.MakeButton(detail, "RM_EXPORT", 72, 22)
 local btnShare = CH.MakeButton(detail, "RM_SHARE", 72, 22)
 local btnRequest = CH.MakeButton(detail, "RM_REQUEST", 72, 22)
+local btnBanner = CH.MakeButton(detail, "RM_BANNER", 72, 22)
 local btnRemove = CH.MakeButton(detail, "RM_REMOVE", 72, 22)
-local actionButtons = { btnMap, btnExport, btnShare, btnRequest, btnRemove }
+local actionButtons = { btnMap, btnExport, btnShare, btnBanner, btnRequest, btnRemove }
 
 local function LayoutActions()
     local prev
@@ -552,6 +553,7 @@ local function PopulateDetail(item, p)
     btnExport:SetShown(h ~= nil)
     btnShare:SetShown(item and item.own or false)
     btnShare:SetEnabled(not shareBusy)
+    btnBanner:SetShown(h ~= nil and item.own)
     btnRequest:SetShown(p ~= nil)
     btnRequest:SetEnabled(not (item and CH.RequestCooling(item.guid)))
     btnRemove:SetShown(h ~= nil and not item.own)
@@ -586,6 +588,10 @@ end)
 
 btnShare:SetScript("OnClick", function()
     CH.ShareAll(selected)
+end)
+
+btnBanner:SetScript("OnClick", function()
+    CH.OpenBannerPicker(selected)
 end)
 
 btnRequest:SetScript("OnClick", function()

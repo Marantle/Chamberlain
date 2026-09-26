@@ -1,6 +1,6 @@
 local ADDON, CH = ...
 
-CH.VERSION = "3.19.0"
+CH.VERSION = "3.20.0"
 
 -- How often the zone ticker samples your position, in seconds. Drives stair
 -- detection and the per-room time stats both, so they stay in step if it changes.
@@ -209,6 +209,10 @@ events:SetScript("OnEvent", function(_, event, arg1)
         -- for anyone who wants the old look back.
         if ChamberlainDB.settings.bannerStyle == nil then
             ChamberlainDB.settings.bannerStyle = "plaque"
+        end
+        -- Your style in every house, over the one its owner picked. (3.20.0)
+        if ChamberlainDB.settings.ownBannerStyle == nil then
+            ChamberlainDB.settings.ownBannerStyle = false
         end
         -- The launcher as one slim row instead of the card. (3.17.0)
         if ChamberlainDB.settings.hudStrip == nil then

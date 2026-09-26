@@ -1,5 +1,17 @@
 # Changelog
 
+## 3.20.0
+- You can pick a banner style for each of your houses. Choose style in
+  Settings sets it for the house you stand in when it's yours, and the Banner
+  button in the Rooms window sets it for the house you have selected. Your
+  group sees a new pick right away, even on an older copy of your map, and an
+  exported string carries it too.
+  Visitor's own at the top of the list leaves it to each visitor, like before.
+  Outside your houses, Choose style still sets your own style.
+- A house's style wins over the one you picked in Settings. Always use my
+  style under Banner style keeps yours in every house.
+- A style from a newer version of Chamberlain shows as your own style.
+
 ## 3.19.0
 - Eight new banner styles made from old public domain ornaments, named
   Nameplate, Cartouche, Parchment, Scroll, Pennant, Deco, Nouveau and Filigree

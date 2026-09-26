@@ -221,6 +221,7 @@ pageRooms.y = pageRooms.y + 80
 refreshers[#refreshers + 1] = function()
     stylePicker:Refresh()
 end
+SwitchRow(pageRooms, "SET_OWN_BANNER", "SET_HINT_OWN_BANNER", "ownBannerStyle", CH.RefreshBanner)
 
 -- ── Sound ────────────────────────────────────────────────────────────
 local pageSound = Page("SET_PAGE_SOUND")

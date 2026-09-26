@@ -4,7 +4,8 @@ local _, CH = ...
 -- Room banner  (visible while inside a named zone)
 -- ─────────────────────────────────────────────────────────────────────
 -- The name of the room you walk into, in the room's colour. How it's drawn is
--- a personal choice in Settings (bannerStyle) that is never shared.
+-- your choice in Settings (bannerStyle), unless the house's owner picked a
+-- style for it (h.bannerStyle, 3.20.0) and you haven't turned that off.
 -- CH.MakeBanner builds the pieces once and a style shows the ones it needs,
 -- so the room editor and Settings draw their previews with the same code as
 -- the real banner.
@@ -24,6 +25,34 @@ CH.BANNER_GROUPS = {
         styles = { "nameplate", "cartouche", "parchment", "scroll", "pennant", "deco", "nouveau", "filigree" },
     },
 }
+
+-- A house's style goes over the wire as its number here (bs in the export).
+-- Wire identity like CH.HEADS: only append, never reorder or remove, and a
+-- style that goes away keeps it slot. The picker's order above is free.
+CH.BANNER_IDS = {
+    "zone",
+    "original",
+    "classic",
+    "plaque",
+    "minimal",
+    "seal",
+    "ribbon",
+    "corners",
+    "glow",
+    "wings",
+    "nameplate",
+    "cartouche",
+    "parchment",
+    "scroll",
+    "pennant",
+    "deco",
+    "nouveau",
+    "filigree",
+}
+CH.BANNER_ID = {}
+for id, style in ipairs(CH.BANNER_IDS) do
+    CH.BANNER_ID[style] = id
+end
 
 local FRIZ, LARGE = GameFontNormalLarge:GetFont()
 -- the face of the game's own zone names, with its stand-ins for Asian clients
@@ -517,7 +546,15 @@ function CH.SetBannerRoom(zone)
         return
     end
     local read = zone.rpText ~= nil and zone.rpText ~= "" and ChamberlainDB.settings.showRoomText
-    CH.PaintBanner(banner, zone.name, zone.color, read, ChamberlainDB.settings.bannerStyle)
+    CH.PaintBanner(banner, zone.name, zone.color, read, CH.HouseBannerStyle(CH.currentHouseGUID))
+end
+
+-- The owner's pick for the house wins over yours, unless you keep your own
+-- everywhere.
+function CH.HouseBannerStyle(guid)
+    local s = ChamberlainDB.settings
+    local h = ChamberlainDB.houses[guid]
+    return not s.ownBannerStyle and h and h.bannerStyle or s.bannerStyle
 end
 
 -- Settings calls this when the style changes, so a banner that's up redraws.
@@ -530,18 +567,43 @@ end
 -- Every sample from CH.MakeBannerStylePicker, repainted when the style changes.
 local samples = {}
 
--- The one way the style changes, from the picker window.
-function CH.SetBannerStyle(style)
-    ChamberlainDB.settings.bannerStyle = style
+local function StyleChanged()
     for _, p in ipairs(samples) do
         p:Refresh()
     end
     CH.RefreshBanner()
 end
 
+-- Your own style, from the picker window.
+function CH.SetBannerStyle(style)
+    ChamberlainDB.settings.bannerStyle = style
+    StyleChanged()
+end
+
+-- The owner picking the house's style, nil to leave it to each visitor. The
+-- group gets it as a patch like the arrival sound, see CH.SendSoundPatch.
+function CH.SetHouseBanner(guid, style)
+    local h = ChamberlainDB.houses[guid]
+    if h.bannerStyle == style then
+        return
+    end
+    local baseTs = h.updatedAt
+    h.bannerStyle = style
+    CH.TouchHouse(guid)
+    StyleChanged()
+    CH.SendSoundPatch(guid, "banner", baseTs, "H", CH.BANNER_ID[style], true)
+end
+
+-- Standing in a house of yours, Settings and What's New pick that house's
+-- style. Anywhere else they pick your own.
+local function OwnHouseHere()
+    local guid = CH.currentHouseGUID
+    return CH.isOwnHouse and ChamberlainDB.houses[guid] and guid or nil
+end
+
 -- A sample banner in the chosen style with a button that opens the picker, h
--- tall, the one Settings and the 3.19.0 note in What's New both show.
--- p:Refresh() syncs it to the setting.
+-- tall, the one Settings and What's New both show. p:Refresh() syncs it to
+-- the house's style or yours, see OwnHouseHere.
 function CH.MakeBannerStylePicker(parent, h)
     local p = CreateFrame("Frame", nil, parent)
     p:SetHeight(h)
@@ -552,11 +614,13 @@ function CH.MakeBannerStylePicker(parent, h)
     local choose = CH.MakeButton(p, "SET_BANNER_CHOOSE", 140, 22)
     choose:SetPoint("TOPRIGHT")
     choose:SetScript("OnClick", function()
-        CH.OpenBannerPicker()
+        CH.OpenBannerPicker(OwnHouseHere())
     end)
 
     function p.Refresh()
-        CH.PaintBanner(sample, CH.L["SET_BANNER_SAMPLE"], nil, true, ChamberlainDB.settings.bannerStyle)
+        local guid = OwnHouseHere()
+        local style = guid and ChamberlainDB.houses[guid].bannerStyle or ChamberlainDB.settings.bannerStyle
+        CH.PaintBanner(sample, CH.L["SET_BANNER_SAMPLE"], nil, true, style)
     end
     samples[#samples + 1] = p
     return p

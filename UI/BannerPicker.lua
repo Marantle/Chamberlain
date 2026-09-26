@@ -4,8 +4,9 @@ local _, CH = ...
 -- Banner style picker
 -- ─────────────────────────────────────────────────────────────────────
 -- Every banner style in one list, each drawn as a small banner, with the
--- picked one big at the top. Opened by the Choose style button in Settings
--- and in What's New.
+-- picked one big at the top. Banner in the Rooms window opens it for one of
+-- your houses. Choose style in Settings and What's New opens it for the house
+-- you stand in when it's yours, and for your own style anywhere else.
 
 local W, H = 440, 640
 local LIST_W = W - 34 -- the window minus side margins and the scrollbar
@@ -14,9 +15,26 @@ local ROW_H, SHOW_W = 64, 300
 local win, hero, nameFS, noteFS
 local rows = {}
 local long = false -- which sample name the banners show
+local houseGUID -- the house being picked for, nil while picking your own style
 
 local function SampleName()
     return CH.L[long and "BP_SAMPLE_LONG" or "SET_BANNER_SAMPLE"]
+end
+
+local function Picked()
+    if houseGUID then
+        return ChamberlainDB.houses[houseGUID].bannerStyle
+    end
+    return ChamberlainDB.settings.bannerStyle
+end
+
+-- Visitor's own (nil) is drawn in your style, since that's what you'd see.
+local function Drawn(style)
+    return style or ChamberlainDB.settings.bannerStyle
+end
+
+local function Label(style)
+    return style and CH.BannerStyleName(style) or CH.L["BP_EACH_OWN"]
 end
 
 -- A grey backdrop behind a banner, a stand-in for the world it shows over.
@@ -55,20 +73,20 @@ local function StyleRow(parent, style, y)
 
     row.label = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     row.label:SetPoint("TOPLEFT", show, "TOPRIGHT", 10, -12)
-    row.label:SetText(CH.BannerStyleName(style))
+    row.label:SetText(Label(style))
     row.tick = CH.MakeIcon(row, "icon-check", 14, "OVERLAY")
     row.tick:SetPoint("TOPLEFT", row.label, "BOTTOMLEFT", 0, -6)
     row.tick:SetVertexColor(CH.RGBA(CH.COLORS.gold, 1))
 
     function row:Mark(hot)
-        local on = ChamberlainDB.settings.bannerStyle == style
+        local on = Picked() == style
         self:SetBackdropColor(0.36, 0.29, 0.07, on and 0.35 or 0)
         self:SetBackdropBorderColor(CH.RGBA(CH.COLORS.frame, on and 1 or hot and 0.45 or 0))
         self.label:SetTextColor(CH.RGBA(on and CH.COLORS.gold or CH.COLORS.muted, 1))
         self.tick:SetShown(on)
     end
     function row:Paint()
-        CH.PaintBanner(self.banner, SampleName(), nil, false, style)
+        CH.PaintBanner(self.banner, SampleName(), nil, false, Drawn(style))
     end
     row:SetScript("OnEnter", function(self)
         self:Mark(true)
@@ -77,11 +95,15 @@ local function StyleRow(parent, style, y)
         self:Mark()
     end)
     row:SetScript("OnClick", function()
-        CH.SetBannerStyle(style)
+        if houseGUID then
+            CH.SetHouseBanner(houseGUID, style)
+        else
+            CH.SetBannerStyle(style)
+        end
         win.Refresh()
     end)
     rows[#rows + 1] = row
-    return y - ROW_H - 4
+    return y - ROW_H - 4, row
 end
 
 local sampleButtons = {}
@@ -140,25 +162,36 @@ local function Build()
     scroll:SetPoint("TOPLEFT", rule, "BOTTOMLEFT", 0, -8)
     scroll:SetPoint("BOTTOMRIGHT", -22, 12)
     list:SetWidth(LIST_W)
+    -- a house's list starts with each visitor's own, which pushes the rest down
+    local _, ownRow = StyleRow(list, nil, -4)
+    local body = CreateFrame("Frame", nil, list)
+    body:SetSize(LIST_W, 1)
     local y = -4
     for _, group in ipairs(CH.BANNER_GROUPS) do
-        y = GroupHeader(list, group, y)
+        y = GroupHeader(body, group, y)
         for _, style in ipairs(group.styles) do
-            y = StyleRow(list, style, y)
+            y = StyleRow(body, style, y)
         end
         y = y - 10
     end
-    list:SetHeight(-y)
+
+    function win.SetMode()
+        local top = houseGUID and ROW_H + 4 or 0
+        ownRow:SetShown(houseGUID ~= nil)
+        body:SetPoint("TOPLEFT", 0, -top)
+        list:SetHeight(top - y)
+        CH.SetWindowTitle(win, houseGUID and "BP_TITLE_HOUSE" or "BP_TITLE", true)
+    end
 
     -- after a pick, only the marks and the big banner change
     function win.Refresh()
-        local style = ChamberlainDB.settings.bannerStyle
+        local style = Picked()
         for _, row in ipairs(rows) do
             row:Mark(row:IsMouseOver())
         end
-        CH.PaintBanner(hero, SampleName(), nil, true, style)
-        nameFS:SetText(CH.BannerStyleName(style))
-        noteFS:SetText(CH.L[CH.BannerStyleNote(style)])
+        CH.PaintBanner(hero, SampleName(), nil, true, Drawn(style))
+        nameFS:SetText(Label(style))
+        noteFS:SetText(CH.L[style and CH.BannerStyleNote(style) or "BP_NOTE_EACH_OWN"])
     end
     -- the sample name changed, so every row repaints too
     function win.Repaint()
@@ -172,10 +205,13 @@ local function Build()
     end
 end
 
-function CH.OpenBannerPicker()
+-- guid picks the style of that house of yours, nil your own.
+function CH.OpenBannerPicker(guid)
+    houseGUID = guid
     if not win then
         Build()
     end
+    win.SetMode()
     win:Show()
     win:Raise()
     win.Repaint()
