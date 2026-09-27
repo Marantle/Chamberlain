@@ -359,6 +359,50 @@ local stairsBtn = CH.MakeButton(floorRow, "RD_NOT_STAIRS", 100, 22)
 stairsBtn:SetPoint("LEFT", stairsLabel, "RIGHT", 8, 0)
 stairsBtn:SetPoint("RIGHT", floorRow, "RIGHT", 0, 0)
 
+-- Floor check (Housing/FloorCheck.lua): the game room this room is linked
+-- to. Shown with the floor row since one floor has nothing to check.
+local pendingGameRoom = nil
+local linkRow = CreateFrame("Frame", nil, paneRoom)
+linkRow:SetPoint("TOPLEFT", floorRow, "BOTTOMLEFT", 0, -8)
+linkRow:SetPoint("TOPRIGHT", floorRow, "BOTTOMRIGHT", 0, -8)
+linkRow:SetHeight(22)
+Label(
+    linkRow,
+    "RD_FLOOR_CHECK",
+    -5,
+    "RD_FLOOR_CHECK_TT_TITLE",
+    "RD_FLOOR_CHECK_TT1",
+    "RD_FLOOR_CHECK_TT2",
+    "RD_FLOOR_CHECK_TT3"
+)
+local linkBtn = CH.MakeButton(linkRow, "RD_LINK_ROOM", PANE_W - LABEL_W, 22)
+linkBtn:SetPoint("TOPLEFT", LABEL_W, 0)
+
+local function SetPendingGameRoom(room)
+    pendingGameRoom = room
+    linkBtn:SetText(CH.L[room and "RD_LINKED" or "RD_LINK_ROOM"])
+end
+
+-- The room is read on the click, so walking about with the dialog open is fine.
+linkBtn:SetScript("OnClick", function()
+    if pendingGameRoom then
+        SetPendingGameRoom(nil)
+        return
+    end
+    local room, stairwell
+    if DialogGUID() == CH.currentHouseGUID then
+        room, stairwell = CH.GameRoomHere()
+    end
+    if not room then
+        CH.Print(CH.L["RD_LINK_NOT_HERE"])
+        return
+    end
+    SetPendingGameRoom(room)
+    if stairwell then
+        CH.Print(CH.L["RD_LINK_STAIRWELL"])
+    end
+end)
+
 local roomSep = CH.MakeRule(paneRoom)
 
 -- "Banner": unticked, walking in shows nothing and the room stops counting as
@@ -859,10 +903,11 @@ local function RefreshFloorRow()
     local h = DialogHouse()
     local multi = h and (h.floorCount or 1) > 1
     floorRow:SetShown(multi)
+    linkRow:SetShown(multi)
     if multi then
         RefreshFloorButtons()
     end
-    local below = multi and floorRow or shapeRow
+    local below = multi and linkRow or shapeRow
     roomSep:ClearAllPoints()
     roomSep:SetPoint("TOPLEFT", below, "BOTTOMLEFT", 0, -12)
     roomSep:SetWidth(PANE_W)
@@ -938,6 +983,7 @@ function CH.OpenRenameDialog(zone, houseGUID)
     pendingSetFloor = zone.setFloor
     pendingFloorDelta = zone.floorDelta
     pendingShape = zone.shape
+    SetPendingGameRoom(zone.gameRoom)
     dialog.title:SetText(CH.L["RD_TITLE_EDIT_ROOM"])
     editBox:SetText(zone.name)
     RefreshSwatches()
@@ -1031,6 +1077,7 @@ local function ConfirmZone()
             renameTarget.floor = pendingFloor or 1
             renameTarget.setFloor = pendingSetFloor
             renameTarget.floorDelta = pendingFloorDelta
+            renameTarget.gameRoom = pendingGameRoom
             if pendingShape ~= renameTarget.shape then
                 ChangeShape(renameTarget, pendingShape)
             end

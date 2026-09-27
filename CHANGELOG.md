@@ -1,5 +1,21 @@
 # Changelog
 
+## 3.28.0
+- Floor check. Edit a room in a house with more than one floor, stand in the
+  game room it sits in and click Link to the room I'm in. When you walk into
+  that game room, Chamberlain puts you on the room's floor, so a missed
+  stair or a jump off a balcony fixes itself.
+- It only acts as you walk in. Stairs inside the room and Move to floor still
+  work as before, and it waits while the house map shows another floor.
+- A stairwell can be linked on its bottom or top floor. The floors between
+  can share one game room, so chat warns you when you link in a stairwell.
+- Move a linked game room to another floor or remove it in the editor and
+  the link comes off. A line in chat names the room it came off.
+- Links go to your group with the map. They need 3.28.0 to use them.
+- In a group, the minimap works in a house you have no map of too. It has no
+  rooms on it, but you see where your group is around you. Alone in such a
+  house the game's picture stays.
+
 ## 3.27.0
 - A lock on the house map, next to its close button. Click it and your map
   locks. The build tools go away and rooms can't be dragged, resized or

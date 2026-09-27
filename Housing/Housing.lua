@@ -278,6 +278,7 @@ function CH.CheckHousingState()
         currentZone = nil
         echoZone = nil
         currentAnchor = nil
+        CH.ForgetGameRoom()
         CH.activeFloor = 1
         wasInside = false
         promptedGUID = nil
@@ -477,6 +478,10 @@ function CH.CheckZones()
     if CH.coordLabel:IsVisible() then
         CH.coordLabel:SetText(string.format(CH.L["HOUSE_COORD_X"], x, y))
     end
+
+    -- 0. The game room you walked into can put you on its floor, before the
+    -- stairs and the rooms look at it (Housing/FloorCheck.lua).
+    CH.CheckFloorLink(h)
 
     -- 1. Anchor pass: the stair-landing footprint we're standing on that fires from
     -- the active floor (see FindActiveAnchor for the rules).

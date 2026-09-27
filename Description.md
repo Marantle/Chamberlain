@@ -58,8 +58,9 @@ dot stay the same size.
 
 The rooms also take the place of the minimap picture. Indoors the game shows a
 still picture of a house there. In a house you have a map of, the rooms of your
-floor show in its place, with you in the middle. The usual minimap buttons zoom
-it. Rooms on the minimap in Settings turns it off. If a different addon makes
+floor show in its place, with you in the middle. In a group it shows in a
+house with no map too, empty but with your group's dots on it. The usual
+minimap buttons zoom it. Rooms on the minimap in Settings turns it off. If a different addon makes
 your minimap square, turn on Square minimap too.
 
 ## Floors
@@ -79,6 +80,13 @@ The house map has a tab for each floor, and its + button adds one. Its
 Move to floor button corrects Chamberlain when it has the wrong floor. If your
 stairs spiral, one flight sits above the next. Keep the marks of each flight
 off the same spot, or they trigger each other.
+
+The game does know which of its rooms you stand in, and Floor check uses
+that. Edit a room, stand in the game room it sits in and click Link to the
+room I'm in. From then on, walking into that game room puts you back on the
+room's floor if a stair got missed. In a stairwell link only on the bottom
+or the top floor, since the floors between can share one game room. Move the game room to another floor or remove it in the editor and
+the link comes off, with a line in chat.
 
 ## Room name, description and talking head
 

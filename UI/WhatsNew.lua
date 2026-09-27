@@ -21,6 +21,14 @@ local _, CH = ...
 -- show under the notes, a frame with a Refresh method.
 CH.WHATS_NEW = {
     {
+        v = "3.28.0",
+        notes = {
+            "Floor check puts you back on the right floor when a stair gets missed. Edit a room, stand "
+                .. "in it and click Link to the room I'm in.",
+            "In a group the minimap shows where your group is, even in a house you have no map of.",
+        },
+    },
+    {
         v = "3.27.0",
         notes = {
             "The lock next to the house map's close button keeps your rooms where they are. Click a "

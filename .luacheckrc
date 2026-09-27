@@ -13,6 +13,7 @@ read_globals = {
     "C_Timer",
     "C_Housing",
     "C_HousingBlueprint",
+    "C_HousingLayout",
     "C_ChatInfo",
     "CreateFrame",
     "UIParent",

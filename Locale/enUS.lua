@@ -300,7 +300,7 @@ L["SET_ARRIVAL_SEND_GUILD"] = "My arrival sound to guildmates"
 L["SET_HINT_ARRIVAL_SEND_GUILD"] = "Guildmates in the house hear the door when you walk in."
 L["SET_HINT_AMBIENCE"] = "All the sounds below. Off leaves the game's own sound alone."
 L["SET_HINT_GROUP_DOTS"] = "Your party and raid as class colored dots on the house map."
-L["SET_HINT_MINIMAP"] = "Your floor's rooms in place of the still house picture."
+L["SET_HINT_MINIMAP"] = "Your floor's rooms and your group in place of the still house picture."
 L["SET_HINT_SQUARE"] = "Turn this on if another addon makes your minimap square."
 L["SET_HINT_SLIM_BAR"] = "The Chamberlain bar as one row of icons."
 L["SET_HINT_STAIRS_BOTH"] =
@@ -333,6 +333,8 @@ L["HOUSE_MIGRATED"] = "Migrated this house's rooms to a stable identifier."
 L["HOUSE_HOME_INTERIOR"] = "Home Interior"
 L["HOUSE_PARTY_HAS_LAYOUT_X"] = "%s has a layout for this house. Open /chamberlain to browse."
 L["HOUSE_COORD_X"] = "X: %.1f    Y: %.1f"
+L["HOUSE_UNLINKED_REMOVED_X"] = "Game room %s was unlinked from %s because it was removed."
+L["HOUSE_UNLINKED_MOVED_X"] = "Game room %s was unlinked from %s because it moved to another floor."
 
 -- ── Room banner (Housing/Banner.lua) ─────────────────────────────────
 L["BANNER_READ"] = "Read"
@@ -432,6 +434,19 @@ L["RD_UP_ONE_FLOOR"] = "Up one floor"
 L["RD_DOWN_ONE_FLOOR"] = "Down one floor"
 L["RD_WHICH_FLOOR"] = "Which floor is this room on?"
 L["RD_STAIR_LINK"] = "Stair link"
+L["RD_FLOOR_CHECK"] = "Floor check:"
+L["RD_LINK_ROOM"] = "Link to the room I'm in"
+L["RD_LINKED"] = "Linked, click to unlink"
+L["RD_LINK_NOT_HERE"] = "Stand in the room in this house to link it."
+L["RD_LINK_STAIRWELL"] =
+    "This is a stairwell. Link it only on the bottom or the top floor. The floors between can share one game room, and a link there can put you on the wrong floor."
+L["RD_FLOOR_CHECK_TT_TITLE"] = "Floor check"
+L["RD_FLOOR_CHECK_TT1"] =
+    "Links this room to the game room you're standing in. When you walk into that room, Chamberlain puts you on this room's floor, even if it missed the stairs."
+L["RD_FLOOR_CHECK_TT2"] =
+    "In a stairwell, link only on the bottom or the top floor. The floors between can share one game room."
+L["RD_FLOOR_CHECK_TT3"] =
+    "If you move the game room to another floor or remove it in the editor, the link comes off and chat tells you."
 L["RD_ENTER_NAME"] = "Enter a name first."
 L["RD_DIFFERENT_MAPS"] = "Corners are on different maps, re-mark both in the same zone."
 L["RD_HOUSE_NOT_IDENTIFIED"] = "House not identified yet, try again in a moment."

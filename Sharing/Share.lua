@@ -909,6 +909,7 @@ local function DeserializeLayout(b64)
                 setFloor = type(z.sf) == "number" and z.sf or nil,
                 floorDelta = type(z.fd) == "number" and z.fd or nil,
                 fromFloor = type(z.ff) == "number" and z.ff or nil,
+                gameRoom = type(z.gr) == "string" and #z.gr <= 40 and z.gr:find("^Housing%-") and z.gr or nil,
             }
         end
     end
@@ -998,6 +999,7 @@ function CH.ExportLayout(houseGUID)
             sf = z.setFloor, -- absolute stair anchor: stepping on sets this floor
             fd = z.floorDelta, -- relative stair anchor: +1/-1 from current floor
             ff = z.fromFloor, -- stair anchor only fires from this floor (the linked floor)
+            gr = z.gameRoom, -- the game's room it's linked to for the floor check (3.28.0)
         }
         WriteBox(e, z)
         payload.zones[#payload.zones + 1] = e
