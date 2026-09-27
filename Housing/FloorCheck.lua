@@ -39,7 +39,6 @@ local function Paused()
     return CH.editingLayout or (FP.win:IsShown() and not FP.viewGUID and CH.fpViewedFloor ~= CH.activeFloor)
 end
 
--- Called from the zone ticker.
 function CH.CheckFloorLink(h)
     ticks = ticks + 1
     if ticks < CHECK_EVERY or Paused() then
@@ -56,8 +55,9 @@ function CH.CheckFloorLink(h)
     end
     for _, z in ipairs(h.zones) do
         if z.gameRoom == room then
-            if (z.floor or 1) ~= CH.activeFloor then
-                CH.SetActiveFloor(z.floor or 1)
+            local floor = z.floor or 1
+            if floor ~= CH.activeFloor then
+                CH.SetActiveFloor(floor)
                 -- a landing under you on the new floor waits until you step off it
                 CH.SyncAnchorLatch()
             end

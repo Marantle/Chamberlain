@@ -437,9 +437,9 @@ L["RD_STAIR_LINK"] = "Stair link"
 L["RD_FLOOR_CHECK"] = "Floor check:"
 L["RD_LINK_ROOM"] = "Link to the room I'm in"
 L["RD_LINKED"] = "Linked, click to unlink"
-L["RD_LINK_NOT_HERE"] = "Stand in the room in this house to link it."
+L["RD_LINK_NOT_HERE"] = "Stand in a game room of this house to link it."
 L["RD_LINK_STAIRWELL"] =
-    "This is a stairwell. Link it only on the bottom or the top floor. The floors between can share one game room, and a link there can put you on the wrong floor."
+    "This is a stairwell. Link it only on its bottom or top floor, since the floors between can share one game room."
 L["RD_FLOOR_CHECK_TT_TITLE"] = "Floor check"
 L["RD_FLOOR_CHECK_TT1"] =
     "Links this room to the game room you're standing in. When you walk into that room, Chamberlain puts you on this room's floor, even if it missed the stairs."

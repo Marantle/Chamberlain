@@ -24,7 +24,7 @@ CH.WHATS_NEW = {
         v = "3.28.0",
         notes = {
             "Floor check puts you back on the right floor when a stair gets missed. Edit a room, stand "
-                .. "in it and click Link to the room I'm in.",
+                .. "in its game room and click Link to the room I'm in.",
             "In a group the minimap shows where your group is, even in a house you have no map of.",
         },
     },
