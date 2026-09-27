@@ -1,5 +1,13 @@
 # Changelog
 
+## 3.29.0
+- The cornerstone in front of a house shows the name its owner gave the
+  house in the House panel, over the game's name. You see it on houses you
+  have a map of, and on your own. A house without a name of its own keeps
+  the game's name.
+- View Houses, the list of someone's houses you open from their name, shows
+  the same names.
+
 ## 3.28.0
 - Floor check puts you back on the right floor. Edit a room in a house with
   more than one floor, stand in the game room it sits in and click Remember

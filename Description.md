@@ -19,7 +19,9 @@ tab of the room editor. Rooms without one use the house's.
 When you walk into a house, a plaque shows the house's name, whose house it is
 and the owner's motto, then fades. In the House panel you can write your motto
 and give the house a name of your own, next to its banner style and sounds.
-Open it with House on the bar or with House in the Rooms window.
+Open it with House on the bar or with House in the Rooms window. Your name
+also goes on the cornerstone in front of the house and in the game's View
+Houses list, for everyone who has your map.
 
 To make a room, open the Build toolbox and click the shape of the room you
 built. All six of the game's shapes are there. The room drops where you stand

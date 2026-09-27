@@ -339,6 +339,16 @@ local function Arrive(guid)
     end
 end
 
+-- info.houseGUID is an opaque per-session handle ("Opaque-2") and is NOT
+-- stable across reloads or clients. neighborhoodGUID + plotID is real server
+-- data and identifies the same plot everywhere, so that is the key. The
+-- cornerstone's house info carries both too.
+function CH.HouseKey(info)
+    if info.neighborhoodGUID and info.plotID then
+        return info.neighborhoodGUID .. ":" .. info.plotID
+    end
+end
+
 -- CURRENT_HOUSE_INFO_RECIEVED (Blizzard's spelling). A fixed wait before
 -- reading GetCurrentHouseInfo is a guess. The info is nil from the door until
 -- this event and a relaod had it three seconds out. Once you've left it still
@@ -356,15 +366,7 @@ function CH.OnHouseInfo(info)
     if not wasInside then
         CH.CheckHousingState()
     end
-    -- info.houseGUID is an opaque per-session handle ("Opaque-2") and is NOT
-    -- stable across reloads or clients. neighborhoodGUID + plotID is real
-    -- server data and identifies the same plot everywhere, so that is the key.
-    local guid
-    if info.neighborhoodGUID and info.plotID then
-        guid = info.neighborhoodGUID .. ":" .. info.plotID
-    else
-        guid = info.houseGUID or info.guid or info.houseID
-    end
+    local guid = CH.HouseKey(info) or info.houseGUID or info.guid or info.houseID
     if guid == CH.currentHouseGUID then
         return
     end

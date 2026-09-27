@@ -21,6 +21,13 @@ local _, CH = ...
 -- show under the notes, a frame with a Refresh method.
 CH.WHATS_NEW = {
     {
+        v = "3.29.0",
+        notes = {
+            "The cornerstone in front of a house and the View Houses list show the owner's own name "
+                .. "for it, if you have their map. Give yours one in the House panel.",
+        },
+    },
+    {
         v = "3.28.0",
         notes = {
             "Floor check puts you back on the right floor when a stair gets missed. Edit a room, stand "

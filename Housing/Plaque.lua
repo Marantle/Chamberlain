@@ -239,3 +239,32 @@ function CH.SetHouseText(guid, kind, text)
         CH.SendSoundPatch(guid, kind, baseTs, "H", text or " ", true)
     end
 end
+
+-- ─────────────────────────────────────────────────────────────────────
+-- The cornerstone and View Houses
+-- ─────────────────────────────────────────────────────────────────────
+-- The stone out front shows the game's name for the house. When we hold the
+-- map and its owner named the house, that name goes on the stone instead.
+-- Blizzard fills the text first and the hooks run after, on the visitor's
+-- window and on the one for your own house, which refills on house info events.
+-- The View Houses list gets the same, since its rows carry houseInfo and a
+-- HouseNameText just like the stone.
+
+local function OwnersName(frame)
+    local key = frame.houseInfo and CH.HouseKey(frame.houseInfo)
+    local h = key and ChamberlainDB.houses[key]
+    if h and h.plaqueName then
+        frame.HouseNameText:SetText(h.plaqueName)
+    end
+end
+
+EventUtil.ContinueOnAddOnLoaded("Blizzard_HousingCornerstone", function()
+    HousingCornerstoneVisitorFrame:HookScript("OnShow", OwnersName)
+    hooksecurefunc(HousingCornerstoneHouseInfoFrame, "UpdateHouseInfo", OwnersName)
+end)
+
+-- Rows copy the mixin when the list first makes them, which is after this
+-- load, so hooking the mixin reaches every row.
+EventUtil.ContinueOnAddOnLoaded("Blizzard_HouseList", function()
+    hooksecurefunc(HouseEntryTemplateMixin, "Init", OwnersName)
+end)

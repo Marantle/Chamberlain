@@ -86,4 +86,8 @@ read_globals = {
     "Enum",
     "UnitSex",
     "ItemUtil",
+    "EventUtil",
+    "HousingCornerstoneVisitorFrame",
+    "HousingCornerstoneHouseInfoFrame",
+    "HouseEntryTemplateMixin",
 }
