@@ -156,6 +156,9 @@ function CH.OpenFixHouse()
         CH.Print(CH.L["FIX_ONLY_OWN_HOUSE"])
         return
     end
+    if CH.RefuseLocked() then
+        return
+    end
     if not win then
         Build()
     end

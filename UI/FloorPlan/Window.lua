@@ -80,6 +80,23 @@ readOnlyText:SetTextColor(CH.RGBA(CH.COLORS.muted, 1))
 readOnly:SetSize(readOnlyText:GetStringWidth() + 12, 16)
 readOnly:Hide()
 
+-- The lock on your own map shows your house like anybody else's, so nothing
+-- gets dragged by accident.
+local lockBtn = CH.MakeGlyphButton(fp, nil, "icon-unlock")
+lockBtn:SetPoint("RIGHT", closeBtn, "LEFT", -2, 0)
+lockBtn:SetScript("OnClick", function()
+    local s = ChamberlainDB.settings
+    s.layoutLocked = not s.layoutLocked
+    FP.Build()
+    if CH.RefreshRoomList then
+        CH.RefreshRoomList()
+    end
+end)
+CH.Tip(lockBtn, function()
+    return CH.LayoutLocked() and "FP_TT_UNLOCK" or "FP_TT_LOCK"
+end)
+lockBtn:Hide()
+
 local rail = CreateFrame("Frame", nil, fp)
 rail:SetPoint("TOPLEFT", 0, -26)
 rail:SetPoint("BOTTOMLEFT")
@@ -231,9 +248,14 @@ function FP.CurrentHouse()
     return guid and ChamberlainDB.houses[guid]
 end
 
--- The edit tools only work on the house you stand in, and only if it's yours.
-function FP.CanEdit()
+-- The house you stand in, when it's yours, locked or not.
+function FP.OwnMap()
     return CH.isOwnHouse and not FP.viewGUID
+end
+
+-- The edit tools only work on your own map, and not while it's locked.
+function FP.CanEdit()
+    return FP.OwnMap() and not CH.LayoutLocked()
 end
 
 -- The floor a new room or stair defaults to: the one on the map, unless the map
@@ -309,7 +331,10 @@ function FP.ApplyFold()
     else
         fp.title:SetPoint("LEFT", fp, "TOPLEFT", 10, -13)
     end
-    readOnly:SetShown(not edit)
+    local own = FP.OwnMap()
+    readOnly:SetShown(not own)
+    lockBtn:SetShown(own)
+    CH.SetIconFile(lockBtn.glyph, CH.LayoutLocked() and "icon-lock" or "icon-unlock")
 end
 
 -- The rail holds the build tools on a map you can edit and the house card on

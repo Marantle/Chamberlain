@@ -1,5 +1,15 @@
 # Changelog
 
+## 3.27.0
+- A lock on the house map, next to its close button. Click it and your map
+  locks. The build tools go away and rooms can't be dragged, resized or
+  deleted. Floors and stairs stay as they are too. Click it again to unlock.
+- The lock is for all your houses and only on your own client. Your group
+  sees nothing of it.
+- While the map is locked, a click on a room opens only its Sound tab, so you
+  can still change its ambience, music and entry sound. Edit in the Rooms
+  window does the same. The House panel works as before.
+
 ## 3.26.0
 - Snap on the house map. Turn it on in the map's top left corner, and a room
   you drag snaps door to door with the rooms next to it on the same floor.

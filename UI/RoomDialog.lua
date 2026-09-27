@@ -927,7 +927,9 @@ function CH.OpenRenameDialog(zone, houseGUID)
     -- Stair anchors get a stripped editor (name, floor, behaviour) instead of the
     -- full room dialog, which has yapper/description/voice/secret they never use.
     if CH.IsAnchor(zone) and CH.OpenAnchorEditor then
-        CH.OpenAnchorEditor(zone, houseGUID)
+        if not CH.RefuseLocked() then
+            CH.OpenAnchorEditor(zone, houseGUID)
+        end
         return
     end
     renameTarget = zone
@@ -943,11 +945,21 @@ function CH.OpenRenameDialog(zone, houseGUID)
     FillSettings(zone)
     RefreshShapeButtons()
     RefreshFloorRow()
-    tabs:Select(1)
-    ShowPane(1)
+    -- Locked, the dialog is the Sound tab (3) alone, so a save can only change
+    -- what goes to the group as a patch.
+    local locked = CH.LayoutLocked()
+    local tab = locked and 3 or 1
+    tabs:SetShown(not locked)
+    tabs:Select(tab)
+    ShowPane(tab)
+    editBox:SetEnabled(not locked)
+    mainSwatch:SetShown(not locked)
+    copyBtn:SetShown(not locked)
     dialog:Show()
-    editBox:SetFocus()
-    editBox:HighlightText()
+    if not locked then
+        editBox:SetFocus()
+        editBox:HighlightText()
+    end
 end
 
 -- The rooms of this house Copy from can take settings from: every room but

@@ -376,6 +376,17 @@ local function GetZoneFrame(i)
     -- through every room under the cursor (topmost first), then deselect.
     f:SetScript("OnMouseDown", function(self)
         if not FP.CanEdit() then
+            -- Your own map under the lock opens the room on its Sound tab. Stairs
+            -- have no sounds, so a click goes through them to the room below.
+            if FP.OwnMap() then
+                local house = FP.CurrentHouse()
+                for _, idx in ipairs(ZonesAtCursor()) do
+                    if not CH.IsAnchor(house.zones[idx]) then
+                        CH.OpenRenameDialog(house.zones[idx], CH.currentHouseGUID)
+                        return
+                    end
+                end
+            end
             return
         end
         local hits = ZonesAtCursor()

@@ -21,6 +21,13 @@ local _, CH = ...
 -- show under the notes, a frame with a Refresh method.
 CH.WHATS_NEW = {
     {
+        v = "3.27.0",
+        notes = {
+            "The lock next to the house map's close button keeps your rooms where they are. Click a "
+                .. "room on the locked map to change its sounds.",
+        },
+    },
+    {
         v = "3.26.0",
         notes = {
             "Snap in the house map's top left corner puts rooms together door to door. Drag a room "

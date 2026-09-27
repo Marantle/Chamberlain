@@ -41,6 +41,11 @@ The Build toolbox and the house map are one window, with the tools down its
 left side. Build on the bar opens the map with the tools and Map opens the map
 alone. Build in the map's corner shows or hides the tools.
 
+The lock next to the map's close button keeps your layout safe from a stray
+drag. When it's locked, the map shows your house the way it shows a friend's,
+with no build tools. Click a room on the map and it opens on its Sound tab,
+so its sounds still change. The House panel works as before. Click the lock again to go back to building.
+
 Rooms can overlap. Put a closet inside your bedroom and the smaller room wins
 while you stand in it.
 
@@ -233,6 +238,7 @@ backup that you made.
 - Make rooms from the Build toolbox. A square, L, T, plus, octagon or round
   room drops where you stand, at the size the game builds it.
 - Snap on the house map puts rooms together door to door.
+- Lock the map so nothing moves by accident. Room sounds still change.
 - A gold banner shows the name of the room when you enter and fades when you
   leave.
 - Background sound for a room, a floor or the house, from more than 100 of the

@@ -487,7 +487,7 @@ roomEmpty:SetTextColor(CH.RGBA(CH.COLORS.dim, 1))
 local ROW_H = 26
 local rowPool = {}
 
-local function AddZoneRow(zoneIdx, w, y, zone, houseGUID, canDelete)
+local function AddZoneRow(zoneIdx, w, y, zone, houseGUID, own)
     local row = rowPool[zoneIdx]
     if not row then
         row = CreateFrame("Frame", nil, roomChild)
@@ -517,8 +517,10 @@ local function AddZoneRow(zoneIdx, w, y, zone, houseGUID, canDelete)
     row.bg:SetColorTexture(0, 0, 0, zoneIdx % 2 == 0 and 0.18 or 0)
     row.nameLabel:SetText(string.format(CH.L["FMT_NAME_DIM_X"], zone.name, CH.ZoneDimText(zone)))
 
-    if canDelete then
+    if own then
         row.delBtn:Show()
+        -- the lock leaves Edit for the room's sounds, but no deleting
+        row.delBtn:SetEnabled(not CH.LayoutLocked())
         row.delBtn:SetScript("OnClick", function()
             local house = ChamberlainDB.houses[houseGUID]
             if house then

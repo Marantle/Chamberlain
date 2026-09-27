@@ -150,19 +150,28 @@ function CH.MakeShapeButton(parent, entry, size)
 end
 
 -- The small gold letter buttons that sit in a window's header, x to close and
--- the fold arrows. White under the mouse.
-function CH.MakeGlyphButton(parent, glyph)
+-- the fold arrows. White under the mouse. With icon, one of our svgs stands in
+-- for the letter, for a glyph no font has (the map's lock).
+function CH.MakeGlyphButton(parent, glyph, icon)
     local b = CreateFrame("Button", nil, parent)
     b:SetSize(18, 18)
-    b.glyph = b:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    b.glyph:SetAllPoints()
-    b.glyph:SetText(glyph)
-    b.glyph:SetTextColor(1, 0.84, 0, 1)
+    local paint
+    if icon then
+        b.glyph = CH.MakeIcon(b, icon, 12)
+        b.glyph:SetPoint("CENTER")
+        paint = b.glyph.SetVertexColor
+    else
+        b.glyph = b:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        b.glyph:SetAllPoints()
+        b.glyph:SetText(glyph)
+        paint = b.glyph.SetTextColor
+    end
+    paint(b.glyph, 1, 0.84, 0, 1)
     b:SetScript("OnEnter", function(self)
-        self.glyph:SetTextColor(1, 1, 1, 1)
+        paint(self.glyph, 1, 1, 1, 1)
     end)
     b:SetScript("OnLeave", function(self)
-        self.glyph:SetTextColor(1, 0.84, 0, 1)
+        paint(self.glyph, 1, 0.84, 0, 1)
     end)
     return b
 end

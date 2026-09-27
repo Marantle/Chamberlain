@@ -1,6 +1,6 @@
 local ADDON, CH = ...
 
-CH.VERSION = "3.26.0"
+CH.VERSION = "3.27.0"
 
 -- How often the zone ticker samples your position, in seconds. Drives stair
 -- detection and the per-room time stats both, so they stay in step if it changes.
@@ -16,6 +16,22 @@ CH.ZONE_TICK = 0.1
 function CH.Print(fmt, ...)
     local ok, s = pcall(string.format, fmt, ...)
     print("|cffFFD700Chamberlain:|r " .. (ok and s or fmt))
+end
+
+-- The lock on the map (3.27.0) keeps your own layout as it is. Sounds and the
+-- House panel still change, since those go to the group as patches anyway.
+function CH.LayoutLocked()
+    return ChamberlainDB.settings.layoutLocked
+end
+
+-- For the ways into a layout change that don't go through the map. Says why
+-- and returns true while the lock is on.
+function CH.RefuseLocked()
+    if CH.LayoutLocked() then
+        CH.Print(CH.L["LOCK_REFUSED"])
+        return true
+    end
+    return false
 end
 
 -- ─────────────────────────────────────────────────────────────────────
@@ -247,6 +263,10 @@ events:SetScript("OnEvent", function(_, event, arg1)
         if ChamberlainDB.settings.snapRooms == nil then
             ChamberlainDB.settings.snapRooms = false
         end
+        -- The lock on your own map, open to start with. (3.27.0)
+        if ChamberlainDB.settings.layoutLocked == nil then
+            ChamberlainDB.settings.layoutLocked = false
+        end
         -- The house's name and its owner's motto as you walk in. (3.23.0)
         if ChamberlainDB.settings.housePlaque == nil then
             ChamberlainDB.settings.housePlaque = true
@@ -369,6 +389,9 @@ SlashCmdList["CH"] = function(msg)
     elseif cmd == "delete" or cmd == "del" then
         if not CH.isOwnHouse then
             CH.Print(CH.L["CMD_DELETE_OWN_ONLY"])
+            return
+        end
+        if CH.RefuseLocked() then
             return
         end
         if rest == "" then
