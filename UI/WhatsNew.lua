@@ -21,6 +21,15 @@ local _, CH = ...
 -- show under the notes, a frame with a Refresh method.
 CH.WHATS_NEW = {
     {
+        v = "3.26.0",
+        notes = {
+            "Snap in the house map's top left corner puts rooms together door to door. Drag a room "
+                .. "near another and its door jumps onto the door there.",
+            "With Snap on, the green grips are a room's doors. An L or a T has them at the end of "
+                .. "its arms. A square still resizes from its sides.",
+        },
+    },
+    {
         v = "3.25.0",
         notes = {
             "A room can have its own banner style now. Edit the room and look at the new Banner tab.",

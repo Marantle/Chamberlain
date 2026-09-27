@@ -31,6 +31,12 @@ you, and the arrows under it push and pull one wall at a time. The other shapes
 keep their shape and grow or shrink as a whole. You can also drag the grips of
 the room on the house map.
 
+Turn on Snap in the map's top left corner and rooms fit together at their
+doors, the way the game joins them. The green grips show where a room's doors
+are. Drag a room near another one and its door jumps onto the door there. An L
+or a T has its doors at the end of its arms, off the middle of the side. A
+square keeps its resize grips, and a wall you drag snaps to the door it meets.
+
 The Build toolbox and the house map are one window, with the tools down its
 left side. Build on the bar opens the map with the tools and Map opens the map
 alone. Build in the map's corner shows or hides the tools.
@@ -226,6 +232,7 @@ backup that you made.
 
 - Make rooms from the Build toolbox. A square, L, T, plus, octagon or round
   room drops where you stand, at the size the game builds it.
+- Snap on the house map puts rooms together door to door.
 - A gold banner shows the name of the room when you enter and fades when you
   leave.
 - Background sound for a room, a floor or the house, from more than 100 of the

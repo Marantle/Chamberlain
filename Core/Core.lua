@@ -1,6 +1,6 @@
 local ADDON, CH = ...
 
-CH.VERSION = "3.25.0"
+CH.VERSION = "3.26.0"
 
 -- How often the zone ticker samples your position, in seconds. Drives stair
 -- detection and the per-room time stats both, so they stay in step if it changes.
@@ -242,6 +242,10 @@ events:SetScript("OnEvent", function(_, event, arg1)
         -- can be lined up from either. Off, each shows on its own floor. (3.21.0)
         if ChamberlainDB.settings.stairsBothFloors == nil then
             ChamberlainDB.settings.stairsBothFloors = true
+        end
+        -- Snap on the house map, off to start with. (3.26.0)
+        if ChamberlainDB.settings.snapRooms == nil then
+            ChamberlainDB.settings.snapRooms = false
         end
         -- The house's name and its owner's motto as you walk in. (3.23.0)
         if ChamberlainDB.settings.housePlaque == nil then

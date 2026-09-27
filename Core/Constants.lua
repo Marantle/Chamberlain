@@ -56,7 +56,12 @@ local STEPS = { SPAN, SPAN + 2 * ARM, SPAN + 4 * ARM }
 -- octagon's corner cut along each axis. compact shapes go on the wire as
 -- centre, scale and turn instead of a box. mask cuts the map tile, and a
 -- shape that turns has a file per turn, mask-l0.tga to mask-l3.tga.
+-- doors are where the game puts the doorways, on the box edge at turn 0. An
+-- arm is only core wide, so the doors at the end of an L's or a T's side arms
+-- sit off the middle, in the middle of the arm. A shape with no doors list
+-- gets one in the middle of each side.
 local a, b = ARM / SIDE, ARM / SPAN
+local armMid = (1 + a) / 2
 CH.SHAPES = {
     L = {
         w = SIDE,
@@ -65,6 +70,7 @@ CH.SHAPES = {
         compact = true,
         mask = CH.MEDIA .. "mask-l",
         cuts = { { 0, 0, a, a } },
+        doors = { { 0, armMid }, { armMid, 0 } },
     },
     T = {
         w = SPAN,
@@ -73,6 +79,7 @@ CH.SHAPES = {
         compact = true,
         mask = CH.MEDIA .. "mask-t",
         cuts = { { 0, 0, b, a }, { 1 - b, 0, 1, a } },
+        doors = { { 0, armMid }, { 1, armMid }, { 0.5, 0 } },
     },
     plus = {
         w = SPAN,

@@ -69,6 +69,23 @@ local function Unturn(u, v, rot)
     return u, v
 end
 
+local SIDE_DOORS = { { 0.5, 0 }, { 1, 0.5 }, { 0.5, 1 }, { 0, 0.5 } }
+
+function CH.ZoneDoors(z)
+    local def = z.shape and CH.SHAPES[z.shape]
+    return def and def.doors or SIDE_DOORS
+end
+
+-- Where door d of the room is in world yards, and which way it faces out.
+-- A door sits on the box edge at any turn, so the edge it is on gives the
+-- facing. Turning forward is the unturn the other way round.
+function CH.DoorAt(z, d)
+    local u, v = Unturn(d[1], d[2], (4 - (z.rot or 0)) % 4)
+    local nx = u == 0 and -1 or u == 1 and 1 or 0
+    local ny = nx == 0 and (v == 0 and -1 or 1) or 0
+    return z.minX + u * (z.maxX - z.minX), z.minY + v * (z.maxY - z.minY), nx, ny
+end
+
 -- Is (x, y) inside the room: its box for a rectangle, the disc for a circle,
 -- the box less its missing corners for the rest. The box test alone anwsers
 -- for most spots, so the rest only runs once you are close.

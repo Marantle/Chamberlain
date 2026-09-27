@@ -1,5 +1,20 @@
 # Changelog
 
+## 3.26.0
+- Snap on the house map. Turn it on in the map's top left corner, and a room
+  you drag snaps door to door with the rooms next to it on the same floor.
+  Rooms the game joins share a wall, so snapped rooms sit where the game puts
+  them.
+- With Snap on, the grips on the sides of a room are its doors and they turn
+  green. An L has two doors and a T has three, at the ends of its arms. The
+  side arm doors sit off the middle of the side. Drag any of them, or the
+  white grip in the middle, to move the room. Grow and Shrink on the build
+  tools still resize it.
+- A square keeps its resize grips. Drag one of its sides near a door on
+  another room and the wall snaps flush to it.
+- Only one pair of doors snaps at a time. Pull the room more than a short
+  distance away and it lets go.
+
 ## 3.25.0
 - A room can have its own banner style. Edit the room and open the new Banner
   tab. It shows the room's banner big, with Choose style under it.

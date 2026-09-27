@@ -96,22 +96,106 @@ end
 -- screen-right = minX, screen-top = maxY, screen-bottom = minY. Each spec lists
 -- which world bounds its drag delta moves. The centre grip moves all four (a
 -- translation). px/py are the grip's fractional position along the tile (0..1).
+-- An edge grip sits on the door in the middle of its wall, and fx/fy is the
+-- way that door faces in the world.
 local HANDLE_SIZE = 10
 -- stylua: ignore
 local HANDLE_SPECS = {
     { px = 0,   py = 0,   mxX = 1, mxY = 1 }, -- top-left corner
-    { px = 0.5, py = 0,   mxY = 1 },          -- top edge
+    { px = 0.5, py = 0,   mxY = 1, fx = 0, fy = 1 },  -- top edge
     { px = 1,   py = 0,   mnX = 1, mxY = 1 }, -- top-right corner
-    { px = 1,   py = 0.5, mnX = 1 },          -- right edge
+    { px = 1,   py = 0.5, mnX = 1, fx = -1, fy = 0 }, -- right edge
     { px = 1,   py = 1,   mnX = 1, mnY = 1 }, -- bottom-right corner
-    { px = 0.5, py = 1,   mnY = 1 },          -- bottom edge
+    { px = 0.5, py = 1,   mnY = 1, fx = 0, fy = -1 }, -- bottom edge
     { px = 0,   py = 1,   mxX = 1, mnY = 1 }, -- bottom-left corner
-    { px = 0,   py = 0.5, mxX = 1 },          -- left edge
+    { px = 0,   py = 0.5, mxX = 1, fx = 1, fy = 0 },  -- left edge
     { px = 0.5, py = 0.5, mnX = 1, mxX = 1, mnY = 1, mxY = 1, move = true }, -- centre: move
 }
+local MOVE_SPEC = HANDLE_SPECS[#HANDLE_SPECS]
+local GRIP_GOLD = { 1, 0.82, 0.10, 1 } -- resize, matches the ring
+local GRIP_WHITE = { 1, 1, 1, 0.95 } -- move
+local GRIP_DOOR = { 0.45, 0.90, 0.55, 1 }
 local handles = {}
 
 local handleSpec, handleStart, handleStartCX, handleStartCY
+
+-- Snap: a room on the move, or a square's wall, jumps so one of its doors
+-- meets a door that faces it on another room of the same floor. The game's
+-- rooms are stored wall to wall and two joined rooms share that wall, so the
+-- two doors land on one spot. Nothing snaps until the cursor has moved a
+-- few pixels, since a click on a grip is no drag and must never move a room.
+-- probe is the box where the drag would put the room before the snap.
+local SNAP_PX = 12
+local SNAP_AFTER_PX = 3
+local snapping, dragMoved
+local targets, nTargets = {}, 0 -- flat x, y, nx, ny of the doors it can meet
+local lockDoor, lockTarget -- the pair that snapped, held until it's pulled apart
+local probe = {}
+
+local function IsRoom(z)
+    return not CH.IsAnchor(z) and not z.noBanner
+end
+
+local function Snaps(zone)
+    return ChamberlainDB.settings.snapRooms and IsRoom(zone)
+end
+
+-- The other rooms don't move during a drag, so thier doors are read once.
+local function CollectTargets(h, zone)
+    nTargets = 0
+    local floor = zone.floor or 1
+    for _, z in ipairs(h.zones) do
+        if z ~= zone and IsRoom(z) and (z.floor or 1) == floor then
+            for _, d in ipairs(CH.ZoneDoors(z)) do
+                local x, y, nx, ny = CH.DoorAt(z, d)
+                targets[nTargets + 1], targets[nTargets + 2] = x, y
+                targets[nTargets + 3], targets[nTargets + 4] = nx, ny
+                nTargets = nTargets + 4
+            end
+        end
+    end
+end
+
+-- Squared distance from a door at (x, y) facing (nx, ny) to target t, plus
+-- the step that closes it. Nil when the two don't face each other.
+local function Gap(x, y, nx, ny, t)
+    if targets[t + 2] ~= -nx or targets[t + 3] ~= -ny then
+        return nil
+    end
+    local dx, dy = targets[t] - x, targets[t + 1] - y
+    return dx * dx + dy * dy, dx, dy
+end
+
+-- The step that puts the closest door pair of probe together, if one is in
+-- reach. Only one pair counts. Once it snaps it holds until that pair is out
+-- of reach, so a second door close by can't tug the room back and forth.
+-- fx/fy limits it to the door of one wall, for a square's edge grip.
+local function SnapStep(reach, fx, fy)
+    local doors = CH.ZoneDoors(probe)
+    local limit = reach * reach
+    if lockDoor then
+        local x, y, nx, ny = CH.DoorAt(probe, doors[lockDoor])
+        local g, dx, dy = Gap(x, y, nx, ny, lockTarget)
+        if g and g <= limit then
+            return dx, dy
+        end
+        lockDoor = nil
+    end
+    local best, stepX, stepY = limit, 0, 0
+    for i, d in ipairs(doors) do
+        local x, y, nx, ny = CH.DoorAt(probe, d)
+        if not fx or (nx == fx and ny == fy) then
+            for t = 1, nTargets, 4 do
+                local g, dx, dy = Gap(x, y, nx, ny, t)
+                if g and g <= best then
+                    best, stepX, stepY = g, dx, dy
+                    lockDoor, lockTarget = i, t
+                end
+            end
+        end
+    end
+    return stepX, stepY
+end
 
 -- Round a yard delta to the 0.5 grid the buttons use, so dragged coords stay tidy.
 local function SnapHalf(v)
@@ -162,6 +246,15 @@ local function UpdateHandleDrag()
     local maxX = handleStart.maxX + (s.mxX or 0) * dx
     local minY = handleStart.minY + (s.mnY or 0) * dy
     local maxY = handleStart.maxY + (s.mxY or 0) * dy
+    if snapping then
+        dragMoved = dragMoved or math.abs(cx - handleStartCX) + math.abs(cy - handleStartCY) >= SNAP_AFTER_PX
+        if dragMoved then
+            probe.minX, probe.maxX, probe.minY, probe.maxY = minX, maxX, minY, maxY
+            local sx, sy = SnapStep(SNAP_PX / k, s.fx, s.fy)
+            minX, maxX = minX + (s.mnX or 0) * sx, maxX + (s.mxX or 0) * sx
+            minY, maxY = minY + (s.mnY or 0) * sy, maxY + (s.mxY or 0) * sy
+        end
+    end
     -- Resize grips move a single bound per axis, so a big drag can cross the
     -- opposite wall, so clamp the moving bound to keep at least 1 yd. (The move grip
     -- shifts both bounds together, so its size never changes and this is a no-op.)
@@ -214,13 +307,8 @@ for i, spec in ipairs(HANDLE_SPECS) do
     outline:SetPoint("TOPLEFT", -1, 1)
     outline:SetPoint("BOTTOMRIGHT", 1, -1)
     outline:SetColorTexture(0, 0, 0, 1)
-    local fill = hb:CreateTexture(nil, "OVERLAY")
-    fill:SetAllPoints()
-    if spec.move then
-        fill:SetColorTexture(1, 1, 1, 0.95) -- white centre grip = move
-    else
-        fill:SetColorTexture(1, 0.82, 0.10, 1) -- gold grips = resize, matches the ring
-    end
+    hb.fill = hb:CreateTexture(nil, "OVERLAY")
+    hb.fill:SetAllPoints()
     hb:SetScript("OnMouseDown", function(self, button)
         if button ~= "LeftButton" or not FP.CanEdit() then
             return
@@ -230,7 +318,15 @@ for i, spec in ipairs(HANDLE_SPECS) do
         if not zone then
             return
         end
-        handleSpec = spec
+        -- with snap on, a shaped room's edge grips are its doors and they all move it
+        local snaps = Snaps(zone)
+        handleSpec = snaps and zone.shape and MOVE_SPEC or spec
+        snapping = snaps and (handleSpec.move or handleSpec.fx ~= nil)
+        if snapping then
+            CollectTargets(h, zone)
+            lockDoor, dragMoved = nil, false
+            probe.shape, probe.rot = zone.shape, zone.rot
+        end
         CH.editingLayout = true -- pause stair floor-switching while the box moves under us
         handleStart = { minX = zone.minX, maxX = zone.maxX, minY = zone.minY, maxY = zone.maxY }
         handleStartCX, handleStartCY = FP.CanvasCursor()
@@ -247,6 +343,24 @@ for i, spec in ipairs(HANDLE_SPECS) do
     hb:SetScript("OnMouseUp", EndHandleDrag)
     handles[i] = hb
 end
+
+-- The Snap switch in the map's top left corner, your own house only.
+-- Floors.lua shows it with the other tools.
+local snapBtn = CH.MakeButton(FP.map, "FP_SNAP", 60, 18)
+snapBtn:SetPoint("TOPLEFT", canvas, "TOPLEFT", 4, -4)
+snapBtn:SetFrameLevel(FP.Level("buttons"))
+snapBtn:Hide()
+CH.Tip(snapBtn, "FP_TT_SNAP")
+snapBtn:SetScript("OnClick", function(self)
+    local s = ChamberlainDB.settings
+    s.snapRooms = not s.snapRooms
+    CH.SetButtonActive(self, s.snapRooms)
+    FP.PositionHandles()
+end)
+snapBtn:SetScript("OnShow", function(self)
+    CH.SetButtonActive(self, ChamberlainDB.settings.snapRooms)
+end)
+FP.snapBtn = snapBtn
 
 -- Park the grips on the selected tile's edges/centre, or hide them when there's
 -- nothing editable selected on the viewed floor.
@@ -273,14 +387,32 @@ function FP.PositionHandles()
     -- sit on a wall for every shape (the box edge midpoints touch even a disc)
     -- and scale it. The corner grips go: they'd float off a disc or sit in an
     -- L's missing corner, and there is no single wall to pull there anyway.
+    -- With snap on the edge grips turn into doors. A square's are on its doors
+    -- already. A shaped room's grips move onto its own doors, fewer than four
+    -- on an L or a T and off the middle.
     local shaped = zone.shape ~= nil
+    local snaps = Snaps(zone)
+    local doors = snaps and shaped and CH.ZoneDoors(zone)
+    local door = 0
     for i, spec in ipairs(HANDLE_SPECS) do
         local hb = handles[i]
-        local isEdge = (spec.px == 0.5) ~= (spec.py == 0.5) -- exactly one centred axis
-        if shaped and not spec.move and not isEdge then
+        local color = spec.move and GRIP_WHITE or (snaps and spec.fx) and GRIP_DOOR or GRIP_GOLD
+        if hb.color ~= color then
+            hb.fill:SetColorTexture(unpack(color))
+            hb.color = color
+        end
+        hb:ClearAllPoints()
+        if doors and spec.fx then
+            door = door + 1
+            local d = doors[door]
+            if d then
+                local dx, dy = FP.WorldToCanvas(CH.DoorAt(zone, d))
+                hb:SetPoint("CENTER", canvas, "TOPLEFT", dx, -dy)
+            end
+            hb:SetShown(d ~= nil)
+        elseif shaped and not spec.move and not spec.fx then
             hb:Hide()
         else
-            hb:ClearAllPoints()
             hb:SetPoint("CENTER", canvas, "TOPLEFT", px + spec.px * zw, -(py + spec.py * zh))
             hb:Show()
         end
