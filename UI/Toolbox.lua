@@ -7,9 +7,8 @@ local _, CH = ...
 -- holds the tools for adding a room where you stand, the quick sizes and the
 -- pad that move and resize the picked one, and the fit tools that line it up
 -- with the wall you stand at. The coords sit at the bottom. The map to its
--- right is the bird's-eye editor. Fold the map away (the « in the header, or
--- the bar's Build button) and the window shrinks to just this column, for
--- walking the house with the tools up. The house card
+-- right is the bird's-eye editor. Build in the header or on the bar shows and
+-- hides this column, and the bar's Map opens the map without it. The house card
 -- (UI/FloorPlan/HouseCard.lua) takes the same spot on any map you can't edit.
 
 local FP = CH.FP
@@ -239,10 +238,6 @@ CH.zoneLabel = tb:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 CH.zoneLabel:SetPoint("BOTTOMLEFT", PAD, 10)
 CH.zoneLabel:SetText("-")
 CH.zoneLabel:SetTextColor(CH.RGBA(CH.COLORS.dim, 1))
-
--- The window's heigth when folded to this column: the header, the tools
--- above and the readout.
-FP.foldedHeight = 26 + 370 + 12 + 48
 
 -- ── Behaviour ────────────────────────────────────────────────────────
 

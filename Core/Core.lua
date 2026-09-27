@@ -1,6 +1,6 @@
 local ADDON, CH = ...
 
-CH.VERSION = "3.24.0"
+CH.VERSION = "3.25.0"
 
 -- How often the zone ticker samples your position, in seconds. Drives stair
 -- detection and the per-room time stats both, so they stay in step if it changes.
@@ -203,16 +203,23 @@ events:SetScript("OnEvent", function(_, event, arg1)
         if ChamberlainDB.settings.minimapSquare == nil then
             ChamberlainDB.settings.minimapSquare = false
         end
-        -- The house map folded down to its build rail. The bar's Build button
-        -- opens it folded and Map opens it whole. (3.17.0)
-        if ChamberlainDB.settings.mapFolded == nil then
-            ChamberlainDB.settings.mapFolded = false
+        -- The house map with its build sidebar folded away. The bar's Map
+        -- button opens it folded and Build opens it whole. (3.25.0) It took
+        -- over from mapFolded, which folded the map away instead and is left
+        -- as it was.
+        if ChamberlainDB.settings.railHidden == nil then
+            ChamberlainDB.settings.railHidden = false
         end
         -- How the room banner looks, only on this client (3.18.0). Everyone
         -- starts on the plaque, and the 3.18.0 note in What's New has the menu
         -- for anyone who wants the old look back.
         if ChamberlainDB.settings.bannerStyle == nil then
             ChamberlainDB.settings.bannerStyle = "plaque"
+        end
+        -- Seconds the banner takes to swap one room's name for the next, half
+        -- out and half in, 0 for at once. (3.25.0)
+        if ChamberlainDB.settings.bannerSwap == nil then
+            ChamberlainDB.settings.bannerSwap = 0.5
         end
         -- Your style in every house, over the one its owner picked. (3.20.0)
         if ChamberlainDB.settings.ownBannerStyle == nil then

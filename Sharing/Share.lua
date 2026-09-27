@@ -901,6 +901,8 @@ local function DeserializeLayout(b64)
                 sfx = sfx,
                 sfxPlays = sfxPlays,
                 echo = sfx and CH.IsEcho(z.ec) and z.ec or nil,
+                -- past the end of the list the house's style shows instead
+                bannerStyle = CH.BANNER_IDS[z.bs],
                 -- Multi-floor (2.4.0): defaults to floor 1 so pre-floors blobs
                 -- (which omit these) land every room on the ground floor.
                 floor = type(z.fl) == "number" and z.fl or 1,
@@ -991,6 +993,7 @@ function CH.ExportLayout(houseGUID)
             sx = z.sfx, -- sound on entry, any game file id (3.12.0)
             sn = z.sfxPlays, -- times it plays on walking in, 0 loops
             ec = z.echo, -- yards the others hear it from, CH.WHOLE_HOUSE for all (3.13.0)
+            bs = CH.BANNER_ID[z.bannerStyle], -- the room's banner style over the house's (3.25.0)
             fl = z.floor, -- which floor the room is on (2.4.0; appended, old clients ignore)
             sf = z.setFloor, -- absolute stair anchor: stepping on sets this floor
             fd = z.floorDelta, -- relative stair anchor: +1/-1 from current floor

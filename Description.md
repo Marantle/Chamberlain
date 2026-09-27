@@ -13,12 +13,13 @@ over its scenarios to a line for every class. Choose style opens a list with
 the groups down the side
 and a search box over them. Pick one while you stand in your own house and it
 becomes that house's look, so visitors see your rooms that way unless they
-keep their own in Settings.
+keep their own in Settings. A room can have its own style too, on the Banner
+tab of the room editor. Rooms without one use the house's.
 
 When you walk into a house, a plaque shows the house's name, whose house it is
 and the owner's motto, then fades. In the House panel you can write your motto
 and give the house a name of your own, next to its banner style and sounds.
-Open it with the house icon on the bar or with House in the Rooms window.
+Open it with House on the bar or with House in the Rooms window.
 
 To make a room, open the Build toolbox and click the shape of the room you
 built. All six of the game's shapes are there. The room drops where you stand
@@ -31,9 +32,8 @@ keep their shape and grow or shrink as a whole. You can also drag the grips of
 the room on the house map.
 
 The Build toolbox and the house map are one window, with the tools down its
-left side. Build on the bar opens it folded to just the tools, for walking
-around the house. Map opens the whole thing, and the arrow in its corner folds
-it or opens it again.
+left side. Build on the bar opens the map with the tools and Map opens the map
+alone. Build in the map's corner shows or hides the tools.
 
 Rooms can overlap. Put a closet inside your bedroom and the smaller room wins
 while you stand in it.
@@ -75,7 +75,7 @@ A room has more than a name. You can set a color for the banner and the map
 tile. You can write a description and pick a face that reads it in a talking
 head box. Your computer can speak the description in a voice you pick. The
 voice stays on your computer and goes to nobody. The room editor keeps these
-on three tabs, Room, Yapper and Sound, under a preview of the banner.
+on four tabs, Room, Yapper, Sound and Banner, under a preview of the banner.
 
 A room marked Secret stays off the house maps and room lists of your visitors.
 Its banner still fires when they walk in.
@@ -219,6 +219,8 @@ backup that you made.
   add, move or delete a room.
 - L, T and plus rooms need version 3.21.0 on both sides. A group member on an
   older version sees your other rooms and skips these.
+- A room's own banner style needs version 3.25.0 on both sides. A group member
+  on an older version sees the house's style in that room.
 
 ## Features
 

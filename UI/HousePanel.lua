@@ -113,8 +113,7 @@ bannerBtn:SetScript("OnClick", function()
     CH.OpenBannerPicker(guid)
 end)
 refreshers[#refreshers + 1] = function()
-    local style = House().bannerStyle
-    bannerBtn:SetText(style and CH.BannerStyleName(style) or CH.L["BP_EACH_OWN"])
+    bannerBtn:SetText((CH.BannerPickText(House().bannerStyle)))
 end
 
 TextRow("HP_MOTTO", "HP_HINT_MOTTO", "motto")
@@ -193,6 +192,7 @@ function CH.ToggleHousePanel()
     if win:IsShown() and guid == CH.currentHouseGUID then
         win:Hide()
     else
+        CH.CurrentHouse()
         CH.OpenHousePanel(CH.currentHouseGUID)
     end
 end

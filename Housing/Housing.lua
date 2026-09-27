@@ -26,6 +26,24 @@ function CH.GetWorldPos()
     return px, py, mapID
 end
 
+-- The saved entry of the house you stand in, made the first time a room goes
+-- in or the House panel opens. An entry with no rooms stays off every list.
+function CH.CurrentHouse()
+    local guid = CH.currentHouseGUID
+    local h = ChamberlainDB.houses[guid]
+    if not h then
+        h = { owner = CH.currentHouseOwner, zones = {} }
+        ChamberlainDB.houses[guid] = h
+    end
+    h.owner = CH.currentHouseOwner or h.owner
+    h.floorCount = h.floorCount or 1
+    -- CH.OnHouseInfo stamps these on the way in, but only on an entry that
+    -- was there already
+    h.realm = h.realm or GetRealmName()
+    h.houseName = h.houseName or CH.currentHouseName
+    return h
+end
+
 -- A circle is stored as a square box, so the centre is the box centre and the
 -- radius is half its width.
 local function Circle(zone)
@@ -558,8 +576,7 @@ function CH.CheckZones()
             -- left over from the previous room.
             CH.HideTalkingHead()
             if ChamberlainDB.settings.bannerEnabled then
-                CH.SetBannerRoom(found)
-                CH.ShowBanner(0.5)
+                CH.EnterBannerRoom(found)
             else
                 -- Banners off: keep it hidden even as rooms change.
                 CH.SetBannerRoom(nil)

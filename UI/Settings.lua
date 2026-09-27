@@ -139,7 +139,8 @@ local function SwitchRow(page, labelKey, hintKey, key, onChange, indent, tipKey)
 end
 
 -- A row with a slider for a number of seconds kept in settings[s.key], from
--- s.min to s.max in steps of s.step. s.off is the text for zero.
+-- s.min to s.max in steps of s.step. s.off is the text for zero and s.format
+-- the one for the rest, whole seconds when left out.
 local function SecondsRow(page, s)
     local row = Row(page, s.label, s.hint, 156, s.indent)
     local value = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
@@ -154,10 +155,10 @@ local function SecondsRow(page, s)
     end
 
     local function show(v)
-        value:SetText(v <= 0 and CH.L[s.off] or string.format(CH.L["RM_SECONDS_X"], v))
+        value:SetText(v <= 0 and CH.L[s.off] or string.format(CH.L[s.format or "RM_SECONDS_X"], v))
     end
     slider:SetScript("OnValueChanged", function(_, v)
-        v = math.floor(v + 0.5)
+        v = math.floor(v / s.step + 0.5) * s.step
         ChamberlainDB.settings[s.key] = v
         show(v)
     end)
@@ -183,6 +184,17 @@ SecondsRow(pageRooms, {
     max = 20,
     step = 1,
     off = "RM_BANNER_OFF_STAYS",
+    indent = true,
+})
+SecondsRow(pageRooms, {
+    label = "SET_BANNER_SWAP",
+    hint = "SET_HINT_BANNER_SWAP",
+    key = "bannerSwap",
+    min = 0,
+    max = 2,
+    step = 0.1,
+    off = "SET_BANNER_SWAP_OFF",
+    format = "SET_SECONDS_TENTHS_X",
     indent = true,
 })
 SwitchRow(pageRooms, "RM_TOGGLE_ROOM_DESCRIPTIONS", "SET_HINT_DESCRIPTIONS", "showRoomText")
@@ -438,6 +450,14 @@ local function ShowPage(i)
         end
     end
 end
+
+-- The window grows to fit its longest page, which the Rooms page became in
+-- 3.25.0.
+local tallest = 0
+for _, p in ipairs(pages) do
+    tallest = math.max(tallest, p.y)
+end
+win:SetHeight(math.max(H, tallest + 56))
 
 -- A page's entry in the side column. The page that's showing gets a gold bar
 -- and a warm fill.

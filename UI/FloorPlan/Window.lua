@@ -51,15 +51,21 @@ closeBtn:SetScript("OnClick", function()
     fp:Hide()
 end)
 
-local foldBtn = CH.MakeGlyphButton(fp, "«")
-foldBtn:SetPoint("RIGHT", closeBtn, "LEFT", -2, 0)
-foldBtn:SetScript("OnClick", function()
-    ChamberlainDB.settings.mapFolded = not ChamberlainDB.settings.mapFolded
+-- Shows and hides the build sidebar, lit while it's out. Like the bar's Build
+-- button, so it reads as the same thing. It sits first in the header, over the
+-- sidebar it opens, and the title moves over for it.
+local buildBtn = CH.MakeButton(fp, "HUD_BUILD", 70, 20)
+buildBtn:SetPoint("LEFT", fp, "TOPLEFT", 4, -13)
+CH.AddButtonIcon(buildBtn, "icon-build", 12):SetPoint("LEFT", 8, 0)
+local buildLabel = buildBtn:GetFontString()
+buildLabel:ClearAllPoints()
+buildLabel:SetPoint("LEFT", 24, 0)
+buildLabel:SetPoint("RIGHT", -4, 0)
+buildBtn:SetScript("OnClick", function()
+    ChamberlainDB.settings.railHidden = not ChamberlainDB.settings.railHidden
     FP.ApplyFold()
 end)
-CH.Tip(foldBtn, function()
-    return ChamberlainDB.settings.mapFolded and "FP_TT_UNFOLD" or "FP_TT_FOLD"
-end)
+CH.Tip(buildBtn, "FP_TT_BUILD")
 
 -- Says so in the header when the tools are gone, on a map you can only look at.
 local readOnly = CreateFrame("Frame", nil, fp, "BackdropTemplate")
@@ -80,8 +86,8 @@ rail:SetPoint("BOTTOMLEFT")
 rail:SetWidth(RAIL_W)
 FP.rail = rail
 
--- Everything right of the rail. Hidden while folded, and with it the canvas,
--- whose OnUpdate then stops too.
+-- Everything right of the rail, or the whole window with the build sidebar
+-- folded away, which FP.ApplyFold sees to.
 local map = CreateFrame("Frame", nil, fp)
 map:SetPoint("TOPLEFT", rail, "TOPRIGHT", 1, 0)
 map:SetPoint("BOTTOMRIGHT")
@@ -271,26 +277,38 @@ fp:SetScript("OnHide", function()
     FP.viewGUID = nil
 end)
 
--- Folded, the window is only the rail: the build tools to carry around the
--- house with the map out of the way. Only your own house folds. The top left
--- corner stays put, so the rail doesn't jump when the map comes and goes.
+-- Folded, the window is the map alone with the build sidebar tucked away
+-- (3.25.0, before that it folded the other way). Only your own house folds.
+-- The top right corner stays put, so the map doesn't jump when the sidebar
+-- comes and goes.
 function FP.ApplyFold()
     local edit = FP.CanEdit()
-    local folded = edit and ChamberlainDB.settings.mapFolded
-    local w = folded and RAIL_W or RAIL_W + 1 + MAP_W
-    local h = folded and FP.foldedHeight or WIN_H
-    if fp:GetWidth() ~= w or fp:GetHeight() ~= h then
-        local left, top = fp:GetLeft(), fp:GetTop()
-        if left then
+    local folded = edit and ChamberlainDB.settings.railHidden
+    local w = folded and MAP_W or RAIL_W + 1 + MAP_W
+    if fp:GetWidth() ~= w then
+        local right, top = fp:GetRight(), fp:GetTop()
+        if right then
             fp:ClearAllPoints()
-            fp:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", left, top)
+            fp:SetPoint("TOPRIGHT", UIParent, "BOTTOMLEFT", right, top)
         end
-        fp:SetSize(w, h)
+        fp:SetWidth(w)
     end
-    map:SetShown(not folded)
-    foldBtn:SetShown(edit)
-    foldBtn.glyph:SetText(folded and "»" or "«")
-    CH.SetWindowTitle(fp, folded and "TB_TITLE" or "FP_TITLE", true)
+    rail:SetShown(not folded)
+    map:ClearAllPoints()
+    if folded then
+        map:SetPoint("TOPLEFT", 0, -26)
+    else
+        map:SetPoint("TOPLEFT", rail, "TOPRIGHT", 1, 0)
+    end
+    map:SetPoint("BOTTOMRIGHT")
+    buildBtn:SetShown(edit)
+    CH.SetButtonActive(buildBtn, not folded)
+    fp.title:ClearAllPoints()
+    if edit then
+        fp.title:SetPoint("LEFT", buildBtn, "RIGHT", 8, 0)
+    else
+        fp.title:SetPoint("LEFT", fp, "TOPLEFT", 10, -13)
+    end
     readOnly:SetShown(not edit)
 end
 
@@ -329,32 +347,37 @@ function CH.OpenFloorPlan(guid)
     fp:Raise()
 end
 
--- The bar's Map button opens the whole window or unfolds a folded one, and
--- closes it when your map already shows. A map of another house counts as
--- closed, so the button brings back yours.
-function CH.ToggleFloorPlan()
+-- The bar's Map and Build buttons. Map wants the map alone and Build the map
+-- with the build sidebar. Either one closes the window when that's what shows,
+-- and turns an open window into its own view without redrawing the map. A map
+-- of another house counts as closed, so the buttons bring back yours.
+local function OpenView(hidden)
     local s = ChamberlainDB.settings
-    if fp:IsShown() and not FP.viewGUID and not (s.mapFolded and FP.CanEdit()) then
-        fp:Hide()
-    else
-        s.mapFolded = false
-        CH.OpenFloorPlan()
+    if fp:IsShown() and not FP.viewGUID then
+        if s.railHidden == hidden or not FP.CanEdit() then
+            fp:Hide()
+        else
+            s.railHidden = hidden
+            FP.ApplyFold()
+        end
+        return
     end
-end
-
--- The bar's Build button, the other way round: it folds an open map down to
--- the rail and closes the rail when that's all there is.
-function CH.OpenToolbox()
-    ChamberlainDB.settings.mapFolded = true
+    s.railHidden = hidden
     CH.OpenFloorPlan()
 end
 
+function CH.ToggleFloorPlan()
+    OpenView(true)
+end
+
 function CH.ToggleToolbox()
-    if fp:IsShown() and not FP.viewGUID and (ChamberlainDB.settings.mapFolded or not FP.CanEdit()) then
-        fp:Hide()
-    else
-        CH.OpenToolbox()
-    end
+    OpenView(false)
+end
+
+-- /rooms build, which only ever opens.
+function CH.OpenToolbox()
+    ChamberlainDB.settings.railHidden = false
+    CH.OpenFloorPlan()
 end
 
 -- Reopen the floor plan on login if it was open when we last left, but only while

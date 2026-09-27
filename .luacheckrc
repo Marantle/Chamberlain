@@ -21,6 +21,7 @@ read_globals = {
     "UIFrameFadeRemoveFrame",
     "UISpecialFrames",
     "UnitPosition",
+    "GetPlayerFacing",
     "UnitName",
     "UnitGUID",
     "IsInGroup",

@@ -33,6 +33,8 @@
     { "match": "SET_", "context": "Text in the settings window." },
     { "match": "WN_", "context": "Text in the 'What's New' update-notes popup." },
     { "match": "BP_", "context": "Text in the banner style picker, a window listing every look of the gold room banner as a small preview. The player clicks one to use it." },
+    { "match": "PL_", "context": "Text on the house plaque, a sign that shows for a few seconds when the player walks into a house. It shows the house's name, whose house it is, the owner's motto and how many floors and rooms it has." },
+    { "match": "HP_", "context": "A label, hint or button in the House panel, where the owner sets their house's name, motto, banner style and sounds." },
     { "match": "FMT_", "context": "A size or dimension readout like '40 x 30 yd'." },
     { "match": "MM_", "context": "A line in the minimap button's tooltip." },
     { "match": "HOUSE_", "context": "A housing-detection message printed to chat." },

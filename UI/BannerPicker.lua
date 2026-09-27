@@ -7,8 +7,9 @@ local _, CH = ...
 -- top. The groups run down the left under a search box, and the right side
 -- lists one group, or every match while something is typed in. A family is
 -- one row with a chip for each colour. The House panel opens it for one of
--- your houses. Choose style in Settings and What's New opens it for the house
--- you stand in when it's yours, and for your own style anywhere else.
+-- your houses and the room editor for a room. Choose style in Settings and
+-- What's New opens it for the house you stand in when it's yours, and for your
+-- own style anywhere else.
 
 local W, H = 640, 660
 local SIDE_W = 150
@@ -23,6 +24,7 @@ local sideRows = {}
 local groupOf = {} -- a style's group, by its index in CH.BANNER_GROUPS
 local long = false -- which sample name the banners show
 local houseGUID -- the house being picked for, nil while picking your own style
+local room -- the room editor's pick, { style, done }, nil outside it
 local current = 1 -- the group listed while the search box is empty
 local query = ""
 
@@ -31,19 +33,25 @@ local function SampleName()
 end
 
 local function Picked()
-    if houseGUID then
+    if room then
+        return room.style
+    elseif houseGUID then
         return ChamberlainDB.houses[houseGUID].bannerStyle
     end
     return ChamberlainDB.settings.bannerStyle
 end
 
--- Visitor's own (nil) is drawn in your style, since that's what you'd see.
+-- Visitor's own (nil) is drawn in your style, since that's what you'd see. For
+-- a room nil is the house's style.
 local function Drawn(style)
+    if room then
+        return style or CH.RoomBannerStyle(houseGUID)
+    end
     return style or ChamberlainDB.settings.bannerStyle
 end
 
 local function Label(style)
-    return style and CH.BannerStyleName(style) or CH.L["BP_EACH_OWN"]
+    return (CH.BannerPickText(style, room))
 end
 
 -- A group's entry is a style's name or a family's table.
@@ -52,21 +60,15 @@ local function EntryStyles(entry)
 end
 
 local function Pick(style)
-    if houseGUID then
+    if room then
+        room.style = style
+        room.done(style)
+    elseif houseGUID then
         CH.SetHouseBanner(houseGUID, style)
     else
         CH.SetBannerStyle(style)
     end
     win.Refresh()
-end
-
--- A grey backdrop behind a banner, a stand-in for the world it shows over.
-local function Scene(f)
-    local t = f:CreateTexture(nil, "BACKGROUND")
-    t:SetAllPoints()
-    t:SetColorTexture(1, 1, 1, 1)
-    t:SetGradient("VERTICAL", CreateColor(0.15, 0.16, 0.15, 1), CreateColor(0.23, 0.24, 0.23, 1))
-    f:SetClipsChildren(true)
 end
 
 -- One colour of a family. Under the mouse it shows in the row's sample, and a
@@ -106,7 +108,7 @@ local function StyleRow(parent, style, fam)
     local show = CreateFrame("Frame", nil, row)
     show:SetPoint("TOPLEFT", 3, -3)
     show:SetSize(SHOW_W, ROW_H - 6)
-    Scene(show)
+    CH.BannerScene(show)
     row.banner = CH.MakeBanner(show)
     row.banner:SetPoint("CENTER")
     row.banner:SetScale(0.75)
@@ -244,17 +246,24 @@ local function Build()
     CH.SkinWindow(win, "BP_TITLE", true)
     table.insert(UISpecialFrames, "ChamberlainBannerPicker")
 
-    local closeBtn = CH.MakeGlyphButton(win, "x")
-    closeBtn:SetPoint("TOPRIGHT", -4, -4)
-    closeBtn:SetScript("OnClick", function()
+    local function Close()
         win:Hide()
-    end)
+    end
+    local glyph = CH.MakeGlyphButton(win, "x")
+    glyph:SetPoint("TOPRIGHT", -4, -4)
+    glyph:SetScript("OnClick", Close)
+    local foot = CH.MakeRule(win)
+    foot:SetPoint("BOTTOMLEFT", 1, 36)
+    foot:SetPoint("BOTTOMRIGHT", -1, 36)
+    local closeBtn = CH.MakeButton(win, "BP_CLOSE", 90, 22)
+    closeBtn:SetPoint("BOTTOMRIGHT", -12, 8)
+    closeBtn:SetScript("OnClick", Close)
 
     local stage = CreateFrame("Frame", nil, win)
     stage:SetPoint("TOPLEFT", 12, -34)
     stage:SetPoint("TOPRIGHT", -12, -34)
     stage:SetHeight(110)
-    Scene(stage)
+    CH.BannerScene(stage)
     hero = CH.MakeBanner(stage)
     hero:SetPoint("CENTER")
     hero:SetScale(0.9)
@@ -284,7 +293,7 @@ local function Build()
     local scroll
     scroll, list = CH.MakeScrollList(win, "ChamberlainBannerPickerScroll")
     scroll:SetPoint("TOPLEFT", rule, "BOTTOMLEFT", SIDE_W + 12, -8)
-    scroll:SetPoint("BOTTOMRIGHT", -22, 12)
+    scroll:SetPoint("BOTTOMRIGHT", -22, 44)
     list:SetWidth(LIST_W)
     win.scroll = scroll
 
@@ -294,8 +303,9 @@ local function Build()
     hintFS:SetJustifyH("LEFT")
     hintFS:SetTextColor(CH.RGBA(CH.COLORS.dim, 1))
 
-    -- a house's list starts with each visitor's own
+    -- a house's list starts with each visitor's own, a room's with the house's
     local own = StyleRow(list, nil)
+    win.own = own
     for i, group in ipairs(CH.BANNER_GROUPS) do
         for _, entry in ipairs(group.styles) do
             local fam = type(entry) == "table" and entry or nil
@@ -348,8 +358,9 @@ local function Build()
             row:Mark(row:IsMouseOver())
         end
         CH.PaintBanner(hero, SampleName(), nil, true, Drawn(style))
-        nameFS:SetText(Label(style))
-        noteFS:SetText(CH.L[style and CH.BannerStyleNote(style) or "BP_NOTE_EACH_OWN"])
+        local name, note = CH.BannerPickText(style, room)
+        nameFS:SetText(name)
+        noteFS:SetText(note)
     end
     -- the sample name changed, so every row repaints too
     function win.Repaint()
@@ -363,14 +374,18 @@ local function Build()
     end
 end
 
--- guid picks the style of that house of yours, nil your own. It opens on the
--- group of the style in use.
-function CH.OpenBannerPicker(guid)
+-- guid picks the style of that house of yours, nil your own. With pick it's
+-- for a room of that house instead: pick.style is the room's style so far and
+-- pick.done(style) hears every click. It opens on the group of the style in
+-- use.
+function CH.OpenBannerPicker(guid, pick)
     houseGUID = guid
+    room = pick
     if not win then
         Build()
     end
-    CH.SetWindowTitle(win, houseGUID and "BP_TITLE_HOUSE" or "BP_TITLE", true)
+    CH.SetWindowTitle(win, room and "BP_TITLE_ROOM" or houseGUID and "BP_TITLE_HOUSE" or "BP_TITLE", true)
+    win.own.label:SetText(Label(nil))
     current = groupOf[Drawn(Picked())] or 1
     query = ""
     win.searchBox:SetText("")
@@ -378,4 +393,12 @@ function CH.OpenBannerPicker(guid)
     win:Show()
     win:Raise()
     win.Repaint()
+end
+
+-- The room editor closing takes a room's picker with it, or its clicks would
+-- land on a dialog that's gone.
+function CH.CloseRoomBannerPicker()
+    if room then
+        win:Hide()
+    end
 end

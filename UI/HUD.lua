@@ -5,9 +5,9 @@ local _, CH = ...
 -- ─────────────────────────────────────────────────────────────────────
 -- The old position HUD tried to do three jobs at once: show live coords, create
 -- rooms (Mark A / Mark B / Create), and launch the windows. That stacked up to
--- seven buttons. It is a small launcher now. Build opens the map folded to
--- its build rail and Sharing the Rooms window, which holds your houses and the
--- maps of everybody else. The map has its own button when you're visiting a
+-- seven buttons. It is a small launcher now. Build opens the map with its
+-- build sidebar, Map the map alone and Sharing the Rooms window, which holds
+-- your houses and the maps of everybody else. The map has its own button when you're visiting a
 -- house you hold a layout for.
 --
 -- The row is for the windows you work in. Settings and the mute are icons in
@@ -65,9 +65,10 @@ end
 
 local btnBuild = NavButton("HUD_BUILD", "icon-build", 70)
 local btnMap = NavButton("HUD_MAP", "icon-map", 64)
+local btnHouse = NavButton("HUD_HOUSE_BUTTON", "icon-seal", 72)
 local btnArchive = NavButton("HUD_ARCHIVE", "icon-map", 76)
 local btnSharing = NavButton("HUD_SHARING", "icon-share", 80)
-local rowButtons = { btnBuild, btnMap, btnArchive, btnSharing }
+local rowButtons = { btnBuild, btnMap, btnHouse, btnArchive, btnSharing }
 
 local function MakeHeaderIcon(texture)
     local b = CreateFrame("Button", nil, hud)
@@ -130,6 +131,9 @@ end)
 btnArchive:SetScript("OnClick", function()
     CH.ToggleArchive()
 end)
+btnHouse:SetScript("OnClick", function()
+    CH.ToggleHousePanel()
+end)
 btnSettings:SetScript("OnClick", function()
     CH.ToggleSettings()
 end)
@@ -143,25 +147,6 @@ btnSound:SetPoint("RIGHT", btnSettings, "LEFT", -4, 0)
 local muteMark = btnSound:CreateTexture(nil, "OVERLAY")
 muteMark:SetAllPoints()
 muteMark:SetTexture("Interface\\Common\\VoiceChat-Muted")
-
--- The house panel, in a house of yours. The seal is our own svg, so it gets
--- tinted like the row buttons' icons instead of a highlight texture.
-local btnHouse = CreateFrame("Button", nil, hud)
-btnHouse:SetSize(16, 16)
-btnHouse.icon = CH.MakeIcon(btnHouse, "icon-seal", 16)
-btnHouse.icon:SetPoint("CENTER")
-btnHouse.icon:SetVertexColor(CH.RGBA(CH.COLORS.tipGold, 1))
-btnHouse:Hide()
-btnHouse:SetScript("OnClick", function()
-    CH.ToggleHousePanel()
-end)
-btnHouse:SetScript("OnEnter", function(self)
-    self.icon:SetVertexColor(1, 1, 1)
-end)
-btnHouse:SetScript("OnLeave", function(self)
-    self.icon:SetVertexColor(CH.RGBA(CH.COLORS.tipGold, 1))
-end)
-CH.Tip(btnHouse, "HUD_HOUSE")
 
 -- The kinds a player can mute one by one, label key and settings key. Either
 -- click on the speaker opens these, under a Mute all that throws the master
@@ -341,6 +326,7 @@ end)
 
 CH.Tip(btnBuild, "HUD_TT_BUILD")
 CH.Tip(btnMap, "HUD_TT_MAP")
+CH.Tip(btnHouse, "HUD_HOUSE")
 CH.Tip(btnArchive, "HUD_TT_ARCHIVE")
 CH.Tip(btnSharing, "HUD_TT_SHARING")
 CH.Tip(btnNotes, "HUD_TT_NOTES")
@@ -351,18 +337,58 @@ CH.Tip(btnSound, "HUD_TT_SOUND")
 -- changes, nil between rooms.
 local hudRoom
 
-local function TitleText()
-    local text = hudRoom and hudRoom.name
-    if not text then
-        local owner = CH.currentHouseOwner
-        text = owner and string.format(CH.L["FP_X_HOUSE"], owner) or CH.L["HUD_TITLE"]
-    end
+local function OwnerText()
+    local owner = CH.currentHouseOwner
+    return owner and string.format(CH.L["FP_X_HOUSE"], owner) or CH.L["HUD_TITLE"]
+end
+
+local function FloorCount()
     local h = CH.currentHouseGUID and ChamberlainDB.houses[CH.currentHouseGUID]
-    if h and (h.floorCount or 1) > 1 then
+    return h and h.floorCount or 1
+end
+
+local function TitleText()
+    local text = hudRoom and hudRoom.name or OwnerText()
+    if FloorCount() > 1 then
         text = text .. "  |cff999999" .. string.format(CH.L["RD_FLOOR_X"], CH.activeFloor or 1) .. "|r"
     end
     return text
 end
+
+-- A long room name gets cut short in the header, so hovering it shows all of
+-- it with the house and the floor. Leaving the clicks to the bar stopped the
+-- drag from starting on the title at all, so a drag here is handed on to the
+-- bar's own.
+local titleHover = CreateFrame("Frame", nil, hud)
+titleHover:SetAllPoints(title)
+titleHover:EnableMouse(true)
+titleHover:RegisterForDrag("LeftButton")
+titleHover:SetScript("OnDragStart", function()
+    GameTooltip:Hide()
+    hud:GetScript("OnDragStart")(hud)
+end)
+titleHover:SetScript("OnDragStop", function()
+    hud:GetScript("OnDragStop")(hud)
+end)
+titleHover:SetScript("OnEnter", function(self)
+    GameTooltip:SetOwner(self, "ANCHOR_TOP")
+    GameTooltip:SetText(hudRoom and hudRoom.name or OwnerText(), unpack(CH.COLORS.tipGold))
+    local name = CH.currentHouseGUID and CH.HouseName(CH.currentHouseGUID)
+    if name then
+        GameTooltip:AddLine(name, 1, 1, 1, true)
+    end
+    if hudRoom then
+        GameTooltip:AddLine(OwnerText(), 0.8, 0.8, 0.8)
+    end
+    local floors = FloorCount()
+    if floors > 1 then
+        GameTooltip:AddLine(string.format(CH.L["HUD_FLOOR_X_OF_Y"], CH.activeFloor or 1, floors), 0.8, 0.8, 0.8)
+    end
+    GameTooltip:Show()
+end)
+titleHover:SetScript("OnLeave", function()
+    GameTooltip:Hide()
+end)
 
 -- The label beside the icon on the card, the icon alone on the strip.
 local function DressButton(b, strip)
@@ -515,10 +541,15 @@ function CH.RefreshHUDMode()
     local h = guid and ChamberlainDB.houses[guid]
     local buttons
     if CH.isOwnHouse then
+        -- House waits for the game to say which house this is, up to a few
+        -- seconds after a reload, since the panel files everything under it
+        buttons = { btnBuild, btnMap }
+        if guid then
+            buttons[3] = btnHouse
+        end
+        buttons[#buttons + 1] = btnSharing
         if CH.ArchiveWaiting(guid) then
-            buttons = { btnBuild, btnMap, btnSharing, btnArchive }
-        else
-            buttons = { btnBuild, btnMap, btnSharing }
+            buttons[#buttons + 1] = btnArchive
         end
     elseif h and h.zones and #h.zones > 0 then
         buttons = { btnMap, btnSharing }
@@ -534,15 +565,6 @@ function CH.RefreshHUDMode()
     end
     local leftmost = sounds and btnSound or btnSettings
     local icons = sounds and 2 or 1
-    -- the panel works on the house's saved entry, so not before the first room
-    local ownHouse = CH.isOwnHouse and h ~= nil
-    btnHouse:SetShown(ownHouse)
-    if ownHouse then
-        btnHouse:ClearAllPoints()
-        btnHouse:SetPoint("RIGHT", leftmost, "LEFT", -4, 0)
-        leftmost = btnHouse
-        icons = icons + 1
-    end
     local unread = ChamberlainDB.unreadSince ~= nil
     btnNotes:SetShown(unread)
     if unread then

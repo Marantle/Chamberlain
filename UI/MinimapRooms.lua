@@ -52,6 +52,7 @@ local tiles, blips = {}, {}
 local me = FP.MakeBlip(overlay, overlay:GetFrameLevel() + 2)
 me:SetPoint("CENTER")
 me:Show() -- blips start hidden but this one never moves or goes away
+FP.AddFacingArrow(me)
 
 -- A room here is two textures and a mask right on the overlay, with the
 -- same fields as a house map tile so FP.SetTileShape works on both. Frames
@@ -173,6 +174,7 @@ overlay:SetScript("OnUpdate", function()
     if not px then
         return
     end
+    FP.PointFacing(me)
     local w = Minimap:GetWidth()
     local s = w / YARDS_ACROSS[Minimap:GetZoom() + 1]
     -- How far out from the centre an icon or blip may sit and still clear the

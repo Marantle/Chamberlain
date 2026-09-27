@@ -21,6 +21,21 @@ local _, CH = ...
 -- show under the notes, a frame with a Refresh method.
 CH.WHATS_NEW = {
     {
+        v = "3.25.0",
+        notes = {
+            "A room can have its own banner style now. Edit the room and look at the new Banner tab.",
+            "A room without one uses your house's style, so set the house once and change only the "
+                .. "rooms that need it. Your group needs 3.25.0 to see room styles.",
+            "The banner fades from one room's name to the next. Set how long under Fade between "
+                .. "rooms in Settings.",
+            "Your dot on the house map and the minimap shows which way you face.",
+            "The House panel has its own button on the bar now, in every house of yours. Hover the "
+                .. "room name in the bar to see all of it.",
+            "Map opens the house map on its own and Build opens it with the build tools. Build in "
+                .. "the map's corner shows or hides them.",
+        },
+    },
+    {
         v = "3.24.0",
         notes = {
             "71 new banner styles made from the game's own art, from the scenario banners to "

@@ -36,6 +36,24 @@ function FP.MakeBlip(parent, level)
     return bf
 end
 
+-- A small wedge on your own blip's rim that FP.PointFacing turns with your
+-- facing (3.25.0). The house map and the minimap rooms are both drawn north
+-- up like the game's map, so the facing goes on as is.
+function FP.AddFacingArrow(bf)
+    bf.arrow = bf:CreateTexture(nil, "ARTWORK")
+    bf.arrow:SetTexture(CH.MEDIA .. "dot-arrow.tga")
+    bf.arrow:SetSize(26, 26)
+    bf.arrow:SetPoint("CENTER")
+end
+
+function FP.PointFacing(bf)
+    local facing = GetPlayerFacing()
+    bf.arrow:SetShown(facing ~= nil)
+    if facing then
+        bf.arrow:SetRotation(facing)
+    end
+end
+
 -- Tint a blip in a unit's class colour and letter it with their initial.
 function FP.PaintBlip(bf, unit)
     local _, class = UnitClass(unit)
@@ -57,6 +75,7 @@ end)
 dotFrame:SetScript("OnLeave", function()
     GameTooltip:Hide()
 end)
+FP.AddFacingArrow(dotFrame)
 
 local function MakeCornerMarker(label, r, g, b)
     local mf = CreateFrame("Frame", nil, canvas)
@@ -195,6 +214,7 @@ canvas:SetScript("OnUpdate", function()
         dotFrame.lettered = true
     end
     dotFrame:Show()
+    FP.PointFacing(dotFrame)
 
     if CH.pendingA then
         local ax, ay = FP.WorldToCanvas(CH.pendingA.x, CH.pendingA.y)

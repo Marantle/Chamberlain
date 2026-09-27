@@ -1,5 +1,34 @@
 # Changelog
 
+## 3.25.0
+- A room can have its own banner style. Edit the room and open the new Banner
+  tab. It shows the room's banner big, with Choose style under it.
+- A room with no style of its own uses the house's style, the one you set in
+  the House panel. House style at the top of the picker puts a room back on
+  it.
+- The small banner at the top of the room editor now shows the style the room
+  uses. Before, it always showed your own.
+- The room's style goes to your group with the map when you save. Sound
+  changes still reach them right away, but a new style comes with the map.
+- Keep my style in other houses skips room styles too.
+- Your group needs 3.25.0 to see a room's style. An older client shows the
+  house's style there.
+- Walking from one room into the next, the banner fades the old name out and
+  the new one in. Fade between rooms on the Rooms page of Settings sets how
+  long, half a second to start with. Off swaps the name at once, like before.
+- The banner style picker has a Close button at the bottom.
+- The small house icon in the bar's header is now a House button next to
+  Build and Map. It shows in every house of yours, even one with no rooms
+  yet, so a new house can get its name, banner and sounds first.
+- Map on the bar opens the house map without the build tools, and Build opens
+  it with them. The Build button in the map's corner shows or hides the tools
+  and replaces the small arrow that folded the map away. The window with only
+  the build tools is gone.
+- The room name in the bar's header has more space. Hover it to see the full
+  name, the house and which floor you are on.
+- Your own dot on the house map and on the minimap has a small arrow on its
+  edge that shows which way you face.
+
 ## 3.24.0
 - 71 new banner styles the addon draws from the game's own files, so they
   look the way they do in the game. Nothing new ships with the addon for

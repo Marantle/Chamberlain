@@ -4,7 +4,7 @@ local _, CH = ...
 -- Room dialog: create and edit (name, color, head, description)
 -- ─────────────────────────────────────────────────────────────────────
 -- The name and colour sit on top with a live copy of the banner under them.
--- The rest sits on three tabs, Room, Yapper and Sound.
+-- The rest sits on four tabs, Room, Yapper, Sound and Banner.
 
 local W, H = 380, 470
 local LABEL_W = 90 -- the label column, the controls start after it
@@ -34,6 +34,7 @@ local pendingMusic = nil -- music file id, nil = none
 local pendingSfx = nil -- file id of the sound on entry, nil = none
 local pendingSfxPlays = nil -- see SetPendingSfx
 local pendingEcho = nil -- how far the others hear the sound on entry, see CH.SendEcho
+local pendingBannerStyle = nil -- the room's own banner style, nil for the house's
 
 -- Which floor the room sits on, and whether it doubles as a stair anchor.
 -- pendingSetFloor / pendingFloorDelta are mutually exclusive and both nil for an
@@ -44,8 +45,12 @@ local pendingFloorDelta = nil
 
 -- The house this dialog is acting on: the renamed zone's house in edit mode, or
 -- the house we're standing in when creating.
+local function DialogGUID()
+    return renameTarget and (renameHouseGUID or CH.currentHouseGUID) or CH.currentHouseGUID
+end
+
 local function DialogHouse()
-    local guid = renameTarget and (renameHouseGUID or CH.currentHouseGUID) or CH.currentHouseGUID
+    local guid = DialogGUID()
     return guid and ChamberlainDB.houses[guid]
 end
 
@@ -68,22 +73,29 @@ editBox:SetPoint("RIGHT", copyBtn, "LEFT", -8, 0)
 editBox:SetAutoFocus(false)
 editBox:SetMaxLetters(48)
 
--- The real banner in your own style (Housing/Banner.lua), shrunk to fit, so
--- a colour pick shows what walking in will look like.
+-- The real banner (Housing/Banner.lua) in the style the room will show,
+-- shrunk to fit, so a colour pick shows what walking in will look like.
 local preview = CreateFrame("Frame", nil, dialog)
 preview:SetPoint("TOPLEFT", 12, -66)
 preview:SetPoint("TOPRIGHT", -12, -66)
 preview:SetHeight(38)
 local previewBanner = CH.MakeBanner(preview)
 previewBanner:SetPoint("CENTER")
-previewBanner:SetScale(0.62)
 
+-- Paint b at up to scale, smaller for a long name in a wide style so it stays
+-- inside its frame. The frame has no width yet while the dialog is still
+-- being built.
+local function PaintPreview(b, scale)
+    local style = pendingBannerStyle or CH.RoomBannerStyle(DialogGUID())
+    CH.PaintBanner(b, editBox:GetText(), pendingColor, false, style)
+    local w = b:GetParent():GetWidth()
+    b:SetScale(w > 0 and math.min(scale, w / b:GetWidth()) or scale)
+end
+
+local UpdateBannerTab -- set once the Banner tab exists
 local function UpdatePreview()
-    CH.PaintBanner(previewBanner, editBox:GetText(), pendingColor, false, ChamberlainDB.settings.bannerStyle)
-    -- a long name in a wide style shrinks further to stay inside the dialog.
-    -- The row has no width yet while the dialog is still being built.
-    local room = preview:GetWidth()
-    previewBanner:SetScale(room > 0 and math.min(0.62, room / previewBanner:GetWidth()) or 0.62)
+    PaintPreview(previewBanner, 0.62)
+    UpdateBannerTab()
 end
 editBox:HookScript("OnTextChanged", UpdatePreview)
 
@@ -124,7 +136,7 @@ local function Pane()
     panes[#panes + 1] = p
     return p
 end
-local paneRoom, paneYapper, paneSound = Pane(), Pane(), Pane()
+local paneRoom, paneYapper, paneSound, paneBanner = Pane(), Pane(), Pane(), Pane()
 
 local function ShowPane(i)
     for n, p in ipairs(panes) do
@@ -132,7 +144,7 @@ local function ShowPane(i)
     end
 end
 
-local tabs = CH.MakeTabs(dialog, { "RD_TAB_ROOM", "RD_TAB_YAPPER", "RD_TAB_SOUND" }, ShowPane)
+local tabs = CH.MakeTabs(dialog, { "RD_TAB_ROOM", "RD_TAB_YAPPER", "RD_TAB_SOUND", "RD_TAB_BANNER" }, ShowPane)
 tabs:SetPoint("TOPLEFT", 12, -110)
 tabs:SetPoint("TOPRIGHT", -12, -110)
 
@@ -715,6 +727,58 @@ sfxBtn:SetScript("OnClick", function()
     CH.OpenMusicPicker(pendingSfx, SetPendingSfx, DialogHouse(), true, pendingSfxPlays, pendingEcho)
 end)
 
+-- ── Banner tab ───────────────────────────────────────────────────────
+
+-- The room's own banner style, over the house's. It goes out with the map
+-- onyl, never as a patch of its own. A room with Banner unticked on the Room
+-- tab shows none, so the tab greys out for it.
+local bannerStage = CreateFrame("Frame", nil, paneBanner)
+bannerStage:SetPoint("TOPLEFT", 0, -4)
+bannerStage:SetPoint("TOPRIGHT", 0, -4)
+bannerStage:SetHeight(96)
+CH.BannerScene(bannerStage)
+local stageBanner = CH.MakeBanner(bannerStage)
+stageBanner:SetPoint("CENTER")
+
+local styleName = paneBanner:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+styleName:SetPoint("TOPLEFT", bannerStage, "BOTTOMLEFT", 2, -10)
+local styleNote = paneBanner:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+styleNote:SetPoint("TOPLEFT", styleName, "BOTTOMLEFT", 0, -3)
+styleNote:SetWidth(PANE_W - 130)
+styleNote:SetJustifyH("LEFT")
+styleNote:SetTextColor(CH.RGBA(CH.COLORS.dim, 1))
+
+local chooseBtn = CH.MakeButton(paneBanner, "SET_BANNER_CHOOSE", 110, 22)
+chooseBtn:SetPoint("TOPRIGHT", bannerStage, "BOTTOMRIGHT", 0, -10)
+
+local bannerHint = paneBanner:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+bannerHint:SetPoint("TOPLEFT", bannerStage, "BOTTOMLEFT", 2, -68)
+bannerHint:SetWidth(PANE_W - 4)
+bannerHint:SetJustifyH("LEFT")
+bannerHint:SetTextColor(CH.RGBA(CH.COLORS.dim, 1))
+
+UpdateBannerTab = function()
+    local on = bannerCheck:GetChecked()
+    PaintPreview(stageBanner, 0.85)
+    bannerStage:SetAlpha(on and 1 or 0.35)
+    chooseBtn:SetEnabled(on)
+    local name, note = CH.BannerPickText(pendingBannerStyle, true)
+    styleName:SetText(name)
+    styleNote:SetText(note)
+    bannerHint:SetText(CH.L[on and "RD_BANNER_STYLE_HINT" or "RD_BANNER_STYLE_OFF"])
+end
+bannerCheck:HookScript("OnClick", UpdateBannerTab)
+
+chooseBtn:SetScript("OnClick", function()
+    CH.OpenBannerPicker(DialogGUID(), {
+        style = pendingBannerStyle,
+        done = function(style)
+            pendingBannerStyle = style
+            UpdatePreview()
+        end,
+    })
+end)
+
 -- ── Floor row behaviour ──────────────────────────────────────────────
 
 -- Label for the current stair link state.
@@ -821,13 +885,14 @@ CH.SetButtonActive(btnOK, true)
 -- and stay, so Copy from can use this too.
 local function FillSettings(zone)
     pendingHeadID = zone.headID or 1
-    SetPendingColor(zone.color)
+    pendingBannerStyle = zone.bannerStyle
     descBox:SetText(zone.rpText or "")
     headIdBox:SetText(zone.headDisplay and tostring(zone.headDisplay) or "")
     speakerBox:SetText(zone.speaker or "")
     ownerCheck:SetChecked(zone.useOwnerHead)
     secretCheck:SetChecked(zone.secret)
     bannerCheck:SetChecked(not zone.noBanner)
+    SetPendingColor(zone.color) -- repaints both banners, so it comes after the Banner tick
     pendingAmbience = zone.ambience
     ambienceBtn:Refresh()
     SetPendingMusic(zone.music)
@@ -848,6 +913,7 @@ local function CloseDialog()
     end -- don't keep narrating after the dialog closes
     SetTesting(false)
     SetPreviewing(false)
+    CH.CloseRoomBannerPicker()
     dialog:Hide()
     renameTarget = nil
     renameHouseGUID = nil
@@ -942,6 +1008,8 @@ local function ConfirmZone()
             renameTarget.rpText = GetDescText()
             renameTarget.secret = secretCheck:GetChecked() or nil
             renameTarget.noBanner = not bannerCheck:GetChecked() or nil
+            -- no patch for this one, so a new style makes the group pull the map
+            renameTarget.bannerStyle = pendingBannerStyle
             renameTarget.ambience = pendingAmbience
             renameTarget.music = pendingMusic
             renameTarget.sfx = pendingSfx
@@ -1017,12 +1085,7 @@ function CH.CreateZoneAt(x, y, mapID, shape)
         CH.Print(CH.L["RD_HOUSE_NOT_IDENTIFIED"])
         return
     end
-    if not ChamberlainDB.houses[CH.currentHouseGUID] then
-        ChamberlainDB.houses[CH.currentHouseGUID] = { owner = CH.currentHouseOwner, zones = {} }
-    end
-    local h = ChamberlainDB.houses[CH.currentHouseGUID]
-    h.owner = CH.currentHouseOwner or h.owner
-    h.floorCount = h.floorCount or 1
+    local h = CH.CurrentHouse()
     local def = CH.SHAPES[shape]
     local bw, bh = CH.SQUARE_SIZES[1][2], CH.SQUARE_SIZES[1][2]
     if def then

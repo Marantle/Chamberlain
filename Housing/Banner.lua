@@ -5,8 +5,9 @@ local _, CH = ...
 -- ─────────────────────────────────────────────────────────────────────
 -- The name of the room you walk into, in the room's colour. How it's drawn is
 -- your choice in Settings (bannerStyle), unless the house's owner picked a
--- style for it (h.bannerStyle, 3.20.0). Keep my style in other houses turns
--- an owner's pick off, but never your own house's.
+-- style for it (h.bannerStyle, 3.20.0) or for the room (zone.bannerStyle,
+-- 3.25.0). Keep my style in other houses turns an owner's picks off, but
+-- never your own house's.
 -- CH.MakeBanner builds the pieces once and a style shows the ones it needs,
 -- so the room editor and Settings draw their previews with the same code as
 -- the real banner.
@@ -1125,6 +1126,17 @@ function CH.BannerStyleNote(style)
     return GAME[style] and "BP_NOTE_GAME" or "BP_NOTE_TINT"
 end
 
+-- A pick's name and the line under it. No pick leaves a room to its house and
+-- a house to each visitor.
+function CH.BannerPickText(style, forRoom)
+    if style then
+        return CH.BannerStyleName(style), CH.L[CH.BannerStyleNote(style)]
+    elseif forRoom then
+        return CH.L["BP_HOUSE_OWN"], CH.L["BP_NOTE_HOUSE_OWN"]
+    end
+    return CH.L["BP_EACH_OWN"], CH.L["BP_NOTE_EACH_OWN"]
+end
+
 -- Draw name in colour c (nil for the default gold) in style, with or without
 -- the Read button.
 function CH.PaintBanner(b, name, c, read, style)
@@ -1167,17 +1179,18 @@ function CH.SetBannerRoom(zone)
         return
     end
     local read = zone.rpText ~= nil and zone.rpText ~= "" and ChamberlainDB.settings.showRoomText
-    CH.PaintBanner(banner, zone.name, zone.color, read, CH.HouseBannerStyle(CH.currentHouseGUID))
+    CH.PaintBanner(banner, zone.name, zone.color, read, CH.RoomBannerStyle(CH.currentHouseGUID, zone.bannerStyle))
 end
 
--- The owner's pick for the house wins over yours, unless you keep your own in
--- other houses. Your own house's pick always shows, or picking a style there
+-- The owner's pick for the room wins over the one for the house, and that one
+-- over yours (roomStyle is the room's, 3.25.0). Keep my style in other houses
+-- skips both. Your own house's picks always show, or picking a style there
 -- would change nothing you can see.
-function CH.HouseBannerStyle(guid)
+function CH.RoomBannerStyle(guid, roomStyle)
     local s = ChamberlainDB.settings
     local h = ChamberlainDB.houses[guid]
-    if h and h.bannerStyle and (ChamberlainDB.myHouses[guid] or not s.ownBannerStyle) then
-        return h.bannerStyle
+    if h and (ChamberlainDB.myHouses[guid] or not s.ownBannerStyle) then
+        return roomStyle or h.bannerStyle or s.bannerStyle
     end
     return s.bannerStyle
 end
@@ -1226,6 +1239,15 @@ local function OwnHouseHere()
     return CH.isOwnHouse and ChamberlainDB.houses[guid] and guid or nil
 end
 
+-- A grey backdrop behind a banner, a stand-in for the world it shows over.
+function CH.BannerScene(f)
+    local t = f:CreateTexture(nil, "BACKGROUND")
+    t:SetAllPoints()
+    t:SetColorTexture(1, 1, 1, 1)
+    t:SetGradient("VERTICAL", CreateColor(0.15, 0.16, 0.15, 1), CreateColor(0.23, 0.24, 0.23, 1))
+    f:SetClipsChildren(true)
+end
+
 -- A sample banner in the chosen style with a button that opens the picker, h
 -- tall, the one Settings and What's New both show. p:Refresh() syncs it to
 -- the house's style or yours, see OwnHouseHere.
@@ -1257,6 +1279,7 @@ CH.ApplyBannerPos = CH.MakeMovablePersistent(banner, "bannerX", "bannerY")
 -- outside a house. So the banner is Shown while announcing a room and Hidden once
 -- it finishes fading out, rather than just left sitting at alpha 0.
 local bannerTimer -- pending auto fade-out (ChamberlainDB.settings.bannerTimeout)
+local swapTimer -- pending second half of a room to room swap, see CH.EnterBannerRoom
 
 function CH.ShowBanner(dur)
     if bannerTimer then
@@ -1276,11 +1299,38 @@ function CH.ShowBanner(dur)
     end
 end
 
-function CH.HideBanner(dur)
+local function CancelTimers()
     if bannerTimer then
         bannerTimer:Cancel()
         bannerTimer = nil
     end
+    if swapTimer then
+        swapTimer:Cancel()
+        swapTimer = nil
+    end
+end
+
+-- Walking from one room into the next, the old name fades out and the new one
+-- in, half of settings.bannerSwap each way (3.25.0). From no room, or with the
+-- banner already faded, it's the plain fade in.
+function CH.EnterBannerRoom(zone)
+    CancelTimers()
+    local half = ChamberlainDB.settings.bannerSwap / 2
+    if half <= 0 or not banner:IsShown() or banner:GetAlpha() <= 0.05 then
+        CH.SetBannerRoom(zone)
+        CH.ShowBanner(0.5)
+        return
+    end
+    UIFrameFadeOut(banner, half, banner:GetAlpha(), 0)
+    swapTimer = C_Timer.NewTimer(half, function()
+        swapTimer = nil
+        CH.SetBannerRoom(zone)
+        CH.ShowBanner(half)
+    end)
+end
+
+function CH.HideBanner(dur)
+    CancelTimers()
     dur = dur or 0.8
     UIFrameFadeOut(banner, dur, banner:GetAlpha(), 0)
     C_Timer.After(dur, function()
