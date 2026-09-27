@@ -82,12 +82,13 @@ stairs spiral, one flight sits above the next. Keep the marks of each flight
 off the same spot, or they trigger each other.
 
 The game knows which of its rooms you stand in, and Floor check uses that.
-Edit a room, stand in the game room it sits in and click Link to the room
+Edit a room, stand in the game room it sits in and click Remember the room
 I'm in. From then on, walking into that game room puts you back on the
-room's floor if a stair got missed. In a stairwell link only on the bottom
-or the top floor, since the floors between can share one game room. Move the
-game room to another floor or remove it in the editor and the link comes
-off, with a line in chat.
+room's floor if a stair got missed. Chamberlain only keeps a note of the
+game room on its own map, and your house in the game stays as it is. In a
+stairwell remember it only on the bottom or the top floor, since the floors
+between can share one game room. Move the game room to another floor or
+remove it in the editor and Chamberlain forgets it, with a line in chat.
 
 ## Room name, description and talking head
 

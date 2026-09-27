@@ -279,7 +279,11 @@ end
 -- passed without branded. Also used by dialogs whose title changes with the job.
 function CH.SetWindowTitle(f, titleKey, branded)
     local t = CH.L[titleKey]
-    f.title:SetText(branded and ("|cffFFD700Chamberlain|r  " .. t) or t)
+    f.title:SetText(branded and CH.Branded(t) or t)
+end
+
+function CH.Branded(text)
+    return "|cffFFD700Chamberlain|r  " .. text
 end
 
 -- Slim scrollbar: hides the arrow buttons, stretches the bar over their
@@ -563,6 +567,51 @@ function CH.MakeDraggable(f)
     f:RegisterForDrag("LeftButton")
     f:SetScript("OnDragStart", f.StartMoving)
     f:SetScript("OnDragStop", f.StopMovingOrSizing)
+end
+
+-- One yes/cancel dialog for the whole addon, skinned like the rest rather than
+-- a Blizzard StaticPopup. The frame grows to fit the text.
+local confirm
+function CH.ShowConfirm(titleKey, text, yesKey, onYes)
+    if not confirm then
+        confirm = CreateFrame("Frame", "ChamberlainConfirm", UIParent, "BackdropTemplate")
+        confirm:SetWidth(380)
+        confirm:SetFrameStrata("FULLSCREEN_DIALOG")
+        confirm:SetToplevel(true)
+        confirm:SetPoint("CENTER")
+        CH.MakeDraggable(confirm)
+        CH.SkinWindow(confirm, titleKey, true)
+        table.insert(UISpecialFrames, "ChamberlainConfirm")
+        -- A set width, since measuring the text right after the first
+        -- SetText came out short with the width left to the anchors.
+        local body = confirm:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+        body:SetPoint("TOPLEFT", 18, -38)
+        body:SetWidth(380 - 36)
+        body:SetJustifyH("LEFT")
+        body:SetJustifyV("TOP")
+        body:SetSpacing(3)
+        confirm.body = body
+        local yes = CH.MakeButton(confirm, yesKey, 130, 24)
+        yes:SetPoint("BOTTOMRIGHT", confirm, "BOTTOM", -4, 12)
+        yes:SetScript("OnClick", function()
+            confirm:Hide()
+            confirm.onYes()
+        end)
+        confirm.yes = yes
+        local no = CH.MakeButton(confirm, "SKIN_CANCEL", 90, 24)
+        no:SetPoint("BOTTOMLEFT", confirm, "BOTTOM", 4, 12)
+        no:SetScript("OnClick", function()
+            confirm:Hide()
+        end)
+    end
+    CH.SetWindowTitle(confirm, titleKey, true)
+    confirm.yes:SetText(CH.L[yesKey])
+    confirm.body:SetText(text)
+    local h = confirm.body:GetStringHeight()
+    confirm.body:SetHeight(h)
+    confirm:SetHeight(h + 90)
+    confirm.onYes = onYes
+    confirm:Show()
 end
 
 -- Like MakeDraggable, but the frame's centre offset from UIParent is saved to

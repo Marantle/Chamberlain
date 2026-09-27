@@ -631,7 +631,15 @@ btnExport:SetScript("OnClick", function()
 end)
 
 btnShare:SetScript("OnClick", function()
-    CH.ShareAll(selected)
+    local guid = selected
+    CH.ShowConfirm(
+        "RM_SHARE_CONFIRM_TITLE",
+        string.format(CH.L["RM_SHARE_CONFIRM_X"], CH.HouseName(guid) or CH.L["RM_THIS_HOUSE"]),
+        "RM_SHARE",
+        function()
+            CH.ShareAll(guid)
+        end
+    )
 end)
 
 btnHouse:SetScript("OnClick", function()

@@ -193,44 +193,7 @@ end)
 -- Actually delete the top floor: every zone on it, plus any stair anchor that
 -- links to it (the anchor's other landing sits a floor below and would otherwise
 -- dangle). Floors below keep their numbers, so nothing has to be renumbered.
-local DoRemoveTopFloor -- forward declaration; the confirm dialog calls it
-
--- Confirm dialog for removing a populated top floor. Custom-skinned to match the
--- rest of the addon rather than a Blizzard StaticPopup.
-local removeConfirm
-local function ShowRemoveConfirm(msg)
-    if not removeConfirm then
-        removeConfirm = CreateFrame("Frame", "ChamberlainRemoveFloorConfirm", UIParent, "BackdropTemplate")
-        removeConfirm:SetSize(380, 200)
-        removeConfirm:SetFrameStrata("FULLSCREEN_DIALOG")
-        removeConfirm:SetToplevel(true)
-        removeConfirm:SetPoint("CENTER")
-        CH.MakeDraggable(removeConfirm)
-        CH.SkinWindow(removeConfirm, "FP_REMOVE_FLOOR_TITLE", true)
-        local body = removeConfirm:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-        body:SetPoint("TOPLEFT", 18, -38)
-        body:SetPoint("TOPRIGHT", -18, -38)
-        body:SetJustifyH("LEFT")
-        body:SetJustifyV("TOP")
-        body:SetSpacing(3)
-        removeConfirm.body = body
-        local yes = CH.MakeButton(removeConfirm, "FP_REMOVE_ANYWAY", 130, 24)
-        yes:SetPoint("BOTTOMRIGHT", removeConfirm, "BOTTOM", -4, 12)
-        yes:SetScript("OnClick", function()
-            removeConfirm:Hide()
-            DoRemoveTopFloor()
-        end)
-        local no = CH.MakeButton(removeConfirm, "FP_CANCEL", 90, 24)
-        no:SetPoint("BOTTOMLEFT", removeConfirm, "BOTTOM", 4, 12)
-        no:SetScript("OnClick", function()
-            removeConfirm:Hide()
-        end)
-    end
-    removeConfirm.body:SetText(msg)
-    removeConfirm:Show()
-end
-
-DoRemoveTopFloor = function()
+local function DoRemoveTopFloor()
     local h = FP.CurrentHouse()
     if not h or not FP.CanEdit() then
         return
@@ -285,7 +248,12 @@ function CH.RemoveTopFloor()
 
     if onTop > 0 then
         local fmt = onTop == 1 and CH.L["FP_REMOVE_CONFIRM_ONE_X"] or CH.L["FP_REMOVE_CONFIRM_MANY_X"]
-        ShowRemoveConfirm(string.format(fmt, count, onTop, count - 1, count))
+        CH.ShowConfirm(
+            "FP_REMOVE_FLOOR_TITLE",
+            string.format(fmt, count, onTop, count - 1, count),
+            "FP_REMOVE_ANYWAY",
+            DoRemoveTopFloor
+        )
     else
         DoRemoveTopFloor()
     end

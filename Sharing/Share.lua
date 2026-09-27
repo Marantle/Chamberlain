@@ -198,7 +198,7 @@ local function Send(payload)
     if not CanSend() then
         return
     end
-    -- Layout transfer (BLOBSTART/BLOB) goes in the priority lane, and an echo
+    -- Layout transfer (BLOBSTART/BLOB/BLOBCANCEL) goes in the priority lane, and an echo
     -- with it since it has to ring while the guest is still in the doorway.
     -- Everything else (HELLO, CATALOG, requests) in the normal lane.
     if payload:find("^BLOB") or payload:find("^ECHO") then
@@ -524,6 +524,35 @@ function CH.SendLayout(houseGUID)
     end
 end
 
+-- The send bar's Cancel. Pulls the chunks still waiting out of the queue and
+-- tells the group, so their bars close too. Echoes share the lane and stay.
+function CH.CancelSend()
+    local keep, stopped = {}, {}
+    for _, payload in ipairs(sendQueueHi) do
+        local guid = payload:match("^BLOB%a*|([^|]+)")
+        if guid then
+            stopped[guid] = true
+        else
+            keep[#keep + 1] = payload
+        end
+    end
+    sendQueueHi = keep
+    sendRoomsTotal, sendRoomsDone = 0, 0
+    CH.HideSendProgress()
+    for guid in pairs(stopped) do
+        Send("BLOBCANCEL|" .. guid)
+    end
+    CH.Print(CH.L["SHARE_SEND_CANCELLED"])
+end
+
+-- The receive bar's Cancel drops every transfer coming in, since the bar
+-- can't tell them apart. Chunks still on the way get ignored.
+function CH.CancelReceive()
+    wipe(CH.pendingLayouts)
+    CH.HideReceiveProgress()
+    CH.Print(CH.L["SHARE_RECEIVE_CANCELLED"])
+end
+
 -- Name the group members whose Chamberlain is older than minVersion, in the
 -- note under key, which takes the names, an is or are and the version.
 local function NoteOldPeers(minVersion, key)
@@ -646,6 +675,11 @@ function CH.ApplyLayout(houseGUID, data, senderName)
     Debug("ApplyLayout: saved", houseGUID, "(" .. #data.zones .. " zones) from", senderName)
     local houseName = (data.owner and string.format(CH.L["SHARE_X_HOUSE"], data.owner)) or CH.L["SHARE_A_HOUSE"]
     CH.Print(CH.L["SHARE_RECEIVED_X"], #data.zones, houseName, senderName)
+    -- Only a heads up. Whatever this version can't read was already left out
+    -- and the rest is fine.
+    if data.madeWith and VersionOlder(CH.VERSION, data.madeWith) then
+        CH.Print(CH.L["SHARE_NEWER_MAP_X"], data.madeWith, CH.VERSION)
+    end
     if CH.RefreshGroupMaps then
         CH.RefreshGroupMaps()
     end
@@ -933,6 +967,7 @@ local function DeserializeLayout(b64)
         houseName = CH.CleanText(payload.hn, CH.HOUSE_TEXT.plaqueName),
         motto = CH.CleanText(payload.mo, CH.HOUSE_TEXT.motto),
         plaqueName = CH.CleanText(payload.pn, CH.HOUSE_TEXT.plaqueName),
+        madeWith = type(payload.cv) == "string" and string.sub(payload.cv, 1, 16) or nil,
         zones = zones,
     }
 end
@@ -953,6 +988,7 @@ function CH.ExportLayout(houseGUID)
         hn = h.houseName, -- the name the game gave the house (3.23.0)
         mo = h.motto, -- the owner's motto on the plaque (3.23.0)
         pn = h.plaqueName, -- the owner's own name for the house, over hn (3.23.0)
+        cv = CH.VERSION, -- so an older reader can say it may miss things (3.28.0)
         zones = {},
     }
     -- House and floor sounds: ha/fa ambience (3.9.0), hm/fm music (3.10.0), ar
@@ -1231,6 +1267,19 @@ function CH.HandleMessage(prefix, payload, channel, fullSender)
                 #missing >= 12 and "..." or ""
             )
         end)
+    elseif msgType == "BLOBCANCEL" then
+        -- The sender pressed Cancel. One bar serves every transfer, so it
+        -- stays up while another one is still coming in.
+        local guid = parts[2]
+        local pending = guid and CH.pendingLayouts[guid]
+        if not pending or pending.sender ~= sender then
+            return
+        end
+        CH.pendingLayouts[guid] = nil
+        if not next(CH.pendingLayouts) then
+            CH.HideReceiveProgress()
+        end
+        CH.Print(CH.L["SHARE_SENDER_CANCELLED_X"], sender)
     elseif msgType == "BLOB" then
         -- One chunk of the layout blob. Collect until all arrive, then decode
         -- the whole thing and hand it to the consent/accept flow.

@@ -2,20 +2,34 @@
 
 ## 3.28.0
 - Floor check puts you back on the right floor. Edit a room in a house with
-  more than one floor, stand in the game room it sits in and click Link to
+  more than one floor, stand in the game room it sits in and click Remember
   the room I'm in. When you walk into
   that game room, Chamberlain puts you on the room's floor, so a missed
   stair or a jump off a balcony fixes itself.
+- Chamberlain only keeps a note of the game room on its own map. Your house
+  in the game stays as it is.
 - It only acts as you walk in. Stairs inside the room and Move to floor still
   work as before, and it waits while the house map shows another floor.
-- A stairwell can be linked on its bottom or top floor. The floors between
-  can share one game room, so chat warns you when you link in a stairwell.
-- Move a linked game room to another floor or remove it in the editor and
-  the link comes off. A line in chat names the room it came off.
-- Links go to your group with the map. Your group needs 3.28.0 to use them.
+- A stairwell can be remembered on its bottom or top floor. The floors
+  between can share one game room, so chat warns you in a stairwell.
+- Move a remembered game room to another floor or remove it in the editor
+  and Chamberlain forgets it. A line in chat names the room.
+- The notes go to your group with the map. Your group needs 3.28.0 to use
+  them.
 - In a group, the minimap works in a house you have no map of too. It has no
   rooms on it, but you see where your group is around you. Alone in such a
   house the game's picture stays.
+- Maps and strings now carry the Chamberlain version that made them. If one
+  comes from a newer version than yours, chat tells you after you take it,
+  since some of it may not show until you update. The map still comes in as
+  before.
+- The sharing bars have a Cancel button. Cancel a share you send and your
+  group's bars close too, on 3.28.0 or newer. Cancel one coming in and it
+  stops, with your copy left as it was.
+- The sharing bars now say Chamberlain in their title, so a bar that pops up
+  when someone shares a house map with you shows where it comes from.
+- Share in the Rooms window asks first. The dialog tells you what your group
+  sees when the map comes in, since in a raid that is a lot of people.
 
 ## 3.27.0
 - A lock on the house map, next to its close button. Click it and your map

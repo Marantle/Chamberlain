@@ -286,9 +286,11 @@ end
 -- Transfer Progress Bars
 -- ─────────────────────────────────────────────────────────────────────
 
-local function MakeProgressBar(yOff)
+-- Players who never opened Chamberlain can get a map pushed at them, so the
+-- bars say whose they are and always have a way out.
+local function MakeProgressBar(yOff, onCancel)
     local f = CreateFrame("Frame", nil, UIParent, "BackdropTemplate")
-    f:SetSize(260, 48)
+    f:SetSize(320, 76)
     f:SetFrameStrata("FULLSCREEN_DIALOG")
     f:SetPoint("TOP", UIParent, "TOP", 0, yOff)
     CH.SkinWindow(f, "")
@@ -309,15 +311,19 @@ local function MakeProgressBar(yOff)
     f.text = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     f.text:SetPoint("CENTER")
     f.bar = bar
+
+    local cancel = CH.MakeButton(f, "SUI_CANCEL", 80, 20)
+    cancel:SetPoint("BOTTOM", 0, 6)
+    cancel:SetScript("OnClick", onCancel)
     return f
 end
 
-local recvBar = MakeProgressBar(-160)
-local sendBar = MakeProgressBar(-214)
+local recvBar = MakeProgressBar(-160, CH.CancelReceive)
+local sendBar = MakeProgressBar(-246, CH.CancelSend)
 
 function CH.ShowReceiveProgress(owner, expected)
     local what = (owner and owner ~= "?") and string.format(CH.L["SUI_OWNERS_LAYOUT_X"], owner) or CH.L["SUI_A_LAYOUT"]
-    recvBar.title:SetText(string.format(CH.L["SUI_RECEIVING_X"], what))
+    recvBar.title:SetText(CH.Branded(string.format(CH.L["SUI_RECEIVING_X"], what)))
     recvBar.bar:SetMinMaxValues(0, math.max(expected, 1))
     recvBar.bar:SetValue(0)
     recvBar.text:SetText(string.format(CH.L["SUI_PROGRESS_X"], 0, expected))
@@ -334,7 +340,7 @@ function CH.HideReceiveProgress()
 end
 
 function CH.ShowSendProgress(total)
-    sendBar.title:SetText(CH.L["SUI_SHARING_TO_GROUP"])
+    sendBar.title:SetText(CH.Branded(CH.L["SUI_SHARING_TO_GROUP"]))
     sendBar.bar:SetMinMaxValues(0, math.max(total, 1))
     sendBar.bar:SetValue(0)
     sendBar.text:SetText(string.format(CH.L["SUI_PROGRESS_X"], 0, total))
