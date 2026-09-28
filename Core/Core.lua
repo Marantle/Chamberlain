@@ -227,10 +227,18 @@ events:SetScript("OnEvent", function(_, event, arg1)
             ChamberlainDB.settings.railHidden = false
         end
         -- How the room banner looks, only on this client (3.18.0). Everyone
-        -- starts on the plaque, and the 3.18.0 note in What's New has the menu
-        -- for anyone who wants the old look back.
+        -- starts on the gilded scenario banner since 3.30.0, the plaque before
+        -- that.
         if ChamberlainDB.settings.bannerStyle == nil then
-            ChamberlainDB.settings.bannerStyle = "plaque"
+            ChamberlainDB.settings.bannerStyle = "gilded"
+        end
+        -- The plaque was everyone's default, so a plaque still on moves over to
+        -- the gilded one too. Only the once, so picking the plaque again sticks.
+        if not ChamberlainDB.settings.gildedMoved then
+            ChamberlainDB.settings.gildedMoved = true
+            if ChamberlainDB.settings.bannerStyle == "plaque" then
+                ChamberlainDB.settings.bannerStyle = "gilded"
+            end
         end
         -- Seconds the banner takes to swap one room's name for the next, half
         -- out and half in, 0 for at once. (3.25.0)

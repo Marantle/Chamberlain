@@ -12,6 +12,9 @@
   can snap on from it.
 - A closet or a hallway shows up as a plain room of the same size for
   anyone on an older Chamberlain.
+- The room banner is now the Gilded one, the scenario banner, instead of the
+  plaque. If you still had the plaque it moves over once. Pick the plaque in
+  Settings and it stays. Any other banner you picked stays as it is.
 
 ## 3.29.0
 - The cornerstone in front of a house shows the name its owner gave the
