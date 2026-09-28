@@ -21,6 +21,14 @@ local _, CH = ...
 -- show under the notes, a frame with a Refresh method.
 CH.WHATS_NEW = {
     {
+        v = "3.31.0",
+        notes = {
+            "The minimap rooms now sit under the game's own arrow and group dots, tooltips and all.",
+            "In a house the mouse wheel zooms the minimap three steps closer than the game does.",
+            "The minimap stays north up in a house while it shows your rooms.",
+        },
+    },
+    {
         v = "3.30.2",
         notes = {
             "Remember the room I'm in shows in a house of one floor too.",

@@ -8,23 +8,22 @@ local _, CH = ...
 -- off C_Housing.IsInsideHouse). With the setting on that picture is hidden and
 -- the rooms of the active floor are drawn in its place: you sit at the centre
 -- and the rooms slide past as you walk, the way the real minimap does outdoors.
--- Same orientation as the house map. The Minimap widget still renders under
--- the picture, so the overlay carries an opaque backgorund of its own. Nothing
--- here takes the mouse, so clicks and the wheel (zoom) reach the minimap as
--- before.
+-- Same orientation as the house map.
+--
+-- The rooms sit under the Minimap frame, not on it. The game draws its ground
+-- and its dots (you, the group, their tooltips) in one go, so nothing of ours
+-- can go between them. With C_Minimap.SetDrawGroundTextures(false) the minimap
+-- goes see-through apart from the dots, and our rooms show thruogh as its
+-- ground. Nothing here takes the mouse, and it's under the minimap anyway.
 
 local FP = CH.FP
 
--- Yards across the minimap at each zoom step (Minimap:GetZoom() runs 0 to 5).
--- The real minimap's steps don't matter with its picture gone, so these are
--- picked to show a whole house at the widest and a single room at the tightest.
-local YARDS_ACROSS = { 120, 100, 80, 65, 50, 35 }
-
-local overlay = CreateFrame("Frame", nil, Minimap)
-overlay:SetAllPoints()
--- Over the backdrop (level 4, where the house picture lives) and under the
--- addon buttons that sit on the minimap at level 8.
-overlay:SetFrameLevel(Minimap:GetFrameLevel() + 2)
+-- A sibling one level down so the minimap draws over it, until SetDeep says
+-- otherwise. Its own size is used for the scale since another addon may have
+-- scaled the Minimap frame.
+local overlay = CreateFrame("Frame", nil, Minimap:GetParent())
+overlay:SetAllPoints(Minimap)
+overlay:SetFrameStrata(Minimap:GetFrameStrata())
 overlay:SetClipsChildren(true)
 overlay:Hide()
 
@@ -49,9 +48,10 @@ local function SetRim(tex, on)
 end
 
 local tiles, blips = {}, {}
+
+-- Our own dots, only for the zoom steps past the game's closest (see SetDeep).
 local me = FP.MakeBlip(overlay, overlay:GetFrameLevel() + 2)
 me:SetPoint("CENTER")
-me:Show() -- blips start hidden but this one never moves or goes away
 FP.AddFacingArrow(me)
 
 -- A room here is two textures and a mask right on the overlay, with the
@@ -163,6 +163,30 @@ local function Rebuild()
     lastX = nil
 end
 
+-- Zoom steps of our own past the game's closest, as parts of that distance.
+-- The game's dots don't follow us there, so on these steps the rooms move up
+-- over the minimap and draw their own dots the way they did before 3.31.0.
+local DEEP = { 0.7, 0.5, 0.35 }
+local deep = 0
+
+-- Going over covers the inner edge of the ring as well, since MinimapBackdrop
+-- is only one level up from the minimap. A level tie with the minimap loses to
+-- the game's dots and a second ring frame covers the buttons, both tried.
+local function SetDeep(d)
+    deep = d
+    local over = d > 0
+    overlay:SetFrameLevel(Minimap:GetFrameLevel() + (over and 2 or -1))
+    local level = overlay:GetFrameLevel() + 2
+    me:SetFrameLevel(level)
+    me:SetShown(over)
+    for _, bf in ipairs(blips) do
+        bf:SetFrameLevel(level)
+        bf:Hide()
+    end
+    lastX = nil
+end
+SetDeep(0)
+
 overlay:SetScript("OnUpdate", function()
     local guid, floor = CH.currentHouseGUID, CH.activeFloor
     if FP.minimapDirty or guid ~= lastGuid or floor ~= lastFloor then
@@ -174,15 +198,16 @@ overlay:SetScript("OnUpdate", function()
     if not px then
         return
     end
-    FP.PointFacing(me)
-    local w = Minimap:GetWidth()
-    local s = w / YARDS_ACROSS[Minimap:GetZoom() + 1]
+    -- The game's own yards at this zoom, so its dots land on our rooms. On a
+    -- deep step the game sits at its closest and we cut that down.
+    local w = overlay:GetWidth()
+    local s = w / (C_Minimap.GetViewRadius() * 2 * (DEEP[deep] or 1))
     -- How far out from the centre an icon or blip may sit and still clear the
     -- ring. Square minimaps clip at the edge instead.
     local reach = round and (w * 0.5 - 6) or math.huge
 
     -- The tiles only move when we do (or the zoom changes), so standing still
-    -- costs nothing. Group blips move on their own and are placed every frame.
+    -- costs nothing. Our blips move on their own and are placed every frame.
     if px ~= lastX or py ~= lastY or s ~= lastScale then
         lastX, lastY, lastScale = px, py, s
         for i = 1, shown do
@@ -205,6 +230,10 @@ overlay:SetScript("OnUpdate", function()
         end
     end
 
+    if deep == 0 then
+        return
+    end
+    FP.PointFacing(me)
     local units, numUnits = FP.GroupUnits()
     for i = 1, numUnits do
         local unit = units[i]
@@ -233,6 +262,20 @@ overlay:SetScript("OnUpdate", function()
     end
 end)
 
+-- Ground off and north up while our rooms are the ground, both back once
+-- they're gone. Blizzard's minimap code never sets either, so back means
+-- the defaults. taken starts as nil so the first call after login sets both
+-- either way, in case a logout inside the house kept them off.
+local taken
+
+local function TakeMinimap(on)
+    if on ~= taken then
+        taken = on
+        C_Minimap.SetDrawGroundTextures(not on)
+        C_Minimap.SetIgnoreRotateMinimap(on)
+    end
+end
+
 -- The picture comes and goes with C_Housing.IsInsideHouse, so the overlay rides
 -- the same call: hide the picture and show ourselves, or stay out of the way.
 local function Apply()
@@ -243,18 +286,47 @@ local function Apply()
     -- or it would be an empty circle. In a group the circle still has the
     -- others on it.
     local h = CH.currentHouseGUID and ChamberlainDB.houses[CH.currentHouseGUID]
-    local on = ChamberlainDB.settings.minimapRooms
+    local on = ChamberlainDB.settings.minimapRooms == true
+        and Minimap:IsShown()
         and C_Housing.IsInsideHouse()
         and (IsInGroup() or h ~= nil and h.zones ~= nil and #h.zones > 0)
     if on then
         MinimapBackdrop.StaticOverlayTexture:Hide()
         ApplyShape()
         FP.minimapDirty = true
+    elseif deep > 0 then
+        SetDeep(0)
     end
+    TakeMinimap(on)
     overlay:SetShown(on)
 end
 
 hooksecurefunc(Minimap, "UpdateStaticOverlayTexture", Apply)
+-- Not a child of the minimap any more, so it has to follow it by hand.
+Minimap:HookScript("OnShow", Apply)
+Minimap:HookScript("OnHide", Apply)
+
+-- The wheel and both zoom buttons go through Minimap:SetZoom. At the game's
+-- closest the zoom in button is disabled, so a wheel up there never reaches
+-- SetZoom, and that is the turn that takes us a step deeper. Any zoom out on
+-- a deep step is put back to the closest and costs one deep step instead.
+local zoomedAt, holding
+
+hooksecurefunc(Minimap, "SetZoom", function()
+    zoomedAt = GetTime()
+    if deep > 0 and not holding then
+        holding = true
+        Minimap:SetZoom(Minimap:GetZoomLevels() - 1)
+        holding = false
+        SetDeep(deep - 1)
+    end
+end)
+
+Minimap:HookScript("OnMouseWheel", function(_, d)
+    if d > 0 and zoomedAt ~= GetTime() and deep < #DEEP and overlay:IsShown() then
+        SetDeep(deep + 1)
+    end
+end)
 
 -- The Settings toggles call this. Going through Blizzard's own update brings the
 -- picture back when the setting turns off, and the hook above ends in Apply.

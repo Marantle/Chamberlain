@@ -1,5 +1,18 @@
 # Changelog
 
+## 3.31.0
+- The rooms on the minimap now sit under the game's own dots. You and your
+  group show as the minimap's usual arrow and dots, with their tooltips when
+  you hover them, and the rooms keep the same scale as the minimap at every
+  zoom.
+- The minimap zooms in closer than the game lets it in a house. Turn the
+  mouse wheel up at the game's closest zoom and you get three more steps.
+  On those the rooms cover the minimap and Chamberlain draws you and your
+  group itself, the way it did before. Zoom out goes back a step at a time.
+- Inside a house with rooms on the minimap, the minimap stays north up so it
+  matches the rooms. It turns again once you leave, if you have Rotate
+  Minimap on.
+
 ## 3.30.2
 - Remember the room I'm in shows in the room dialog in a house of one floor
   too, so your rooms can be remembered before you add a second floor.

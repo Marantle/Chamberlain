@@ -15,6 +15,7 @@ read_globals = {
     "C_HousingBlueprint",
     "C_HousingLayout",
     "C_ChatInfo",
+    "C_Minimap",
     "CreateFrame",
     "UIParent",
     "UIFrameFadeIn",
