@@ -66,11 +66,13 @@ end
 -- ── Add tools ────────────────────────────────────────────────────────
 Header("TB_ADD_HEADER", -10)
 
--- The game's room shapes in one row, an icon each with the name on hover. A
--- click drops that room at your feet at the game's size.
+-- The game's room shapes four to a row, an icon each with the name on hover.
+-- A click drops that room at your feet at the game's size.
+local SHAPE_W = (ROW_W - 3 * 6) / 4
 for i, e in ipairs(CH.SHAPE_LIST) do
     local b = CH.MakeShapeButton(tb, e, 28)
-    b:SetPoint("TOPLEFT", PAD + (i - 1) * 32, -28)
+    b:SetWidth(SHAPE_W)
+    b:SetPoint("TOPLEFT", PAD + (i - 1) % 4 * (SHAPE_W + 6), -28 - math.floor((i - 1) / 4) * 34)
     b:SetScript("OnClick", function()
         DropRoom(e.shape)
     end)
@@ -79,7 +81,7 @@ end
 -- A tall button with its icon over the label.
 local function AddTile(key, icon, col)
     local b = CH.MakeButton(tb, key, 91, 40)
-    b:SetPoint("TOPLEFT", PAD + col * 97, -62)
+    b:SetPoint("TOPLEFT", PAD + col * 97, -96)
     CH.AddButtonIcon(b, icon, 14):SetPoint("TOP", 0, -6)
     local fs = b:GetFontString()
     fs:ClearAllPoints()
@@ -92,16 +94,16 @@ local addStairs = AddTile("TB_ADD_STAIRS", "icon-stairs", 0)
 local addMarker = AddTile("TB_ADD_MARKER", "icon-pin", 1)
 
 local sep = CH.MakeRule(tb)
-sep:SetPoint("TOPLEFT", PAD, -110)
-sep:SetPoint("TOPRIGHT", -PAD, -110)
+sep:SetPoint("TOPLEFT", PAD, -144)
+sep:SetPoint("TOPRIGHT", -PAD, -144)
 
 -- ── Selected room ────────────────────────────────────────────────────
-Header("TB_SELECTED_HEADER", -118)
+Header("TB_SELECTED_HEADER", -152)
 
 -- Picks the room from a list, and names the one picked with its size and a chip
 -- in its map colour.
 local selDrop = CH.MakeButton(tb, "TB_SELECT_ROOM", ROW_W, 26)
-selDrop:SetPoint("TOPLEFT", PAD, -136)
+selDrop:SetPoint("TOPLEFT", PAD, -170)
 local selDropFS = selDrop:GetFontString()
 selDropFS:ClearAllPoints()
 selDropFS:SetPoint("LEFT", 22, 0)
@@ -115,7 +117,7 @@ selChip:SetPoint("LEFT", 7, 0)
 -- the one the room is at lit. An L or a T turns instead, and every shaped
 -- room can go back to the game's size after a hand resize.
 local quickLabel = tb:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-quickLabel:SetPoint("TOPLEFT", PAD, -167)
+quickLabel:SetPoint("TOPLEFT", PAD, -201)
 quickLabel:SetText(CH.L["TB_QUICK_RESIZE"])
 quickLabel:SetTextColor(CH.RGBA(CH.COLORS.muted, 1))
 
@@ -159,7 +161,7 @@ local MOVE, GROW = MODES[1], MODES[2]
 local mode = MOVE
 for i, m in ipairs(MODES) do
     m.btn = CH.MakeButton(tb, m.key, 63, 22)
-    m.btn:SetPoint("TOPLEFT", PAD + (i - 1) * 62, -208)
+    m.btn:SetPoint("TOPLEFT", PAD + (i - 1) * 62, -242)
     m.btn:SetScript("OnClick", function()
         mode = m
         CH.RefreshToolbox()
@@ -169,7 +171,7 @@ end
 -- One cell of the 3x3 pad, an arrow on all but the middle one.
 local function PadButton(dir, col, row)
     local b = CH.MakeButton(tb, "", 26, 22)
-    b:SetPoint("TOPLEFT", PAD + col * 29, -238 - row * 25)
+    b:SetPoint("TOPLEFT", PAD + col * 29, -272 - row * 25)
     if dir ~= "all" then
         CH.AddButtonIcon(b, "arrow-" .. dir, 10):SetPoint("CENTER")
     end
@@ -192,7 +194,7 @@ CH.Tip(padAll, function()
 end)
 
 local padHint = tb:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-padHint:SetPoint("TOPLEFT", PAD + 96, -240)
+padHint:SetPoint("TOPLEFT", PAD + 96, -274)
 padHint:SetWidth(92)
 padHint:SetJustifyH("LEFT")
 padHint:SetSpacing(2)
@@ -210,7 +212,7 @@ local fitAll = { slideBtn, snapBtn, radiusBtn }
 local fit = {}
 
 local editBtn = CH.MakeButton(tb, "TB_EDIT", 91, 22)
-editBtn:SetPoint("TOPLEFT", PAD, -348)
+editBtn:SetPoint("TOPLEFT", PAD, -382)
 local delBtn = CH.MakeButton(tb, "TB_DELETE", 91, 22)
 delBtn:SetPoint("LEFT", editBtn, "RIGHT", 6, 0)
 
@@ -321,8 +323,8 @@ function CH.RefreshToolbox()
         fit[1] = slideBtn
     end
     quickLabel:SetShown(#quick > 0)
-    LayoutRow(quick, quickAll, -180)
-    LayoutRow(fit, fitAll, -320)
+    LayoutRow(quick, quickAll, -214)
+    LayoutRow(fit, fitAll, -354)
 end
 
 -- One place to set the selected room so the rail and the map always agree.

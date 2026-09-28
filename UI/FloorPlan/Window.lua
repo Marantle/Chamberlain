@@ -158,10 +158,25 @@ fpEmpty:SetTextColor(0.5, 0.5, 0.5, 1)
 fpEmpty:Hide()
 FP.empty = fpEmpty
 
+-- Every house has its entrance closet in the same spot, where the game drops an
+-- owner walking in, doors north and south as it lies unturned. So an empty map
+-- of your house can start from it.
+local fpEntranceBtn = CH.MakeButton(canvas, "FP_ADD_ENTRANCE", 130, 22)
+fpEntranceBtn:SetPoint("TOP", fpEmpty, "BOTTOM", 0, -12)
+fpEntranceBtn:SetScript("OnClick", function()
+    local _, _, mapID = CH.GetWorldPos()
+    local z, guid = CH.CreateZoneAt(-1000, -1000, mapID, "closet", CH.L["HOUSE_ENTRANCE"])
+    if z then
+        CH.SetSelection(z, guid)
+    end
+end)
+fpEntranceBtn:Hide()
+FP.entranceBtn = fpEntranceBtn
+
 -- Nudge toward the fixer, shown under the empty state only when this house looks
 -- like one that moved (see FixerCandidate). /rooms fixer opens the same window.
+-- Anchored in FP.Build, under the entrance button when that shows.
 local fpFixHint = canvas:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-fpFixHint:SetPoint("TOP", fpEmpty, "BOTTOM", 0, -16)
 fpFixHint:SetWidth(280)
 fpFixHint:SetJustifyH("CENTER")
 fpFixHint:SetWordWrap(true)

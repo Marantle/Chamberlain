@@ -21,6 +21,14 @@ local _, CH = ...
 -- show under the notes, a frame with a Refresh method.
 CH.WHATS_NEW = {
     {
+        v = "3.30.0",
+        notes = {
+            "The Build toolbox has a closet and a hallway, at the sizes the game builds them.",
+            "An empty house map has an Add the entrance button that puts your entrance closet in "
+                .. "its spot, so the other rooms can snap on from it.",
+        },
+    },
+    {
         v = "3.29.0",
         notes = {
             "The cornerstone in front of a house and the View Houses list show the owner's own name "

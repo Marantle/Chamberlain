@@ -301,7 +301,7 @@ local function RefreshSwatches()
 end
 
 -- ── Shape row ────────────────────────────────────────────────────────
--- The same six shapes as the build rail. Picking another one rebuilds the
+-- The same shapes as the build rail, in one row here. Picking another one rebuilds the
 -- room at the game's size around its middle on Save, keeping everything else,
 -- for a room whose real one got swapped.
 local shapeRow = CreateFrame("Frame", nil, paneRoom)
@@ -1138,8 +1138,9 @@ end
 -- shape (the smallest square for a plain room), files it under the current
 -- house, and returns the zone and its house guid so the caller can select it
 -- and open this dialog to name it. shape is a CH.SHAPES key or nil for a
--- rectangle. Replaces the old Mark A/B flow.
-function CH.CreateZoneAt(x, y, mapID, shape)
+-- rectangle. Without a name it's named after its shape. Replaces the old
+-- Mark A/B flow.
+function CH.CreateZoneAt(x, y, mapID, shape, name)
     if not CH.currentHouseGUID then
         CH.Print(CH.L["RD_HOUSE_NOT_IDENTIFIED"])
         return
@@ -1161,7 +1162,7 @@ function CH.CreateZoneAt(x, y, mapID, shape)
     -- New rooms land on the floor the player is viewing (which tracks the active
     -- floor), so dropping one upstairs files it upstairs.
     local z = {
-        name = string.format(CH.L["TB_DEFAULT_ROOM_X"], CH.L[CH.ShapeEntry(shape).name], nth),
+        name = name or string.format(CH.L["TB_DEFAULT_ROOM_X"], CH.L[CH.ShapeEntry(shape).name], nth),
         mapID = mapID,
         shape = def and shape or nil,
         floor = CH.MapFloor(),

@@ -1,5 +1,18 @@
 # Changelog
 
+## 3.30.0
+- The Build toolbox has a closet and a hallway. A closet is 12 by 6 yards and
+  a hallway is 12 by 24, four closets back to back, both measured in a house
+  in the game. Their doors are on the short ends only, so Snap joins them the
+  way the game does, and Rotate turns them.
+- The shape buttons now sit in two rows of four.
+- A house map with no rooms has an Add the entrance button. Every house has
+  its entrance closet in the same spot, the one the game drops you in when
+  you walk in, so the button puts it right there and the rest of the rooms
+  can snap on from it.
+- A closet or a hallway shows up as a plain room of the same size for
+  anyone on an older Chamberlain.
+
 ## 3.29.0
 - The cornerstone in front of a house shows the name its owner gave the
   house in the House panel, over the game's name. You see it on houses you

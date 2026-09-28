@@ -111,7 +111,7 @@ end
 -- way the map shows them.
 local function MaskFile(zone)
     local def = zone.shape and CH.SHAPES[zone.shape]
-    if not def then
+    if not def or not def.mask then
         return nil
     elseif def.rotates then
         return def.mask .. (zone.rot or 0) .. ".tga"
@@ -615,6 +615,7 @@ function FP.Build()
     end
     FP.HideBlips()
     FP.empty:Hide()
+    FP.entranceBtn:Hide()
     FP.fixHint:Hide()
     FP.fixBtn:Hide()
     FP.archiveHint:Hide()
@@ -675,16 +676,25 @@ function FP.Build()
             floorCount > 1 and string.format(CH.L["FP_NO_ROOMS_ON_FLOOR_X"], viewedFloor) or CH.L["FP_NO_ROOMS"]
         )
         FP.empty:Show()
+        -- The entrance goes on the ground floor of a house of yours with no rooms.
+        local offerEntrance = FP.CanEdit()
+            and not FP.viewGUID
+            and viewedFloor == 1
+            and not (h and h.zones and #h.zones > 0)
+        FP.entranceBtn:SetShown(offerEntrance)
+        local above = offerEntrance and FP.entranceBtn or FP.empty
         -- Only for a house with nothing saved at all. An empty floor in a house that
         -- does have rooms is just an empty floor, nothing to repair.
         local suggestFix = FP.FixerCandidate()
+        FP.fixHint:ClearAllPoints()
+        FP.fixHint:SetPoint("TOP", above, "BOTTOM", 0, -16)
         FP.fixHint:SetShown(suggestFix)
         FP.fixBtn:SetShown(suggestFix)
         -- Likewise only for a house with nothing in it, when the archive holds a
         -- map for it. Goes under the fixer nudge if both apply.
         local suggestArchive = not FP.viewGUID and CH.ArchiveWaiting(CH.currentHouseGUID)
         FP.archiveHint:ClearAllPoints()
-        FP.archiveHint:SetPoint("TOP", suggestFix and FP.fixBtn or FP.empty, "BOTTOM", 0, -16)
+        FP.archiveHint:SetPoint("TOP", suggestFix and FP.fixBtn or above, "BOTTOM", 0, -16)
         FP.archiveHint:SetShown(suggestArchive)
         FP.archiveBtn:SetShown(suggestArchive)
         FP.PositionHandles()

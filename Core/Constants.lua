@@ -96,6 +96,10 @@ CH.SHAPES = {
         sizes = { { "TB_SIZE_SMALL", STEPS[1] }, { "TB_SIZE_MEDIUM", STEPS[2] }, { "TB_SIZE_LARGE", STEPS[3] } },
     },
     circle = { w = 46.2, h = 46.2, mask = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask" },
+    -- plain boxes with no mask, doors on the ends only. A hall is four closets
+    -- back to back
+    closet = { w = CORE, h = ARM, rotates = true, doors = { { 0.5, 0 }, { 0.5, 1 } } },
+    hall = { w = CORE, h = 2 * CORE, rotates = true, doors = { { 0.5, 0 }, { 0.5, 1 } } },
 }
 
 -- The shapes as the build rail and the room dialog offer them, in order, with
@@ -107,6 +111,8 @@ CH.SHAPE_LIST = {
     { shape = "plus", icon = "icon-plus", name = "TB_ADD_PLUS" },
     { shape = "oct", icon = "icon-oct", name = "TB_ADD_OCT" },
     { shape = "circle", icon = "icon-circle", name = "TB_ADD_CIRCLE" },
+    { shape = "closet", icon = "icon-closet", name = "TB_ADD_CLOSET" },
+    { shape = "hall", icon = "icon-hall", name = "TB_ADD_HALL" },
 }
 
 function CH.ShapeEntry(shape)

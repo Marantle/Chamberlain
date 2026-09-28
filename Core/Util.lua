@@ -94,7 +94,7 @@ function CH.ZoneContains(z, x, y)
         return false
     end
     local def = z.shape and CH.SHAPES[z.shape]
-    if not def then
+    if not def or not def.mask then
         return true
     end
     local u, v = (x - z.minX) / (z.maxX - z.minX), (y - z.minY) / (z.maxY - z.minY)

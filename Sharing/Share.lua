@@ -852,7 +852,9 @@ end
 -- shape, so its centre, its size against the game's (left out at 1) and its
 -- quarter turns (left out at 0) say it all, and a client before 3.21.0 skips
 -- it for want of a box. Everything else sends its box, and sh names the
--- shape drawn in it: circle (3.0.0) or oct (3.21.0), a rectangle otherwise.
+-- shape drawn in it: circle (3.0.0), oct (3.21.0), closet or hall (3.30.0),
+-- a rectangle otherwise. An older client draws a closet or a hall as the
+-- rectangle it is.
 local function WriteBox(e, z)
     local def = z.shape and CH.SHAPES[z.shape]
     if def and def.compact then
@@ -883,7 +885,12 @@ local function ReadBox(z)
     if type(z.x1) ~= "number" or type(z.x2) ~= "number" or type(z.y1) ~= "number" or type(z.y2) ~= "number" then
         return nil
     end
-    return z.x1, z.x2, z.y1, z.y2, def and z.sh or nil
+    -- a closet or a hall looks the same half way round, so its box says the turn
+    local rot
+    if def and def.rotates and (z.x2 - z.x1 > z.y2 - z.y1) ~= (def.w > def.h) then
+        rot = 1
+    end
+    return z.x1, z.x2, z.y1, z.y2, def and z.sh or nil, rot
 end
 
 -- Decode a base64 blob (the bytes inside a "CHB1:" string, or a reassembled BLOB

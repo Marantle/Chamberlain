@@ -24,14 +24,19 @@ also goes on the cornerstone in front of the house and in the game's View
 Houses list, for everyone who has your map.
 
 To make a room, open the Build toolbox and click the shape of the room you
-built. All six of the game's shapes are there. The room drops where you stand
+built. All eight of the game's rooms are there, closet and hallway too. The room drops where you stand
 at the size the game builds it, and the name box opens. Quick resize switches a square
-or an octagon between the game's sizes, and Rotate turns an L or a T. To fit
+or an octagon between the game's sizes, and Rotate turns an L, a T, a closet or a hallway. To fit
 the room to the walls, select it, walk to a wall and click Slide to me, then do
 the same at a wall facing the other way. A square can also stretch one wall to
 you, and the arrows under it push and pull one wall at a time. The other shapes
 keep their shape and grow or shrink as a whole. You can also drag the grips of
 the room on the house map.
+
+A house with no map yet starts easy. The empty house map has an Add the
+entrance button, and it puts the entrance closet exactly where the game has
+it, the spot you stand in when you walk in. Every other room can snap on from
+there.
 
 Turn on Snap in the map's top left corner and rooms fit together at their
 doors, the way the game joins them. The green grips show where a room's doors
@@ -247,8 +252,10 @@ backup that you made.
 
 ## Features
 
-- Make rooms from the Build toolbox. A square, L, T, plus, octagon or round
-  room drops where you stand, at the size the game builds it.
+- Make rooms from the Build toolbox. A square, L, T, plus, octagon, round
+  room, closet or hallway drops where you stand, at the size the game builds
+  it.
+- An empty map puts your entrance closet in its spot with one click.
 - Snap on the house map puts rooms together door to door.
 - Lock the map so nothing moves by accident. Room sounds still change.
 - A gold banner shows the name of the room when you enter and fades when you
