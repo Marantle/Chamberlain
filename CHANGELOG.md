@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.30.2
+- Remember the room I'm in shows in the room dialog in a house of one floor
+  too, so your rooms can be remembered before you add a second floor.
+
 ## 3.30.1
 - A room you drop from the Build toolbox only goes onto the nearest open
   door while Snap is on. With Snap off it lands at your feet like before.

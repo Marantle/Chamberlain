@@ -21,6 +21,12 @@ local _, CH = ...
 -- show under the notes, a frame with a Refresh method.
 CH.WHATS_NEW = {
     {
+        v = "3.30.2",
+        notes = {
+            "Remember the room I'm in shows in a house of one floor too.",
+        },
+    },
+    {
         v = "3.30.1",
         notes = {
             "A dropped room only goes onto the nearest open door while Snap is on. With Snap off it "

@@ -360,11 +360,10 @@ stairsBtn:SetPoint("LEFT", stairsLabel, "RIGHT", 8, 0)
 stairsBtn:SetPoint("RIGHT", floorRow, "RIGHT", 0, 0)
 
 -- Floor check (Housing/FloorCheck.lua): the game room this room is linked
--- to. Shown with the floor row since one floor has nothing to check.
+-- to. Under the floor row, or in its place in a house of one floor, so the
+-- link is there before a second floor is.
 local pendingGameRoom = nil
 local linkRow = CreateFrame("Frame", nil, paneRoom)
-linkRow:SetPoint("TOPLEFT", floorRow, "BOTTOMLEFT", 0, -8)
-linkRow:SetPoint("TOPRIGHT", floorRow, "BOTTOMRIGHT", 0, -8)
 linkRow:SetHeight(22)
 Label(
     linkRow,
@@ -903,13 +902,16 @@ local function RefreshFloorRow()
     local h = DialogHouse()
     local multi = h and (h.floorCount or 1) > 1
     floorRow:SetShown(multi)
-    linkRow:SetShown(multi)
     if multi then
         RefreshFloorButtons()
     end
-    local below = multi and linkRow or shapeRow
+    local gap = multi and -8 or 0
+    local edge = multi and "BOTTOM" or "TOP"
+    linkRow:ClearAllPoints()
+    linkRow:SetPoint("TOPLEFT", floorRow, edge .. "LEFT", 0, gap)
+    linkRow:SetPoint("TOPRIGHT", floorRow, edge .. "RIGHT", 0, gap)
     roomSep:ClearAllPoints()
-    roomSep:SetPoint("TOPLEFT", below, "BOTTOMLEFT", 0, -12)
+    roomSep:SetPoint("TOPLEFT", linkRow, "BOTTOMLEFT", 0, -12)
     roomSep:SetWidth(PANE_W)
 end
 

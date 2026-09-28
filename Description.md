@@ -92,8 +92,9 @@ off the same spot, or they trigger each other.
 
 The game knows which of its rooms you stand in, and Floor check uses that.
 Edit a room, stand in the game room it sits in and click Remember the room
-I'm in. From then on, walking into that game room puts you back on the
-room's floor if a stair got missed. Chamberlain only keeps a note of the
+I'm in. The button is there in a house of one floor too, so your rooms are
+remembered before you build a second. From then on, walking into that game
+room puts you back on the room's floor if a stair got missed. Chamberlain only keeps a note of the
 game room on its own map, and your house in the game stays as it is. In a
 stairwell remember it only on the bottom or the top floor, since the floors
 between can share one game room. Move the game room to another floor or
