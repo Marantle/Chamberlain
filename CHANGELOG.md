@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.30.1
+- A room you drop from the Build toolbox only goes onto the nearest open
+  door while Snap is on. With Snap off it lands at your feet like before.
+
 ## 3.30.0
 - The Build toolbox has a closet and a hallway. A closet is 12 by 6 yards and
   a hallway is 12 by 24, four closets back to back, both measured in a house

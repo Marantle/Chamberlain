@@ -21,6 +21,13 @@ local _, CH = ...
 -- show under the notes, a frame with a Refresh method.
 CH.WHATS_NEW = {
     {
+        v = "3.30.1",
+        notes = {
+            "A dropped room only goes onto the nearest open door while Snap is on. With Snap off it "
+                .. "lands at your feet like before.",
+        },
+    },
+    {
         v = "3.30.0",
         notes = {
             "The Build toolbox has a closet and a hallway, at the sizes the game builds them.",

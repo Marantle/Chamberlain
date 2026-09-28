@@ -36,9 +36,9 @@ the room on the house map.
 A house with no map yet starts easy. The empty house map has an Add the
 entrance button, and it puts the entrance closet exactly where the game has
 it, the spot you stand in when you walk in. Every other room can snap on from
-there. A room you drop from the toolbox goes straight onto the nearest open
-door, turned whichever way puts it closest to you, and Rotate turns it around
-the door it's joined at.
+there. With Snap on, a room you drop from the toolbox goes straight onto the
+nearest open door, turned whichever way puts it closest to you. Rotate turns
+a room around the door it's joined at.
 
 Turn on Snap in the map's top left corner and rooms fit together at their
 doors, the way the game joins them. The green grips show where a room's doors
@@ -256,7 +256,7 @@ backup that you made.
 
 - Make rooms from the Build toolbox. A square, L, T, plus, octagon, round
   room, closet or hallway drops at the size the game builds it, onto the
-  nearest open door.
+  nearest open door when Snap is on.
 - An empty map puts your entrance closet in its spot with one click.
 - Snap on the house map puts rooms together door to door.
 - Lock the map so nothing moves by accident. Room sounds still change.

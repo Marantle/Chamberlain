@@ -165,10 +165,10 @@ local function Apply(zone, rot, b)
     zone.minY, zone.maxY = b.minY, b.minY + b.h
 end
 
--- A room just dropped at (px, py) goes onto the nearest door that opens onto
--- nothing, one of its own doors on it. An L, a T, a closet or a hallway turns
--- whichever way lands it nearest to you, and a spot that runs into another
--- room is passed over for the next door out.
+-- With Snap on, a room just dropped at (px, py) goes onto the nearest door
+-- that opens onto nothing, one of its own doors on it. An L, a T, a closet or
+-- a hallway turns whichever way lands it nearest to you, and a spot that runs
+-- into another room is passed over for the next door out.
 function CH.FitToOpenDoor(h, zone, px, py)
     local doors, rooms = OpenDoors(h, zone, px, py)
     local def = zone.shape and CH.SHAPES[zone.shape]
