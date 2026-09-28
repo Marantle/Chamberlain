@@ -1135,7 +1135,8 @@ end
 
 -- Drop a new room at a world position. This is the build rail's "add room
 -- here": it makes a room centred on (x, y) at the game's own size for its
--- shape (the smallest square for a plain room), files it under the current
+-- shape (the smallest square for a plain room), moves it onto the nearest
+-- open door (CH.FitToOpenDoor, Snap on or not), files it under the current
 -- house, and returns the zone and its house guid so the caller can select it
 -- and open this dialog to name it. shape is a CH.SHAPES key or nil for a
 -- rectangle. Without a name it's named after its shape. Replaces the old
@@ -1168,6 +1169,7 @@ function CH.CreateZoneAt(x, y, mapID, shape, name)
         floor = CH.MapFloor(),
     }
     CH.BoxAbout(z, x, y, bw, bh)
+    CH.FitToOpenDoor(h, z, x, y)
     table.insert(h.zones, z)
     CH.TouchHouse(CH.currentHouseGUID)
     return z, CH.currentHouseGUID

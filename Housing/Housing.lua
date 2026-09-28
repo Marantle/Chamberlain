@@ -77,6 +77,149 @@ function CH.IsAnchor(zone)
     return zone.setFloor ~= nil or zone.floorDelta ~= nil
 end
 
+-- A room you walk into, not a stair landing or a sound spot.
+function CH.IsRoom(zone)
+    return not CH.IsAnchor(zone) and not zone.noBanner
+end
+
+local function Overlaps(a, b)
+    return a.minX < b.maxX - 0.1 and b.minX < a.maxX - 0.1 and a.minY < b.maxY - 0.1 and b.minY < a.maxY - 0.1
+end
+
+-- The rooms on the zone's floor other than itself.
+function CH.OtherRooms(h, zone)
+    local floor = zone.floor or 1
+    local rooms = {}
+    for _, z in ipairs(h.zones) do
+        if z ~= zone and CH.IsRoom(z) and (z.floor or 1) == floor then
+            rooms[#rooms + 1] = z
+        end
+    end
+    return rooms
+end
+
+-- Doors of the other rooms on the zone's floor with nothing past them yet,
+-- each { x, y, nx, ny }, nearest to (px, py) first.
+local function OpenDoors(h, zone, px, py)
+    local rooms = CH.OtherRooms(h, zone)
+    local doors = {}
+    for _, z in ipairs(rooms) do
+        for _, d in ipairs(CH.ZoneDoors(z)) do
+            local x, y, nx, ny = CH.DoorAt(z, d)
+            local open = true
+            for _, other in ipairs(rooms) do
+                if CH.ZoneContains(other, x + nx, y + ny) then
+                    open = false
+                    break
+                end
+            end
+            if open then
+                doors[#doors + 1] = { x = x, y = y, nx = nx, ny = ny, d = (x - px) ^ 2 + (y - py) ^ 2 }
+            end
+        end
+    end
+    table.sort(doors, function(a, b)
+        return a.d < b.d
+    end)
+    return doors, rooms
+end
+
+local function Blocked(box, rooms)
+    for _, z in ipairs(rooms or {}) do
+        if Overlaps(box, z) then
+            return true
+        end
+    end
+end
+
+local test = {}
+
+-- The zone at quarter turn rot with one of its own doors on door o, the spot
+-- nearest (px, py) that stays clear of rooms: its box and how far off it is,
+-- or nil when no door of it faces o at that turn.
+local function OnDoor(zone, rot, o, px, py, rooms)
+    local w, hh = zone.maxX - zone.minX, zone.maxY - zone.minY
+    if (rot - (zone.rot or 0)) % 2 == 1 then
+        w, hh = hh, w
+    end
+    test.shape, test.rot = zone.shape, rot > 0 and rot or nil
+    local best, bestD
+    for _, d in ipairs(CH.ZoneDoors(test)) do
+        test.minX, test.maxX, test.minY, test.maxY = 0, w, 0, hh
+        local x, y, nx, ny = CH.DoorAt(test, d)
+        if nx == -o.nx and ny == -o.ny then
+            local mx, my = o.x - x, o.y - y
+            test.minX, test.maxX, test.minY, test.maxY = mx, mx + w, my, my + hh
+            local dist = (mx + w * 0.5 - px) ^ 2 + (my + hh * 0.5 - py) ^ 2
+            if (not bestD or dist < bestD) and not Blocked(test, rooms) then
+                best, bestD = { minX = mx, minY = my, w = w, h = hh }, dist
+            end
+        end
+    end
+    return best, bestD
+end
+
+local function Apply(zone, rot, b)
+    zone.rot = rot > 0 and rot or nil
+    zone.minX, zone.maxX = b.minX, b.minX + b.w
+    zone.minY, zone.maxY = b.minY, b.minY + b.h
+end
+
+-- A room just dropped at (px, py) goes onto the nearest door that opens onto
+-- nothing, one of its own doors on it. An L, a T, a closet or a hallway turns
+-- whichever way lands it nearest to you, and a spot that runs into another
+-- room is passed over for the next door out.
+function CH.FitToOpenDoor(h, zone, px, py)
+    local doors, rooms = OpenDoors(h, zone, px, py)
+    local def = zone.shape and CH.SHAPES[zone.shape]
+    local turns = def and def.rotates and (def.mask and 3 or 1) or 0
+    for _, open in ipairs(doors) do
+        local best, bestD, bestRot
+        for rot = 0, turns do
+            local b, dist = OnDoor(zone, rot, open, px, py, rooms)
+            if b and (not bestD or dist < bestD) then
+                best, bestD, bestRot = b, dist, rot
+            end
+        end
+        if best then
+            Apply(zone, bestRot, best)
+            return
+        end
+    end
+end
+
+-- A door of another room that the zone's own doors sit on, or nil when it
+-- meets none. Joined at more than one, the southmost holds it.
+function CH.JoinedDoor(h, zone)
+    local found
+    local rooms = CH.OtherRooms(h, zone)
+    for _, d in ipairs(CH.ZoneDoors(zone)) do
+        local x, y, nx, ny = CH.DoorAt(zone, d)
+        for _, z in ipairs(rooms) do
+            for _, e in ipairs(CH.ZoneDoors(z)) do
+                local ox, oy, onx, ony = CH.DoorAt(z, e)
+                local meets = onx == -nx and ony == -ny and (ox - x) ^ 2 + (oy - y) ^ 2 < 0.01
+                if meets and (not found or oy < found.y) then
+                    found = { x = ox, y = oy, nx = onx, ny = ony }
+                end
+            end
+        end
+    end
+    return found
+end
+
+-- After a turn, put the zone back on door o by whichever of its doors now
+-- faces it, nearest where it was. False when none does at this turn.
+function CH.PutOnDoor(zone, o)
+    local cx, cy = CH.ZoneCentre(zone)
+    local rot = zone.rot or 0
+    local b = OnDoor(zone, rot, o, cx, cy)
+    if b then
+        Apply(zone, rot, b)
+    end
+    return b ~= nil
+end
+
 -- The stair-landing footprint the player is standing on that would fire from the
 -- active floor, or nil. An anchor only fires from the floor it connects FROM, so a
 -- staircase is inert on floors it doesn't touch. This matters for spiral stairs,

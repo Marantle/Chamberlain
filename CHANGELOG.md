@@ -12,11 +12,16 @@
   can snap on from it.
 - A closet or a hallway shows up as a plain room of the same size for
   anyone on an older Chamberlain.
+- A room you drop from the Build toolbox goes straight onto the nearest open
+  door of the rooms you have, one of its own doors on it, with Snap on or
+  off. An L, a T, a closet or a hallway turns whichever way puts it nearest
+  to you, and a door with another room past it is skipped.
+- Rotate keeps a room on the door it's joined at and turns it around that
+  door. Joined at more than one, it turns around the southmost. A turn with
+  no door facing that way is skipped.
 - The room banner is now the Gilded one, the scenario banner, instead of the
   plaque. If you still had the plaque it moves over once. Pick the plaque in
   Settings and it stays. Any other banner you picked stays as it is.
-
-## 3.29.0
 - The cornerstone in front of a house shows the name its owner gave the
   house in the House panel, over the game's name. You see it on houses you
   have a map of, and on your own. A house without a name of its own keeps

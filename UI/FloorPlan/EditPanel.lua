@@ -73,15 +73,23 @@ function FP.SetSelectedBox(w, h)
 end
 
 -- A quarter turn for an L or a T. The box swaps its sides about the centre
--- and the mask and the walk-in test read the turn from zone.rot.
+-- and the mask and the walk-in test read the turn from zone.rot. A room
+-- joined to another stays on that door (the southmost, if it meets more),
+-- going on to the next turn when this one has no door facing it.
 function FP.RotateSelected()
     local house, zone = FP.CurrentHouse(), CH.tbSelZone
     if not house or not zone or not zone.shape then
         return
     end
-    local r = ((zone.rot or 0) + 1) % 4
-    zone.rot = r > 0 and r or nil
-    SizeAbout(zone, zone.maxY - zone.minY, zone.maxX - zone.minX)
+    local join = CH.JoinedDoor(house, zone)
+    for _ = 1, join and 3 or 1 do
+        local r = ((zone.rot or 0) + 1) % 4
+        zone.rot = r > 0 and r or nil
+        SizeAbout(zone, zone.maxY - zone.minY, zone.maxX - zone.minX)
+        if not join or CH.PutOnDoor(zone, join) then
+            break
+        end
+    end
     Commit(house)
 end
 
@@ -132,26 +140,19 @@ local targets, nTargets = {}, 0 -- flat x, y, nx, ny of the doors it can meet
 local lockDoor, lockTarget -- the pair that snapped, held until it's pulled apart
 local probe = {}
 
-local function IsRoom(z)
-    return not CH.IsAnchor(z) and not z.noBanner
-end
-
 local function Snaps(zone)
-    return ChamberlainDB.settings.snapRooms and IsRoom(zone)
+    return ChamberlainDB.settings.snapRooms and CH.IsRoom(zone)
 end
 
 -- The other rooms don't move during a drag, so thier doors are read once.
 local function CollectTargets(h, zone)
     nTargets = 0
-    local floor = zone.floor or 1
-    for _, z in ipairs(h.zones) do
-        if z ~= zone and IsRoom(z) and (z.floor or 1) == floor then
-            for _, d in ipairs(CH.ZoneDoors(z)) do
-                local x, y, nx, ny = CH.DoorAt(z, d)
-                targets[nTargets + 1], targets[nTargets + 2] = x, y
-                targets[nTargets + 3], targets[nTargets + 4] = nx, ny
-                nTargets = nTargets + 4
-            end
+    for _, z in ipairs(CH.OtherRooms(h, zone)) do
+        for _, d in ipairs(CH.ZoneDoors(z)) do
+            local x, y, nx, ny = CH.DoorAt(z, d)
+            targets[nTargets + 1], targets[nTargets + 2] = x, y
+            targets[nTargets + 3], targets[nTargets + 4] = nx, ny
+            nTargets = nTargets + 4
         end
     end
 end

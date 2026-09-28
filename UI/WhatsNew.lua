@@ -26,6 +26,8 @@ CH.WHATS_NEW = {
             "The Build toolbox has a closet and a hallway, at the sizes the game builds them.",
             "An empty house map has an Add the entrance button that puts your entrance closet in "
                 .. "its spot, so the other rooms can snap on from it.",
+            "A room you drop goes straight onto the nearest open door, and Rotate turns it around the door "
+                .. "it's joined at.",
             "The room banner is now the Gilded one. Liked the plaque? Pick it again in Settings.",
         },
     },
