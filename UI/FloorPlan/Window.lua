@@ -158,17 +158,31 @@ fpEmpty:SetTextColor(0.5, 0.5, 0.5, 1)
 fpEmpty:Hide()
 FP.empty = fpEmpty
 
--- Every house has its entrance closet in the same spot, where the game drops an
--- owner walking in, doors north and south as it lies unturned. So an empty map
--- of your house can start from it.
+-- Every house has its entrance closet in the same spot on the ground floor,
+-- where the game drops an owner walking in, doors north and south as it lies
+-- unturned. So an empty map of your house can start from it, and Smart drop
+-- in the game's Entry puts it there on any map, linked to gameRoom. It never
+-- snaps since the spot is already exact.
+function CH.AddEntrance(gameRoom)
+    if not CH.currentHouseGUID then
+        CH.Print(CH.L["RD_HOUSE_NOT_IDENTIFIED"])
+        return
+    end
+    local _, _, mapID = CH.GetWorldPos()
+    local h = CH.CurrentHouse()
+    local z = CH.NewZone(h, CH.ENTRANCE_X, CH.ENTRANCE_Y, mapID, "closet", CH.L["HOUSE_ENTRANCE"])
+    z.floor = 1
+    z.gameRoom = gameRoom
+    table.insert(h.zones, z)
+    CH.TouchHouse(CH.currentHouseGUID)
+    CH.SetSelection(z, CH.currentHouseGUID)
+    return z
+end
+
 local fpEntranceBtn = CH.MakeButton(canvas, "FP_ADD_ENTRANCE", 130, 22)
 fpEntranceBtn:SetPoint("TOP", fpEmpty, "BOTTOM", 0, -12)
 fpEntranceBtn:SetScript("OnClick", function()
-    local _, _, mapID = CH.GetWorldPos()
-    local z, guid = CH.CreateZoneAt(-1000, -1000, mapID, "closet", CH.L["HOUSE_ENTRANCE"])
-    if z then
-        CH.SetSelection(z, guid)
-    end
+    CH.AddEntrance()
 end)
 fpEntranceBtn:Hide()
 FP.entranceBtn = fpEntranceBtn

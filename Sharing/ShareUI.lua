@@ -339,8 +339,9 @@ function CH.HideReceiveProgress()
     recvBar:Hide()
 end
 
-function CH.ShowSendProgress(total)
-    sendBar.title:SetText(CH.Branded(CH.L["SUI_SHARING_TO_GROUP"]))
+function CH.ShowSendProgress(total, houses)
+    local title = houses > 1 and string.format(CH.L["SUI_SHARING_MAPS_X"], houses) or CH.L["SUI_SHARING_TO_GROUP"]
+    sendBar.title:SetText(CH.Branded(title))
     sendBar.bar:SetMinMaxValues(0, math.max(total, 1))
     sendBar.bar:SetValue(0)
     sendBar.text:SetText(string.format(CH.L["SUI_PROGRESS_X"], 0, total))

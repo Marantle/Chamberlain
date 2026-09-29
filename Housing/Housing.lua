@@ -134,10 +134,21 @@ end
 
 local test = {}
 
+-- Whether zone z holds every spot, each { x, y }.
+local function HoldsAll(z, spots)
+    for _, s in ipairs(spots) do
+        if not CH.ZoneContains(z, s[1], s[2]) then
+            return false
+        end
+    end
+    return true
+end
+
 -- The zone at quarter turn rot with one of its own doors on door o, the spot
 -- nearest (px, py) that stays clear of rooms: its box and how far off it is,
--- or nil when no door of it faces o at that turn.
-local function OnDoor(zone, rot, o, px, py, rooms)
+-- or nil when no door of it faces o at that turn. With spots given the place
+-- also has to hold every one of them.
+local function OnDoor(zone, rot, o, px, py, rooms, spots)
     local w, hh = zone.maxX - zone.minX, zone.maxY - zone.minY
     if (rot - (zone.rot or 0)) % 2 == 1 then
         w, hh = hh, w
@@ -151,7 +162,7 @@ local function OnDoor(zone, rot, o, px, py, rooms)
             local mx, my = o.x - x, o.y - y
             test.minX, test.maxX, test.minY, test.maxY = mx, mx + w, my, my + hh
             local dist = (mx + w * 0.5 - px) ^ 2 + (my + hh * 0.5 - py) ^ 2
-            if (not bestD or dist < bestD) and not Blocked(test, rooms) then
+            if (not bestD or dist < bestD) and not Blocked(test, rooms) and (not spots or HoldsAll(test, spots)) then
                 best, bestD = { minX = mx, minY = my, w = w, h = hh }, dist
             end
         end
@@ -168,24 +179,48 @@ end
 -- With Snap on, a room just dropped at (px, py) goes onto the nearest door
 -- that opens onto nothing, one of its own doors on it. An L, a T, a closet or
 -- a hallway turns whichever way lands it nearest to you, and a spot that runs
--- into another room is passed over for the next door out.
-function CH.FitToOpenDoor(h, zone, px, py)
+-- into another room is passed over for the next door out. With spots given
+-- only a place holding all of them counts, which is how smart drop finds the
+-- turn from where you've walked. True once it moved the room.
+function CH.FitToOpenDoor(h, zone, px, py, spots)
     local doors, rooms = OpenDoors(h, zone, px, py)
     local def = zone.shape and CH.SHAPES[zone.shape]
-    local turns = def and def.rotates and (def.mask and 3 or 1) or 0
+    -- a box looks the same half way round but a masked shape or a stairwell doesn't
+    local turns = def and def.rotates and ((def.mask or def.art) and 3 or 1) or 0
     for _, open in ipairs(doors) do
         local best, bestD, bestRot
         for rot = 0, turns do
-            local b, dist = OnDoor(zone, rot, open, px, py, rooms)
+            local b, dist = OnDoor(zone, rot, open, px, py, rooms, spots)
             if b and (not bestD or dist < bestD) then
                 best, bestD, bestRot = b, dist, rot
             end
         end
         if best then
             Apply(zone, bestRot, best)
-            return
+            return true
         end
     end
+end
+
+-- How far one side of a box has to move to sit on the grid. A round room's
+-- disc is a bit short of the grid box it stands in, so the box is rounded to
+-- the grid first and kept about the same middle.
+local function OntoGrid(lo, hi, origin)
+    local span = math.floor((hi - lo) / CH.GRID + 0.5) * CH.GRID
+    local left = (lo + hi - span) / 2
+    return origin + math.floor((left - origin) / CH.GRID + 0.5) * CH.GRID - left
+end
+
+-- The step that puts box z on the nearest grid lines, with the Snap switch
+-- on and no door to go to.
+function CH.GridStep(z)
+    return OntoGrid(z.minX, z.maxX, CH.GRID_X), OntoGrid(z.minY, z.maxY, CH.GRID_Y)
+end
+
+function CH.SnapToGrid(z)
+    local dx, dy = CH.GridStep(z)
+    z.minX, z.maxX = z.minX + dx, z.maxX + dx
+    z.minY, z.maxY = z.minY + dy, z.maxY + dy
 end
 
 -- A door of another room that the zone's own doors sit on, or nil when it
@@ -422,6 +457,7 @@ function CH.CheckHousingState()
         echoZone = nil
         currentAnchor = nil
         CH.ForgetGameRoom()
+        CH.StopAutoMap()
         CH.activeFloor = 1
         wasInside = false
         promptedGUID = nil
@@ -612,7 +648,13 @@ function CH.CheckZones()
     end
     local h = ChamberlainDB.houses[CH.currentHouseGUID]
     if not h then
-        return
+        -- An empty map of your own has no entry yet, and Auto map would never
+        -- get to its first room. The entry stays off every list until it has
+        -- rooms.
+        if not (CH.autoMap and CH.isOwnHouse) then
+            return
+        end
+        h = CH.CurrentHouse()
     end
 
     local x, y, mapID = CH.GetWorldPos()
@@ -622,6 +664,7 @@ function CH.CheckZones()
 
     if CH.coordLabel:IsVisible() then
         CH.coordLabel:SetText(string.format(CH.L["HOUSE_COORD_X"], x, y))
+        CH.RefreshRoomLabel()
     end
 
     -- 0. The game room you walked into can put you on its floor, before the

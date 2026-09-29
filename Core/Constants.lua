@@ -100,6 +100,15 @@ CH.SHAPES = {
     -- back to back
     closet = { w = CORE, h = ARM, rotates = true, doors = { { 0.5, 0 }, { 0.5, 1 } } },
     hall = { w = CORE, h = 2 * CORE, rotates = true, doors = { { 0.5, 0 }, { 0.5, 1 } } },
+    -- A stairwell is a small square with its steps drawn on it (art) and one
+    -- door, in the middle of the open side between the foot of the steps and
+    -- the landing, the same on both floors. The left one is the right one
+    -- mirrored.
+    stairR = { w = STEPS[1], h = STEPS[1], rotates = true, art = "right", stack = true, doors = { { 0.5, 0 } } },
+    stairL = { w = STEPS[1], h = STEPS[1], rotates = true, art = "left", stack = true, doors = { { 0.5, 0 } } },
+    -- the empty stairwell, a plain small square that copies onto the next
+    -- floor like the others and nothing more
+    stairE = { w = STEPS[1], h = STEPS[1], stack = true },
 }
 
 -- The shapes as the build rail and the room dialog offer them, in order, with
@@ -123,6 +132,12 @@ function CH.ShapeEntry(shape)
     end
 end
 
+-- What a room of this shape is called, a square room for one not on the
+-- build rail.
+function CH.ShapeName(shape)
+    return CH.L[(CH.ShapeEntry(shape) or CH.SHAPE_LIST[1]).name]
+end
+
 -- How much of its box a shape fills, for picking the smallest room.
 for _, def in pairs(CH.SHAPES) do
     local keep = 1
@@ -144,3 +159,38 @@ CH.SQUARE_SIZES = {
     { "TB_SIZE_MEDIUM", STEPS[2] },
     { "TB_SIZE_LARGE", STEPS[3] },
 }
+
+-- The game's rooms smart drop knows, by the room's catalog record, which is
+-- also the middle number of its room id (Housing-2-<record>-<slot>). A size
+-- is the side of a plain room or an octagon. The Entry (46) isn't sold and
+-- has no catalog record. The themed rooms aren't measured yet.
+CH.GAME_ROOMS = {
+    [7] = { size = CORE },
+    [1] = { size = STEPS[1] },
+    [11] = { size = STEPS[2] },
+    [12] = { size = STEPS[3] },
+    -- the stairwells keep the game's name so they don't pass for plain rooms
+    [10] = { shape = "stairL", gameName = true },
+    [50] = { shape = "stairR", gameName = true },
+    [48] = { shape = "stairE", gameName = true },
+    [3] = { shape = "closet" },
+    [2] = { shape = "hall" },
+    [8] = { shape = "L" },
+    [6] = { shape = "T" },
+    [13] = { shape = "plus" },
+    [14] = { shape = "oct", size = STEPS[1] },
+    [9] = { shape = "oct", size = STEPS[2] },
+    [15] = { shape = "oct", size = STEPS[3] },
+    -- two round rooms the same shape, told apart by the game's name
+    [223] = { shape = "circle", gameName = true },
+    [233] = { shape = "circle", gameName = true },
+}
+CH.ENTRY_ROOM = 46
+-- where the Entry sits in every house, and the map's entrance closet with it
+CH.ENTRANCE_X, CH.ENTRANCE_Y = -1000, -1000
+-- Every game room is a multiple of six yards and joins door to door, so a
+-- house's walls look to fall on lines every GRID yards along the entrance
+-- closet's walls, 12 by 6 about its middle. Not proven past a couple of rooms
+-- measued. The map draws the lines and Snap puts rooms on them.
+CH.GRID = 6
+CH.GRID_X, CH.GRID_Y = CH.ENTRANCE_X, CH.ENTRANCE_Y + 3

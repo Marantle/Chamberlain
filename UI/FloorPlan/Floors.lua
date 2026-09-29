@@ -316,6 +316,7 @@ function FP.RefreshFloorControls(h)
     arrivalBtn:SetShown(tools)
     soundsLabel:SetShown(tools)
     FP.snapBtn:SetShown(tools)
+    FP.autoBtn:SetShown(tools)
 
     local spots = h ~= nil and h.zones ~= nil and HasSpots(h)
     spotsCheck:SetShown(spots)

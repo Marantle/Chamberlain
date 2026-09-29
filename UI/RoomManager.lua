@@ -637,7 +637,7 @@ btnShare:SetScript("OnClick", function()
         string.format(CH.L["RM_SHARE_CONFIRM_X"], CH.HouseName(guid) or CH.L["RM_THIS_HOUSE"]),
         "RM_SHARE",
         function()
-            CH.ShareAll(guid)
+            CH.ShareHouse(guid)
         end
     )
 end)

@@ -121,6 +121,7 @@ local lastTick
 
 -- Send-side progress, counted in BLOB chunks being sent out.
 local sendRoomsTotal, sendRoomsDone = 0, 0
+local sendHouses = 0 -- maps on the bar, for its title
 
 -- The next message out and the channel it goes on. A guild echo is one short
 -- message and goes ahead of the rest. After it the layout transfer drains
@@ -178,7 +179,7 @@ local function FlushQueue()
     -- the catalog of every held house took to trickle out at 1/sec.
     if sendRoomsTotal > 0 and (sendRoomsDone >= sendRoomsTotal or not channel) then
         CH.HideSendProgress()
-        sendRoomsTotal, sendRoomsDone = 0, 0
+        sendRoomsTotal, sendRoomsDone, sendHouses = 0, 0, 0
     end
     if #sendQueueHi == 0 and #sendQueue == 0 and #sendQueueGuild == 0 and sendTicker then
         sendTicker:Cancel()
@@ -490,7 +491,7 @@ end
 -- compressed blob (the exact bytes CH.ExportLayout produces) split into BLOB
 -- chunks. One deflate over everything keeps a house to a handful of messages.
 -- Opaque to pre-3 clients, so sharing is gated by protocol version (see
--- CH.ShareAll / the HELLO handshake).
+-- CH.ShareHouse / the HELLO handshake).
 function CH.SendLayout(houseGUID)
     local h = ChamberlainDB.houses[houseGUID]
     if not h or not h.zones or #h.zones == 0 then
@@ -515,8 +516,9 @@ function CH.SendLayout(houseGUID)
     local total = math.ceil(#blob / maxChunk)
 
     Debug("SendLayout:", houseGUID, "(" .. #h.zones .. " zones, " .. total .. " chunks) to PARTY")
-    sendRoomsTotal = sendRoomsTotal + total -- accumulates across Share My Houses
-    CH.ShowSendProgress(sendRoomsTotal)
+    sendRoomsTotal = sendRoomsTotal + total -- accumulates while sends overlap
+    sendHouses = sendHouses + 1
+    CH.ShowSendProgress(sendRoomsTotal, sendHouses)
     Send(string.format("BLOBSTART|%s|%s|%d|%d", houseGUID, owner, ts, total))
     for seq = 1, total do
         local chunk = string.sub(blob, (seq - 1) * maxChunk + 1, seq * maxChunk)
@@ -537,7 +539,7 @@ function CH.CancelSend()
         end
     end
     sendQueueHi = keep
-    sendRoomsTotal, sendRoomsDone = 0, 0
+    sendRoomsTotal, sendRoomsDone, sendHouses = 0, 0, 0
     CH.HideSendProgress()
     for guid in pairs(stopped) do
         Send("BLOBCANCEL|" .. guid)
@@ -568,10 +570,10 @@ local function NoteOldPeers(minVersion, key)
     end
 end
 
--- Push your own houses to the whole party, or the one house `only` names.
+-- Push one house of your own to the whole party, the Rooms window's Share.
 -- Layouts you received from others are not re-broadcast here (though they can
 -- still be served on request, which is how transitive sharing works).
-function CH.ShareAll(only)
+function CH.ShareHouse(guid)
     -- Check each blocker separately so the message names the real reason. CanSend
     -- folds them into one boolean, fine for silent auto-broadcasts but not here.
     if not ChamberlainDB.settings.shareEnabled then
@@ -598,37 +600,25 @@ function CH.ShareAll(only)
         CH.Print(CH.L["SHARE_CANT_OUTDATED_X"], table.concat(outdated, ", "))
         return
     end
-    local names = {}
-    local sharingFloors, sharingShapes = false, false
-    for guid, _ in pairs(ChamberlainDB.myHouses) do
-        local h = ChamberlainDB.houses[guid]
-        if (not only or guid == only) and h and h.zones and #h.zones > 0 then
-            CH.SendLayout(guid)
-            names[#names + 1] = string.format(CH.L["SHARE_X_HOUSE"], h.owner or CH.L["SHARE_HOME"])
-            if (h.floorCount or 1) > 1 then
-                sharingFloors = true
-            end
-            for _, z in ipairs(h.zones) do
-                if z.shape and CH.SHAPES[z.shape].compact then
-                    sharingShapes = true
-                end
-            end
-        end
-    end
-    if #names == 0 then
+    local h = ChamberlainDB.myHouses[guid] and ChamberlainDB.houses[guid]
+    if not h or not h.zones or #h.zones == 0 then
         CH.Print(CH.L["SHARE_NO_ROOMS"])
         return
     end
-    CH.Print(CH.L["SHARE_SHARED_X"], table.concat(names, CH.L["SHARE_AND"]))
+    CH.SendLayout(guid)
+    CH.Print(CH.L["SHARE_SHARED_X"], string.format(CH.L["SHARE_X_HOUSE"], h.owner or CH.L["SHARE_HOME"]))
 
     -- Floors share fine across versions (appended blob fields), but a pre-2.4.0
     -- peer can't display them, so quietly let you know who'll see a flat layout.
     -- The same for the rooms an older peer skips.
-    if sharingFloors then
+    if (h.floorCount or 1) > 1 then
         NoteOldPeers(FLOOR_MIN_VERSION, "SHARE_FLOOR_NOTE_X")
     end
-    if sharingShapes then
-        NoteOldPeers(SHAPE_MIN_VERSION, "SHARE_SHAPE_NOTE_X")
+    for _, z in ipairs(h.zones) do
+        if z.shape and CH.SHAPES[z.shape].compact then
+            NoteOldPeers(SHAPE_MIN_VERSION, "SHARE_SHAPE_NOTE_X")
+            break
+        end
     end
 end
 
@@ -853,8 +843,8 @@ end
 -- quarter turns (left out at 0) say it all, and a client before 3.21.0 skips
 -- it for want of a box. Everything else sends its box, and sh names the
 -- shape drawn in it: circle (3.0.0), oct (3.21.0), closet or hall (3.30.0),
--- a rectangle otherwise. An older client draws a closet or a hall as the
--- rectangle it is.
+-- stairR, stairL or stairE (3.32.0), a rectangle otherwise. An older client
+-- draws a closet, a hall or a stairwell as the rectangle it is.
 local function WriteBox(e, z)
     local def = z.shape and CH.SHAPES[z.shape]
     if def and def.compact then
@@ -864,7 +854,13 @@ local function WriteBox(e, z)
         e.r = z.rot
     else
         e.x1, e.x2, e.y1, e.y2 = z.minX, z.maxX, z.minY, z.maxY
+        -- a stairwell's box is square, so its turn goes along (3.32.0)
+        e.r = def and def.art and z.rot or nil
     end
+end
+
+local function Turn(r)
+    return (r == 1 or r == 2 or r == 3) and r or nil
 end
 
 -- The box, shape and turn a zone off the wire stands for, or nil for one we
@@ -876,7 +872,7 @@ local function ReadBox(z)
             return nil
         end
         local sc = type(z.sc) == "number" and z.sc > 0 and z.sc or 1
-        local rot = (z.r == 1 or z.r == 2 or z.r == 3) and z.r or nil
+        local rot = Turn(z.r)
         local w, h = CH.ShapeSize(z.sh, rot)
         local box = {}
         CH.BoxAbout(box, z.cx, z.cy, w * sc, h * sc)
@@ -885,9 +881,12 @@ local function ReadBox(z)
     if type(z.x1) ~= "number" or type(z.x2) ~= "number" or type(z.y1) ~= "number" or type(z.y2) ~= "number" then
         return nil
     end
-    -- a closet or a hall looks the same half way round, so its box says the turn
+    -- a closet or a hall looks the same half way round, so its box says the
+    -- turn. A stairwell's square box can't, and it sends r.
     local rot
-    if def and def.rotates and (z.x2 - z.x1 > z.y2 - z.y1) ~= (def.w > def.h) then
+    if def and def.art then
+        rot = Turn(z.r)
+    elseif def and def.rotates and (z.x2 - z.x1 > z.y2 - z.y1) ~= (def.w > def.h) then
         rot = 1
     end
     return z.x1, z.x2, z.y1, z.y2, def and z.sh or nil, rot

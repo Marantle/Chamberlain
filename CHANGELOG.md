@@ -1,5 +1,42 @@
 # Changelog
 
+## 3.32.0
+- Smart drop in the Build toolbox maps the room you stand in. Walk into a
+  room from one that's already on your map and click Smart drop. The room
+  gets the shape and size the game built it at, goes onto the open door you
+  came in by and turns so you're inside it. Keep walking. When you step
+  outside it, it turns or moves to another open door so it covers everywhere
+  you've been. It's remembered for the floor check too. Every plain shape
+  works and the themed rooms don't yet, and Smart drop tells you when you're
+  in one. Round rooms and stairwells keep the game's name.
+- The left and right stairwells are rooms of their own with their steps
+  drawn on the map and the minimap, lighter toward the top, and a railing
+  round the well that follows the stairwells above and below it. The bottom
+  one of a stack rails round the steps and across the end of the flight. One
+  in the middle rails the three sides by the steps and the top one all four,
+  with half the first step floor behind it. The up and down arrows next to
+  Slide to me on the Build toolbox copy a stairwell onto the next floor, the
+  empty stairwell too, and the mirror button beside them turns a left
+  stairwell into a right one or back. Smart drop puts one on the floor above
+  or below too, and adds that floor when your map doesn't have it yet.
+- Auto map, next to Snap on the house map, runs Smart drop on each room you
+  walk into, so you can map a house by walking through it. Rooms already on
+  the map are left alone. The first room of a floor still needs Smart drop,
+  and Auto map turns off when you leave the house.
+- A selected L, T, closet, hallway or stairwell on the house map has a small
+  turn button next to its middle grip.
+- The bar that shows a map going out to your group says the house map when
+  you share one, and how many when there are more.
+- The bottom of the Build toolbox shows the game's id for the room you stand
+  in, under your position and the house, and the floor the floor check puts
+  you on there.
+- The house map's faint grid now runs every 6 yards along the entrance's
+  walls, the lines the game's rooms look to be built on. With Snap on, a room
+  you drop or drag with no door near it goes onto those lines.
+- Snap on the house map is on for everyone, turned on once with this update.
+  The Snap switch in the map's top left corner turns it off again, and your
+  choice stays after that.
+
 ## 3.31.0
 - The rooms on the minimap now sit under the game's own dots. You and your
   group show as the minimap's usual arrow and dots, with their tooltips when

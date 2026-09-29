@@ -1,6 +1,6 @@
 local ADDON, CH = ...
 
-CH.VERSION = "3.31.0"
+CH.VERSION = "3.32.0"
 
 -- How often the zone ticker samples your position, in seconds. Drives stair
 -- detection and the per-room time stats both, so they stay in step if it changes.
@@ -267,9 +267,12 @@ events:SetScript("OnEvent", function(_, event, arg1)
         if ChamberlainDB.settings.stairsBothFloors == nil then
             ChamberlainDB.settings.stairsBothFloors = true
         end
-        -- Snap on the house map, off to start with. (3.26.0)
-        if ChamberlainDB.settings.snapRooms == nil then
-            ChamberlainDB.settings.snapRooms = false
+        -- Snap on the house map, on to start with since 3.32.0. Every player
+        -- before that had it saved off, whether they chose it or not, so it's
+        -- turned on once for all and marked done, then left to them.
+        if not ChamberlainDB.settings.snapTurnedOn then
+            ChamberlainDB.settings.snapRooms = true
+            ChamberlainDB.settings.snapTurnedOn = true
         end
         -- The lock on your own map, open to start with. (3.27.0)
         if ChamberlainDB.settings.layoutLocked == nil then

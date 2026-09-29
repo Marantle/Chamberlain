@@ -38,13 +38,42 @@ entrance button, and it puts the entrance closet exactly where the game has
 it, the spot you stand in when you walk in. Every other room can snap on from
 there. With Snap on, a room you drop from the toolbox goes straight onto the
 nearest open door, turned whichever way puts it closest to you. Rotate turns
-a room around the door it's joined at.
+a room around the door it's joined at. On the map a selected L, T, closet or
+hallway has a small turn button next to its middle grip.
 
-Turn on Snap in the map's top left corner and rooms fit together at their
-doors, the way the game joins them. The green grips show where a room's doors
+Smart drop in the Build toolbox maps the room you stand in. Walk from a room on
+your map into the next one and click Smart drop. Chamberlain knows which of the game's
+rooms you're in, so the new room gets the right shape and size. It goes onto
+the open door you came in by, turned so you're inside it, and it's remembered
+for the floor check. The turn is a guess at first. Walk into one of the room's
+arms and it turns to fit where you've been. The themed rooms aren't known
+yet, so add those by hand.
+
+A left or right stairwell gets its steps drawn on the map, lighter toward the
+top, with a railing round the well that depends on the stairwells above and
+below it. The bottom one of a stack gets it round the steps and across the end
+of the flight. One in the middle gets it round the steps and the top one all
+the way round. Select a stairwell and the up and down arrows next to Slide to
+me on the Build toolbox copy it onto the next floor, adding the floor if your
+map needs it, and the mirror button swaps a left stairwell for a right one.
+Smart drop puts one on the floor above or below too, and adds that floor when
+your map doesn't have it yet.
+
+Turn on Auto map next to Snap and walk through your house. Each room you step
+into goes on the map the same way, and the ones already there are left alone.
+The first room of a floor has no door to go on yet, so drop that one with
+Smart drop. Line that first room up exactly on the game's walls with Snap on
+before you start, since every room after joins onto it. Auto map turns off
+when you leave the house.
+
+With Snap on, which it is unless you turn it off in the map's top left corner,
+rooms fit together at their doors, the way the game joins them. The green grips show where a room's doors
 are. Drag a room near another one and its door jumps onto the door there. An L
 or a T has its doors at the end of its arms, off the middle of the side. A
 square keeps its resize grips, and a wall you drag snaps to the door it meets.
+The map's faint grid runs every 6 yards along the entrance's walls, and a room
+with no door near it snaps onto those lines, so even the first room of a floor
+lines up.
 
 The Build toolbox and the house map are one window, with the tools down its
 left side. Build on the bar opens the map with the tools and Map opens the map
@@ -258,6 +287,8 @@ backup that you made.
 - Make rooms from the Build toolbox. A square, L, T, plus, octagon, round
   room, closet or hallway drops at the size the game builds it, onto the
   nearest open door when Snap is on.
+- Smart drop maps the room you stand in at the game's shape and size, on the
+  door you came in by. Auto map does it for every room you walk into.
 - An empty map puts your entrance closet in its spot with one click.
 - Snap on the house map puts rooms together door to door.
 - Lock the map so nothing moves by accident. Room sounds still change.

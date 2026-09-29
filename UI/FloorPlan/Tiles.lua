@@ -210,6 +210,69 @@ function FP.SetTileIcon(t, owner, at, marker)
     end
 end
 
+-- The railing round a stairwell's well comes from its place in the stack. The
+-- bottom one rails round the steps and across the end of the flight. One in
+-- the middle rails the three edges by the steps and the top one all four, with
+-- part of its first step floor behind the railing. Worked out from the map every
+-- draw, so nothing about it is saved or shared.
+local STAIRS_GROUND = CH.MEDIA .. "stairs-ground.tga"
+local STAIRS_MIDDLE = CH.MEDIA .. "stairs-middle.tga"
+local STAIRS_TOP = CH.MEDIA .. "stairs-top.tga"
+
+-- Whether zones has a stairwell on floor holding the point (x, y).
+local function StairwellAt(zones, floor, x, y)
+    for _, z in ipairs(zones) do
+        local def = z.shape and CH.SHAPES[z.shape]
+        if def and def.art and (z.floor or 1) == floor and CH.ZoneContains(z, x, y) then
+            return true
+        end
+    end
+end
+
+local function StairsFile(zone, zones)
+    local floor = zone.floor or 1
+    local x, y = CH.ZoneCentre(zone)
+    if not StairwellAt(zones, floor - 1, x, y) then
+        return STAIRS_GROUND
+    end
+    return StairwellAt(zones, floor + 1, x, y) and STAIRS_MIDDLE or STAIRS_TOP
+end
+
+-- A stairwell's steps over its fill. The art is the right stairwell unturned,
+-- so a turn and the left one's mirror are done in the texture coords. The
+-- corners go clockwise from the top left, and a quarter turn shows each one
+-- what the corner before it held.
+local RING = { { 0, 0 }, { 1, 0 }, { 1, 1 }, { 0, 1 } }
+
+local function Corner(i, rot, mirror)
+    local c = RING[(i - 1 - rot) % 4 + 1]
+    return mirror and 1 - c[1] or c[1], c[2]
+end
+
+function FP.SetTileStairs(t, owner, zone, zones, r, g, b)
+    local def = zone.shape and CH.SHAPES[zone.shape]
+    local art = def and def.art
+    if art and not t.stairs then
+        t.stairs = owner:CreateTexture(nil, "ARTWORK", nil, 7)
+        t.stairs:SetAllPoints(t.fill)
+    end
+    if not t.stairs then
+        return
+    end
+    t.stairs:SetShown(art ~= nil)
+    if art then
+        t.stairs:SetTexture(StairsFile(zone, zones))
+        local rot, mirror = zone.rot or 0, art == "left"
+        local ulx, uly = Corner(1, rot, mirror)
+        local urx, ury = Corner(2, rot, mirror)
+        local lrx, lry = Corner(3, rot, mirror)
+        local llx, lly = Corner(4, rot, mirror)
+        t.stairs:SetTexCoord(ulx, uly, llx, lly, urx, ury, lrx, lry)
+        -- the room's colour lifted toward white, so the steps read on its fill
+        t.stairs:SetVertexColor(0.5 + r * 0.5, 0.5 + g * 0.5, 0.5 + b * 0.5, 0.9)
+    end
+end
+
 -- Paint a house map tile for its zone and set its label. Returns the room
 -- colour so the caller can keep it for tooltips. The name is pale so it reads
 -- on any colour. f.iconOnly says the tile is an icon and nothing more.
@@ -225,6 +288,8 @@ local function StyleTile(f, zone, i, selected, stairBoxes)
     local marker, boxed, r, g, b = FP.PaintTile(f.border, f.fill, zone, i, selected, stairBoxes)
     f.iconOnly = marker ~= nil and not boxed
     FP.SetTileIcon(f, f, f, marker)
+    local h = FP.CurrentHouse()
+    FP.SetTileStairs(f, f, zone, h and h.zones or {}, r, g, b)
 
     -- a marker's name is in its tooltip
     f.label:SetText(marker and "" or zone.name)
@@ -524,9 +589,10 @@ local function LayoutLabels()
     end
 end
 
--- A faint line every GRID yards behind the rooms, and a bar in the corner to
--- measure them by. Both follow the zoom.
-local GRID = 8
+-- A faint line every CH.GRID yards behind the rooms, the lines the game looks
+-- to build on, and a bar in the corner to measure them by. Both follow the
+-- zoom.
+local GRID, GRID_X, GRID_Y = CH.GRID, CH.GRID_X, CH.GRID_Y
 local SCALE_STEPS = { 1, 2, 5, 10, 20, 50 }
 local gridLines = {}
 
@@ -548,11 +614,11 @@ scaleText:SetPoint("BOTTOMRIGHT", canvas, "BOTTOMRIGHT", -8, 6)
 scaleText:SetTextColor(0.75, 0.72, 0.65, 0.8)
 scaleBar:SetPoint("RIGHT", scaleText, "LEFT", -5, 0)
 
--- The lines every GRID yards between world a and b on one axis, top to
--- bottom when vertical and left to right otherwise. Hands back how many of
--- the pool are now in use.
-local function GridLines(used, a, b, vertical)
-    for wv = math.ceil(math.min(a, b) / GRID) * GRID, math.max(a, b), GRID do
+-- The lines every GRID yards from origin between world a and b on one axis,
+-- top to bottom when vertical and left to right otherwise. Hands back how
+-- many of the pool are now in use.
+local function GridLines(used, a, b, origin, vertical)
+    for wv = origin + math.ceil((math.min(a, b) - origin) / GRID) * GRID, math.max(a, b), GRID do
         used = used + 1
         local t = GridLine(used)
         local px, py = FP.WorldToCanvas(wv, wv)
@@ -580,8 +646,8 @@ local function LayoutGrid(k)
         -- GridLines doesn't mind
         local x1, y1 = FP.CanvasToWorld(0, 0)
         local x2, y2 = FP.CanvasToWorld(canvas:GetWidth(), canvas:GetHeight())
-        used = GridLines(used, x1, x2, true)
-        used = GridLines(used, y1, y2, false)
+        used = GridLines(used, x1, x2, GRID_X, true)
+        used = GridLines(used, y1, y2, GRID_Y, false)
         -- the longest round length that stays under 90px
         local step = SCALE_STEPS[1]
         for _, s in ipairs(SCALE_STEPS) do

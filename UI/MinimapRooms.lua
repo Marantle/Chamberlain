@@ -47,6 +47,15 @@ local function SetRim(tex, on)
     end
 end
 
+-- A stairwell's steps are made on first need, after its tile took the rim, so
+-- they catch up here.
+local function RimStairs(t)
+    if t.stairs and t.stairsRim ~= round then
+        SetRim(t.stairs, round)
+        t.stairsRim = round
+    end
+end
+
 local tiles, blips = {}, {}
 
 -- Our own dots, only for the zoom steps past the game's closest (see SetDeep).
@@ -79,6 +88,9 @@ local function ShowTile(t, on)
     t.fill:SetShown(on)
     if t.icon and not on then
         t.icon:Hide()
+    end
+    if t.stairs and not on then
+        t.stairs:Hide()
     end
 end
 
@@ -115,6 +127,7 @@ local function ApplyShape()
     for _, t in ipairs(tiles) do
         SetRim(t.fill, round)
         SetRim(t.border, round)
+        RimStairs(t)
     end
     for _, bf in ipairs(blips) do
         SetRim(bf.tex, round)
@@ -148,8 +161,11 @@ local function Rebuild()
             depth[n] = math.min(d, MAX_DEPTH)
             SetDepth(t, depth[n])
             FP.SetTileShape(t, zone)
-            t.marker = FP.PaintTile(t.border, t.fill, zone, i, false, false)
-            FP.SetTileIcon(t, overlay, t.border, t.marker)
+            local marker, _, r, g, b = FP.PaintTile(t.border, t.fill, zone, i, false, false)
+            t.marker = marker
+            FP.SetTileIcon(t, overlay, t.border, marker)
+            FP.SetTileStairs(t, overlay, zone, zones, r, g, b)
+            RimStairs(t)
             t.zone = zone
             ShowTile(t, true)
             shown = n

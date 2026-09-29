@@ -10,10 +10,11 @@ local _, CH = ...
 -- last word inside the room.
 --
 -- The game's room ids are the same on every character and after a relog, and
--- a room keeps its id when it's moved. A stairwell can link too, but the
--- floors between its ends can share one id, so only its ends are any good.
+-- a room keeps its id when it's moved. A stairwell can link too, but one id
+-- reaches over more than one floor (three floors of stairwells showed two
+-- ids), so a linked one can put you on the wrong floor.
 
-local CHECK_EVERY = 4 -- zone ticks, one second
+local CHECK_EVERY = 4 -- zone ticks, under half a second
 
 local ticks = 0
 local seenRoom = nil -- the game room the last check saw
@@ -46,6 +47,7 @@ function CH.CheckFloorLink(h)
     end
     ticks = 0
     local room = C_HousingLayout.GetRoomPlayerIsIn()
+    CH.SmartDropCheck(room)
     if room == seenRoom then
         return
     end

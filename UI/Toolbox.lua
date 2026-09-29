@@ -33,18 +33,29 @@ end
 
 local ROW_W = 188 -- the rail's inner width, what a full row spans
 
--- Lay a row's buttons out left to right, sharing the width, and hide the
--- rest of the row's set. A row changes with the picked room's shape.
+-- Lay a row's buttons out left to right and hide the rest of the row's set.
+-- A button with a fixedW keeps it and the others share what's left. A row
+-- changes with the picked room's shape.
 local function LayoutRow(shown, all, y)
     for _, b in ipairs(all) do
         b:Hide()
     end
-    local w = (ROW_W - (#shown - 1) * 6) / math.max(#shown, 1)
-    for i, b in ipairs(shown) do
+    local free, flex = ROW_W - (#shown - 1) * 6, 0
+    for _, b in ipairs(shown) do
+        if b.fixedW then
+            free = free - b.fixedW
+        else
+            flex = flex + 1
+        end
+    end
+    local x = PAD
+    for _, b in ipairs(shown) do
+        local w = b.fixedW or free / math.max(flex, 1)
         b:ClearAllPoints()
-        b:SetPoint("TOPLEFT", PAD + (i - 1) * (w + 6), y)
+        b:SetPoint("TOPLEFT", x, y)
         b:SetWidth(w)
         b:Show()
+        x = x + w + 6
     end
 end
 
@@ -78,10 +89,11 @@ for i, e in ipairs(CH.SHAPE_LIST) do
     end)
 end
 
--- A tall button with its icon over the label.
+-- A tall button with its icon over the label, three to the row.
+local TILE_W = (ROW_W - 2 * 6) / 3
 local function AddTile(key, icon, col)
-    local b = CH.MakeButton(tb, key, 91, 40)
-    b:SetPoint("TOPLEFT", PAD + col * 97, -96)
+    local b = CH.MakeButton(tb, key, TILE_W, 40)
+    b:SetPoint("TOPLEFT", PAD + col * (TILE_W + 6), -96)
     CH.AddButtonIcon(b, icon, 14):SetPoint("TOP", 0, -6)
     local fs = b:GetFontString()
     fs:ClearAllPoints()
@@ -92,6 +104,9 @@ end
 
 local addStairs = AddTile("TB_ADD_STAIRS", "icon-stairs", 0)
 local addMarker = AddTile("TB_ADD_MARKER", "icon-pin", 1)
+local smartDrop = AddTile("TB_SMART_DROP", "icon-build", 2)
+CH.Tip(smartDrop, "TB_TT_SMART_DROP")
+smartDrop:SetScript("OnClick", CH.SmartDrop)
 
 local sep = CH.MakeRule(tb)
 sep:SetPoint("TOPLEFT", PAD, -144)
@@ -208,7 +223,25 @@ CH.Tip(slideBtn, "TB_TT_SLIDE_EDGE")
 local snapBtn = CH.MakeButton(tb, "TB_SNAP_EDGE", 91, 22)
 CH.Tip(snapBtn, "TB_TT_SNAP_EDGE")
 local radiusBtn = CH.MakeButton(tb, "TB_SET_RADIUS", 91, 22)
-local fitAll = { slideBtn, snapBtn, radiusBtn }
+-- A stairwell also copies itself onto the floor over or under it, and a left
+-- or right one swaps sides, from icon buttons small enough to leave Slide to
+-- me its name.
+local function StairsButton(icon, tip, onClick)
+    local b = CH.MakeButton(tb, "", 26, 22)
+    b.fixedW = 26
+    CH.AddButtonIcon(b, icon, 12):SetPoint("CENTER")
+    CH.Tip(b, tip)
+    b:SetScript("OnClick", onClick)
+    return b
+end
+local mirrorBtn = StairsButton("icon-mirror", "TB_TT_STAIRS_MIRROR", FP.MirrorSelectedStairs)
+local aboveBtn = StairsButton("arrow-up", "TB_TT_STAIRS_ABOVE", function()
+    CH.AddStairwellNextTo(CH.tbSelZone, 1)
+end)
+local belowBtn = StairsButton("arrow-down", "TB_TT_STAIRS_BELOW", function()
+    CH.AddStairwellNextTo(CH.tbSelZone, -1)
+end)
+local fitAll = { slideBtn, snapBtn, radiusBtn, mirrorBtn, aboveBtn, belowBtn }
 local fit = {}
 
 local editBtn = CH.MakeButton(tb, "TB_EDIT", 91, 22)
@@ -227,19 +260,56 @@ for _, m in ipairs(MODES) do
     needsRoom[#needsRoom + 1] = m.btn
 end
 
--- ── Readout: live coords and the house you're in ──────────────────────
+-- ── Readout: coords, the house, the game's room id and its floor check ──
 local footLine = CH.MakeRule(tb)
-footLine:SetPoint("BOTTOMLEFT", PAD, 42)
-footLine:SetPoint("BOTTOMRIGHT", -PAD, 42)
+footLine:SetPoint("BOTTOMLEFT", PAD, 70)
+footLine:SetPoint("BOTTOMRIGHT", -PAD, 70)
 
-CH.coordLabel = tb:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-CH.coordLabel:SetPoint("BOTTOMLEFT", PAD, 24)
+local function FootLabel(y, dim)
+    local fs = tb:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    fs:SetPoint("BOTTOMLEFT", PAD, y)
+    if dim then
+        fs:SetTextColor(CH.RGBA(CH.COLORS.dim, 1))
+    end
+    return fs
+end
+
+CH.coordLabel = FootLabel(52)
 CH.coordLabel:SetText(CH.L["HUD_COORD_PLACEHOLDER"])
-
-CH.zoneLabel = tb:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-CH.zoneLabel:SetPoint("BOTTOMLEFT", PAD, 10)
+CH.zoneLabel = FootLabel(38, true)
 CH.zoneLabel:SetText("-")
-CH.zoneLabel:SetTextColor(CH.RGBA(CH.COLORS.dim, 1))
+local roomLabel = FootLabel(24, true)
+local floorLabel = FootLabel(10, true)
+
+-- The floor the floor check puts you on in this game room: the floor of the
+-- room that remembers it, or nil when none does.
+local function LinkedFloor(room)
+    local h = room and CH.currentHouseGUID and ChamberlainDB.houses[CH.currentHouseGUID]
+    if not h then
+        return
+    end
+    for _, z in ipairs(h.zones) do
+        if z.gameRoom == room then
+            return z.floor or 1
+        end
+    end
+end
+
+-- The zone ticker calls this while the rail shows. A label is only set again
+-- when its text would change, so standing still costs nothing but the look.
+local shownRoom, shownFloor = false, false
+function CH.RefreshRoomLabel()
+    local room = C_HousingLayout.GetRoomPlayerIsIn()
+    if room ~= shownRoom then
+        shownRoom = room
+        roomLabel:SetText(room and string.format(CH.L["TB_ROOM_ID_X"], room) or CH.L["TB_ROOM_ID_NONE"])
+    end
+    local floor = LinkedFloor(room)
+    if floor ~= shownFloor then
+        shownFloor = floor
+        floorLabel:SetText(floor and string.format(CH.L["TB_FLOOR_CHECK_X"], floor) or CH.L["TB_FLOOR_CHECK_NONE"])
+    end
+end
 
 -- ── Behaviour ────────────────────────────────────────────────────────
 
@@ -315,6 +385,12 @@ function CH.RefreshToolbox()
             fit[2] = snapBtn
         elseif z.shape == "circle" then
             fit[2] = radiusBtn
+        elseif def.stack then
+            if def.art then
+                fit[#fit + 1] = mirrorBtn
+            end
+            fit[#fit + 1], fit[#fit + 2] = aboveBtn, belowBtn
+            belowBtn:SetEnabled((z.floor or 1) > 1)
         end
     else
         selChip:Hide()

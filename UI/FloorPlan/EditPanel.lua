@@ -90,6 +90,38 @@ function FP.RotateSelected()
             break
         end
     end
+    -- a T turned about its middle comes off the grid by half a step
+    if not join and ChamberlainDB.settings.snapRooms and CH.IsRoom(zone) then
+        CH.SnapToGrid(zone)
+    end
+    Commit(house)
+end
+
+-- The game's name for the rooms of a shape, from the room catalog.
+local function GameName(shape)
+    for record, kind in pairs(CH.GAME_ROOMS) do
+        if kind.shape == shape then
+            local entry = C_HousingCatalog.GetCatalogEntryInfoByRecordID(Enum.HousingCatalogEntryType.Room, record)
+            return entry and entry.name
+        end
+    end
+end
+
+-- A left stairwell to a right one and back, in place. Both have their door
+-- in the same spot, so nothing moves, and a room still named by the game
+-- takes the other one's name.
+local MIRRORED = { stairL = "stairR", stairR = "stairL" }
+
+function FP.MirrorSelectedStairs()
+    local house, zone = FP.CurrentHouse(), CH.tbSelZone
+    local other = zone and MIRRORED[zone.shape]
+    if not house or not other then
+        return
+    end
+    if zone.name == GameName(zone.shape) then
+        zone.name = GameName(other) or zone.name
+    end
+    zone.shape = other
     Commit(house)
 end
 
@@ -252,6 +284,10 @@ local function UpdateHandleDrag()
         if dragMoved then
             probe.minX, probe.maxX, probe.minY, probe.maxY = minX, maxX, minY, maxY
             local sx, sy = SnapStep(SNAP_PX / k, s.fx, s.fy)
+            -- a whole room with no door in reach goes onto the grid
+            if not lockDoor and s.move then
+                sx, sy = CH.GridStep(probe)
+            end
             minX, maxX = minX + (s.mnX or 0) * sx, maxX + (s.mxX or 0) * sx
             minY, maxY = minY + (s.mnY or 0) * sy, maxY + (s.mxY or 0) * sy
         end
@@ -345,6 +381,14 @@ for i, spec in ipairs(HANDLE_SPECS) do
     handles[i] = hb
 end
 
+-- A turn button beside the centre grip of a room that turns, the same quarter
+-- turn as Rotate on the build rail.
+local rotateBtn = CH.MakeGlyphButton(canvas, nil, "icon-rotate")
+rotateBtn:SetFrameLevel(FP.Level("grips"))
+rotateBtn:Hide()
+CH.Tip(rotateBtn, "TB_ROTATE")
+rotateBtn:SetScript("OnClick", FP.RotateSelected)
+
 -- The Snap switch in the map's top left corner, your own house only.
 -- Floors.lua shows it with the other tools.
 local snapBtn = CH.MakeButton(FP.map, "FP_SNAP", 60, 18)
@@ -363,6 +407,26 @@ snapBtn:SetScript("OnShow", function(self)
 end)
 FP.snapBtn = snapBtn
 
+-- Auto map beside it: smart drop on every room you walk into. It lives for
+-- the visit only, so leaving the house switches it off.
+local autoBtn = CH.MakeButton(FP.map, "FP_AUTO_MAP", 76, 18)
+autoBtn:SetPoint("LEFT", snapBtn, "RIGHT", 4, 0)
+autoBtn:SetFrameLevel(FP.Level("buttons"))
+autoBtn:Hide()
+CH.Tip(autoBtn, "FP_TT_AUTO_MAP")
+autoBtn:SetScript("OnClick", function(self)
+    if CH.autoMap then
+        CH.StopAutoMap()
+    else
+        CH.autoMap = true
+    end
+    CH.SetButtonActive(self, CH.autoMap)
+end)
+autoBtn:SetScript("OnShow", function(self)
+    CH.SetButtonActive(self, CH.autoMap)
+end)
+FP.autoBtn = autoBtn
+
 -- Park the grips on the selected tile's edges/centre, or hide them when there's
 -- nothing editable selected on the viewed floor.
 function FP.PositionHandles()
@@ -373,6 +437,7 @@ function FP.PositionHandles()
         for _, hb in ipairs(handles) do
             hb:Hide()
         end
+        rotateBtn:Hide()
         return
     end
     local px, py = FP.WorldToCanvas(zone.maxX, zone.maxY) -- tile top-left (screen)
@@ -418,4 +483,8 @@ function FP.PositionHandles()
             hb:Show()
         end
     end
+    local def = shaped and CH.SHAPES[zone.shape]
+    rotateBtn:ClearAllPoints()
+    rotateBtn:SetPoint("CENTER", canvas, "TOPLEFT", px + zw * 0.5 + HANDLE_SIZE + 8, -(py + zh * 0.5))
+    rotateBtn:SetShown(def and def.rotates or false)
 end

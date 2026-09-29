@@ -1149,9 +1149,23 @@ function CH.CreateZoneAt(x, y, mapID, shape, name)
         return
     end
     local h = CH.CurrentHouse()
+    local z = CH.NewZone(h, x, y, mapID, shape, name)
+    if ChamberlainDB.settings.snapRooms and not CH.FitToOpenDoor(h, z, x, y) then
+        CH.SnapToGrid(z)
+    end
+    table.insert(h.zones, z)
+    CH.TouchHouse(CH.currentHouseGUID)
+    return z, CH.currentHouseGUID
+end
+
+-- A fresh room for house h centred on (x, y), not filed yet. size is the side
+-- of a square box and overrides the shape's own.
+function CH.NewZone(h, x, y, mapID, shape, name, size)
     local def = CH.SHAPES[shape]
     local bw, bh = CH.SQUARE_SIZES[1][2], CH.SQUARE_SIZES[1][2]
-    if def then
+    if size then
+        bw, bh = size, size
+    elseif def then
         bw, bh = def.w, def.h
     end
     -- Named after its shape and how many of that shape the hosue has, so the
@@ -1165,18 +1179,13 @@ function CH.CreateZoneAt(x, y, mapID, shape, name)
     -- New rooms land on the floor the player is viewing (which tracks the active
     -- floor), so dropping one upstairs files it upstairs.
     local z = {
-        name = name or string.format(CH.L["TB_DEFAULT_ROOM_X"], CH.L[CH.ShapeEntry(shape).name], nth),
+        name = name or string.format(CH.L["TB_DEFAULT_ROOM_X"], CH.ShapeName(shape), nth),
         mapID = mapID,
         shape = def and shape or nil,
         floor = CH.MapFloor(),
     }
     CH.BoxAbout(z, x, y, bw, bh)
-    if ChamberlainDB.settings.snapRooms then
-        CH.FitToOpenDoor(h, z, x, y)
-    end
-    table.insert(h.zones, z)
-    CH.TouchHouse(CH.currentHouseGUID)
-    return z, CH.currentHouseGUID
+    return z
 end
 
 btnOK:SetScript("OnClick", ConfirmZone)

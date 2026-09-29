@@ -263,7 +263,6 @@ L["SHARE_X_HOUSE"] = "%s"
 L["SHARE_HOME"] = "Koti"
 L["SHARE_NO_ROOMS"] = "Sinulla ei ole vielä huoneita, joita voisit jakaa."
 L["SHARE_SHARED_X"] = "%sin jakaminen ryhmälle."
-L["SHARE_AND"] = " ja "
 L["SHARE_FLOOR_NOTE_X"] =
     "Huomautus: %s %s vanhemmalla versiolla, jolloin huoneesi näkyvät yhdellä kerroksella (useiden kerrosten näyttämiseen tarvitaan versio %s)."
 L["SHARE_IS"] = " on"

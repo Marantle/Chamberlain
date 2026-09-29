@@ -21,6 +21,30 @@ local _, CH = ...
 -- show under the notes, a frame with a Refresh method.
 CH.WHATS_NEW = {
     {
+        v = "3.32.0",
+        -- shown even to players who turned the window off, Auto map is worth it
+        force = true,
+        lead = {
+            icon = "icon-map",
+            title = "Auto map and Smart drop",
+            text = "Turn on Auto map next to Snap on the house map and walk through your house. Every room "
+                .. "you step into goes on the map by itself, at the game's shape and size, joined to the "
+                .. "room you came from.\n\nSmart drop in the Build toolbox does the same for the room you "
+                .. "stand in, one click at a time, when you'd rather map by hand.\n\nStart from the Entry "
+                .. "or a room already on your map, and have Snap on with that first room lined up exactly "
+                .. "on the game's walls. Every room after it joins onto it, so anything off there is off "
+                .. "all through the house. The first room of a new floor needs a click of Smart drop."
+                .. "\n\nAuto map turns off when you leave the house.",
+        },
+        notes = {
+            "A dropped L or T turns to fit as you walk around in it.",
+            "Stairwells show their steps on the map and go on both floors they join.",
+            "Snap is on for everyone now, and a room with no door near it snaps onto the map's grid. The Snap "
+                .. "switch in the map's top left corner turns it off.",
+            "A selected L, T, closet, hallway or stairwell on the house map has a turn button by its middle grip.",
+        },
+    },
+    {
         v = "3.31.0",
         notes = {
             "The minimap rooms now sit under the game's own arrow and group dots, tooltips and all.",
@@ -452,7 +476,37 @@ local win, scrollChild
 local linePool = {}
 local togglePool = {} -- by settings key so each block's toggles are built once
 local extras = {} -- each block's extra, by block, built the first time it shows
+local leads = {} -- each block's lead panel, by block, the same way
 local shownThisSession = false
+
+-- A block's lead: the one thing of the release that matters most, in a
+-- panel of its own with an icon, a big title and its text a size up from the
+-- notes.
+local LEAD_ICON = 32
+
+local function MakeLead(parent, lead)
+    local f = CreateFrame("Frame", nil, parent)
+    local bg = f:CreateTexture(nil, "BACKGROUND")
+    bg:SetAllPoints()
+    bg:SetColorTexture(CH.RGBA(CH.COLORS.gold, 0.08))
+    local icon = CH.MakeIcon(f, lead.icon, LEAD_ICON)
+    icon:SetPoint("TOPLEFT", 8, -8)
+    icon:SetVertexColor(CH.RGBA(CH.COLORS.gold, 1))
+    local title = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    title:SetPoint("LEFT", icon, "RIGHT", 10, 0)
+    title:SetTextColor(CH.RGBA(CH.COLORS.gold, 1))
+    title:SetText(lead.title)
+    local text = f:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    text:SetPoint("TOPLEFT", icon, "BOTTOMLEFT", 0, -8)
+    text:SetJustifyH("LEFT")
+    text:SetWordWrap(true)
+    text:SetText(lead.text)
+    function f:Refresh()
+        text:SetWidth(self:GetWidth() - 16)
+        self:SetHeight(8 + LEAD_ICON + 8 + text:GetStringHeight() + 10)
+    end
+    return f
+end
 
 local function AcquireToggle(block, labelKey, key)
     local b = togglePool[key]
@@ -548,6 +602,9 @@ local function Populate(blocks)
     for _, f in pairs(extras) do
         f:Hide()
     end
+    for _, f in pairs(leads) do
+        f:Hide()
+    end
     local y, i = -4, 0
     for _, block in ipairs(blocks) do
         i = i + 1
@@ -560,6 +617,17 @@ local function Populate(blocks)
         head:SetText(string.format(CH.L["WN_VERSION_HEADER"], block.v))
         head:Show()
         y = y - head:GetStringHeight() - 6
+
+        if block.lead then
+            local f = leads[block] or MakeLead(scrollChild, block.lead)
+            leads[block] = f
+            f:ClearAllPoints()
+            f:SetPoint("TOPLEFT", 4, y)
+            f:SetWidth(CONTENT_W - 4)
+            f:Refresh()
+            f:Show()
+            y = y - f:GetHeight() - 8
+        end
 
         for _, line in ipairs(block.notes) do
             i = i + 1
@@ -612,13 +680,26 @@ function CH.MaybeShowWhatsNew()
     end
 
     if ChamberlainDB.settings.showUpdateNotes == false then
-        -- Opted out: stay silent, but move the marker forward so re-enabling later
-        -- doesn't dump notes the player already lived through. unreadSince keeps
-        -- where they left off, for the note icon on the bar, and holds on to the
-        -- oldest of a run of skipped updates.
+        -- A block marked force still shows, on its own. The rest stays silent,
+        -- but the marker moves forward so re-enabling later doesn't dump notes
+        -- the player already lived through. unreadSince keeps where they left
+        -- off, for the note icon on the bar, and holds on to the oldest of a
+        -- run of skipped updates.
+        local forced = {}
+        for _, block in ipairs(CollectBlocks(last)) do
+            if block.force then
+                forced[#forced + 1] = block
+            end
+        end
         ChamberlainDB.unreadSince = ChamberlainDB.unreadSince or last
         ChamberlainDB.lastSeenVersion = CH.VERSION
         CH.RefreshHUDMode()
+        if #forced == 0 then
+            return
+        end
+        shownThisSession = true
+        Build():Show()
+        Populate(forced)
         return
     end
 
