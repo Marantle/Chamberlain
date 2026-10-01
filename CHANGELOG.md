@@ -1,5 +1,32 @@
 # Changelog
 
+## 3.34.0
+- Smart drop and Auto map know the Autumnal and the Springtime Westfall Barn.
+  The barn goes onto the door you came in by at its own shape, which is off
+  the usual 6 yard steps. Only its door lines up with the other rooms.
+- The barn is the first of the artisanal rooms. The game builds those at one
+  size, so on the map they move and turn but don't resize. The size grips
+  and the Grow, Shrink and Game size buttons are gone for them.
+- The map draws the barn's raised stall bay with a railing along its open
+  side and three steps up into it in the middle, and the railed flight up to
+  the loft along the wall.
+- Smart drop on a barn also puts its loft on the floor above, adding the
+  floor if your map doesn't have it. The loft is a plain room of its own,
+  with its own name, banner and sounds, and you move or resize it like any
+  other.
+- A barn has stairs to its loft both ways, so the map follows you up and
+  down. They move and turn with the barn and can't be edited on their own.
+  They aren't sent when you share, since every Chamberlain adds them to the
+  barn itself.
+- The floor check leaves you alone while you stand in a smaller room it
+  doesn't remember, like the loft over a barn. Step out of it and the room
+  you're in puts you back on its floor.
+- The room editor has Delete room at the bottom left. It works like the
+  trash can on the Build toolbox, so Undo delete brings the room back.
+- A friend on an older version sees the barn as a plain square, with no
+  stairs.
+- What's New shows the barn as the map draws it.
+
 ## 3.33.0
 - The room editor is part of the house map now. It opens down the left side
   in place of the Build toolbox, and the map holds still while it's open. You

@@ -422,7 +422,7 @@ function CH.BroadcastCatalog(only)
         if not only or only[guid] then
             local owner = string.gsub(h.owner or "?", "|", "")
             local ts = h.updatedAt or 0
-            local count = h.zones and #h.zones or 0
+            local count = h.zones and CH.ZoneCount(h.zones) or 0
             Send("CATALOG|" .. guid .. "|" .. owner .. "|" .. ts .. "|" .. count)
         end
     end
@@ -662,6 +662,7 @@ function CH.ApplyLayout(houseGUID, data, senderName)
             zones = data.zones,
         }
     end
+    CH.BuildParts(ChamberlainDB.houses[houseGUID])
     Debug("ApplyLayout: saved", houseGUID, "(" .. #data.zones .. " zones) from", senderName)
     local houseName = (data.owner and string.format(CH.L["SHARE_X_HOUSE"], data.owner)) or CH.L["SHARE_A_HOUSE"]
     CH.Print(CH.L["SHARE_RECEIVED_X"], #data.zones, houseName, senderName)
@@ -838,13 +839,20 @@ local function ReadHouseSound(kind, house, floors)
     return next(set) and set or nil
 end
 
+-- A square box that turns can't tell its turn by its sides, so it sends r: a
+-- stairwell (3.32.0) or the barn (3.34.0).
+local function SendsTurn(def)
+    return def and def.rotates and def.w == def.h
+end
+
 -- A room's place on the wire. An L, a T or a plus is always the game's own
 -- shape, so its centre, its size against the game's (left out at 1) and its
 -- quarter turns (left out at 0) say it all, and a client before 3.21.0 skips
 -- it for want of a box. Everything else sends its box, and sh names the
 -- shape drawn in it: circle (3.0.0), oct (3.21.0), closet or hall (3.30.0),
--- stairR, stairL or stairE (3.32.0), a rectangle otherwise. An older client
--- draws a closet, a hall or a stairwell as the rectangle it is.
+-- stairR, stairL or stairE (3.32.0), barn (3.34.0), a rectangle otherwise. An
+-- older client draws a closet, a hall, a stairwell or a barn as the rectangle
+-- it is.
 local function WriteBox(e, z)
     local def = z.shape and CH.SHAPES[z.shape]
     if def and def.compact then
@@ -854,8 +862,7 @@ local function WriteBox(e, z)
         e.r = z.rot
     else
         e.x1, e.x2, e.y1, e.y2 = z.minX, z.maxX, z.minY, z.maxY
-        -- a stairwell's box is square, so its turn goes along (3.32.0)
-        e.r = def and def.art and z.rot or nil
+        e.r = SendsTurn(def) and z.rot or nil
     end
 end
 
@@ -882,9 +889,9 @@ local function ReadBox(z)
         return nil
     end
     -- a closet or a hall looks the same half way round, so its box says the
-    -- turn. A stairwell's square box can't, and it sends r.
+    -- turn
     local rot
-    if def and def.art then
+    if SendsTurn(def) then
         rot = Turn(z.r)
     elseif def and def.rotates and (z.x2 - z.x1 > z.y2 - z.y1) ~= (def.w > def.h) then
         rot = 1
@@ -1014,7 +1021,9 @@ function CH.ExportLayout(houseGUID)
             end
         end
     end
-    for _, z in ipairs(h.zones) do
+    -- a barn's stairs are built again by whoever reads this
+    for i = 1, CH.ZoneCount(h.zones) do
+        local z = h.zones[i]
         local e = {
             n = z.name,
             m = z.mapID,

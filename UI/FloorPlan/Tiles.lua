@@ -238,10 +238,10 @@ local function StairsFile(zone, zones)
     return StairwellAt(zones, floor + 1, x, y) and STAIRS_MIDDLE or STAIRS_TOP
 end
 
--- A stairwell's steps over its fill. The art is the right stairwell unturned,
--- so a turn and the left one's mirror are done in the texture coords. The
--- corners go clockwise from the top left, and a quarter turn shows each one
--- what the corner before it held.
+-- A stairwell's steps over its fill, or a themed room's deco. The art is the
+-- right stairwell unturned, so a turn and the left one's mirror are done in
+-- the texture coords. The corners go clockwise from the top left, and a
+-- quarter turn shows each one what the corner before it held.
 local RING = { { 0, 0 }, { 1, 0 }, { 1, 1 }, { 0, 1 } }
 
 local function Corner(i, rot, mirror)
@@ -251,17 +251,17 @@ end
 
 function FP.SetTileStairs(t, owner, zone, zones, r, g, b)
     local def = zone.shape and CH.SHAPES[zone.shape]
-    local art = def and def.art
-    if art and not t.stairs then
+    local art, deco = def and def.art, def and def.deco
+    if (art or deco) and not t.stairs then
         t.stairs = owner:CreateTexture(nil, "ARTWORK", nil, 7)
         t.stairs:SetAllPoints(t.fill)
     end
     if not t.stairs then
         return
     end
-    t.stairs:SetShown(art ~= nil)
-    if art then
-        t.stairs:SetTexture(StairsFile(zone, zones))
+    t.stairs:SetShown((art or deco) ~= nil)
+    if art or deco then
+        t.stairs:SetTexture(deco or StairsFile(zone, zones))
         local rot, mirror = zone.rot or 0, art == "left"
         local ulx, uly = Corner(1, rot, mirror)
         local urx, ury = Corner(2, rot, mirror)
@@ -271,6 +271,28 @@ function FP.SetTileStairs(t, owner, zone, zones, r, g, b)
         -- the room's colour lifted toward white, so the steps read on its fill
         t.stairs:SetVertexColor(0.5 + r * 0.5, 0.5 + g * 0.5, 0.5 + b * 0.5, 0.9)
     end
+end
+
+-- One room drawn the way the house map draws it, on the map's ground, for a
+-- sample outside the map (What's New). size is the tile's side in pixels for
+-- a square box.
+function FP.MakeRoomSample(parent, zone, size)
+    local f = CreateFrame("Frame", nil, parent)
+    f:SetHeight(size + 16)
+    local ground = f:CreateTexture(nil, "BACKGROUND", nil, -8)
+    ground:SetPoint("TOPLEFT")
+    ground:SetSize(size + 16, size + 16)
+    ground:SetColorTexture(GROUND[1], GROUND[2], GROUND[3], 1)
+    local t = MakeTile(f)
+    t:SetPoint("CENTER", ground)
+    t:SetSize(size * (zone.maxX - zone.minX) / (zone.maxY - zone.minY), size)
+    FP.SetTileShape(t, zone)
+    local _, _, r, g, b = FP.PaintTile(t.border, t.fill, zone, 3, false, false)
+    FP.SetTileStairs(t, t, zone, { zone }, r, g, b)
+    t.label:SetText(zone.name)
+    t.label:SetTextColor(0.95, 0.92, 0.85, 1)
+    function f.Refresh() end
+    return f
 end
 
 -- Paint a house map tile for its zone and set its label. Returns the room
@@ -369,7 +391,11 @@ local function ZonesAtCursor()
                 and cy <= b + ht
                 and (f.iconOnly or CH.ZoneContains(f.zone, wx, wy))
             then
-                hits[#hits + 1] = f.zoneIdx
+                -- a barn's stairs pick the barn
+                local idx = f.zone.part or f.zoneIdx
+                if not tIndexOf(hits, idx) then
+                    hits[#hits + 1] = idx
+                end
             end
         end
     end

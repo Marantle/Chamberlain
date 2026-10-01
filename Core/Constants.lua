@@ -62,6 +62,17 @@ local STEPS = { SPAN, SPAN + 2 * ARM, SPAN + 4 * ARM }
 -- gets one in the middle of each side.
 local a, b = ARM / SIDE, ARM / SPAN
 local armMid = (1 + a) / 2
+
+-- The Autumnal Westfall Barn, walked in a house on 2026-10-01. A themed room
+-- keeps its own sizes off the grid and only its door lands on a grid line.
+-- It's artisanal: the game builds it at one size, so it moves and turns but
+-- never resizes. More of them come one at a time as they're walked. Yards
+-- from the box's low x, low y corner as the barn stood, door on the high y
+-- side and the raised stall bay along the low x side.
+local BARN = 43.2
+local function Barn(x0, y0, x1, y1)
+    return { x0 / BARN, y0 / BARN, x1 / BARN, y1 / BARN }
+end
 CH.SHAPES = {
     L = {
         w = SIDE,
@@ -109,6 +120,31 @@ CH.SHAPES = {
     -- the empty stairwell, a plain small square that copies onto the next
     -- floor like the others and nothing more
     stairE = { w = STEPS[1], h = STEPS[1], stack = true },
+    -- deco is drawn over the fill like a stairwell's steps, but it's no
+    -- stairwell, so nothing stacks it. loft is the plain room Smart drop puts
+    -- on the floor above, a room of its own from then on. parts are the
+    -- stairs CH.BuildParts makes of it, up floors above the barn's own and
+    -- going to the barn's floor plus to.
+    barn = {
+        w = BARN,
+        h = BARN,
+        rotates = true,
+        artisanal = true,
+        loft = Barn(30.7, 0, BARN, 39.3),
+        parts = {
+            { box = Barn(36.6, 27.6, 43.1, 29.6), up = 0, to = 1 },
+            { box = Barn(36.6, 29.5, 43.1, 39.5), up = 1, to = 0 },
+        },
+        mask = CH.MEDIA .. "mask-barn",
+        deco = CH.MEDIA .. "barn.tga",
+        cuts = {
+            Barn(0, 0, 11.1, 7.9),
+            Barn(0, 31.7, 11.1, 39.2),
+            Barn(0, 39.2, 16.8, BARN),
+            Barn(31.2, 39.2, BARN, BARN),
+        },
+        doors = { { 24 / BARN, 1 } },
+    },
 }
 
 -- The shapes as the build rail and the room dialog offer them, in order, with
@@ -163,7 +199,7 @@ CH.SQUARE_SIZES = {
 -- The game's rooms smart drop knows, by the room's catalog record, which is
 -- also the middle number of its room id (Housing-2-<record>-<slot>). A size
 -- is the side of a plain room or an octagon. The Entry (46) isn't sold and
--- has no catalog record. The themed rooms aren't measured yet.
+-- has no catalog record. Of the themed rooms only the barn is measured yet.
 CH.GAME_ROOMS = {
     [7] = { size = CORE },
     [1] = { size = STEPS[1] },
@@ -184,6 +220,9 @@ CH.GAME_ROOMS = {
     -- two round rooms the same shape, told apart by the game's name
     [223] = { shape = "circle", gameName = true },
     [233] = { shape = "circle", gameName = true },
+    -- the Autumnal and the Springtime barn, the same room
+    [400] = { shape = "barn", gameName = true },
+    [401] = { shape = "barn", gameName = true },
 }
 CH.ENTRY_ROOM = 46
 -- where the Entry sits in every house, and the map's entrance closet with it

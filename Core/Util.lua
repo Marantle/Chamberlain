@@ -35,6 +35,12 @@ function CH.ZoneDimText(z)
     return string.format(CH.L["FMT_DIM_X"], z.maxX - z.minX, z.maxY - z.minY)
 end
 
+-- An artisanal room only comes in the one size the game builds it.
+function CH.FixedSize(z)
+    local def = z.shape and CH.SHAPES[z.shape]
+    return def and def.artisanal or false
+end
+
 -- The game's box for a shaped room at a quarter turn (an L stays square, a
 -- T lies on its side).
 function CH.ShapeSize(shape, rot)
@@ -76,14 +82,30 @@ function CH.ZoneDoors(z)
     return def and def.doors or SIDE_DOORS
 end
 
+-- A spot given as fractions of the shape unturned, in world yards for the
+-- room as it stands, with its fractions of the turned box. Turning forward is
+-- the unturn the other way round.
+function CH.ShapePoint(z, s, t)
+    local u, v = Unturn(s, t, (4 - (z.rot or 0)) % 4)
+    return z.minX + u * (z.maxX - z.minX), z.minY + v * (z.maxY - z.minY), u, v
+end
+
+-- A box given as fractions of the shape unturned, {x0, y0, x1, y1}, in world
+-- yards for the room as it stands.
+function CH.ShapeBox(z, b)
+    local x0, y0 = CH.ShapePoint(z, b[1], b[2])
+    local x1, y1 = CH.ShapePoint(z, b[3], b[4])
+    return math.min(x0, x1), math.max(x0, x1), math.min(y0, y1), math.max(y0, y1)
+end
+
 -- Where door d of the room is in world yards, and which way it faces out.
 -- A door sits on the box edge at any turn, so the edge it is on gives the
--- facing. Turning forward is the unturn the other way round.
+-- facing.
 function CH.DoorAt(z, d)
-    local u, v = Unturn(d[1], d[2], (4 - (z.rot or 0)) % 4)
+    local x, y, u, v = CH.ShapePoint(z, d[1], d[2])
     local nx = u == 0 and -1 or u == 1 and 1 or 0
     local ny = nx == 0 and (v == 0 and -1 or 1) or 0
-    return z.minX + u * (z.maxX - z.minX), z.minY + v * (z.maxY - z.minY), nx, ny
+    return x, y, nx, ny
 end
 
 -- Is (x, y) inside the room: its box for a rectangle, the disc for a circle,

@@ -186,8 +186,9 @@ local function DeletedRoom(guid)
     end
 end
 
-local delBtn = IconButton("icon-trash", "TB_TT_DELETE", 24, function()
-    local z, guid = CH.tbSelZone, CH.tbSelGuid
+-- Delete room z of house guid, kept for Undo delete. The trash button here and
+-- Delete room in the room editor both come through this.
+function CH.DeleteRoom(z, guid)
     local h = z and guid and ChamberlainDB.houses[guid]
     if not h then
         return
@@ -198,6 +199,10 @@ local delBtn = IconButton("icon-trash", "TB_TT_DELETE", 24, function()
     CH.DropZoneStats(h, z.name)
     CH.SetSelection(nil, nil) -- clear it on the map too
     CH.TouchHouse(guid)
+end
+
+local delBtn = IconButton("icon-trash", "TB_TT_DELETE", 24, function()
+    CH.DeleteRoom(CH.tbSelZone, CH.tbSelGuid)
 end)
 delBtn:SetPoint("LEFT", editBtn, "RIGHT", 6, 0)
 
@@ -432,8 +437,14 @@ function CH.RefreshToolbox()
     editBtn.undo = undo
     editBtn:SetEnabled(z ~= nil or undo ~= nil)
     editBtn:SetText(undo and string.format(CH.L["TB_UNDO_DELETE_X"], undo.name) or CH.L["RD_TITLE_EDIT_ROOM"])
+    -- an artisanal room only moves
+    local fixed = z ~= nil and CH.FixedSize(z)
+    if fixed then
+        mode = MOVE
+    end
     for _, m in ipairs(MODES) do
         CH.SetButtonActive(m.btn, m == mode)
+        m.btn:SetEnabled(z ~= nil and (not fixed or m == MOVE))
     end
     padAll:SetShown(mode ~= MOVE)
     padAll:SetText(mode == GROW and "+" or "-")
@@ -463,9 +474,11 @@ function CH.RefreshToolbox()
             if def.rotates then
                 quick[#quick + 1] = rotateBtn
             end
-            quick[#quick + 1] = gameBtn
-            local gw, gh = CH.ShapeSize(z.shape, z.rot)
-            gameBtn:SetEnabled(math.abs(w - gw) > 0.05 or math.abs(h - gh) > 0.05)
+            if not fixed then
+                quick[#quick + 1] = gameBtn
+                local gw, gh = CH.ShapeSize(z.shape, z.rot)
+                gameBtn:SetEnabled(math.abs(w - gw) > 0.05 or math.abs(h - gh) > 0.05)
+            end
         end
 
         fit[1] = slideBtn

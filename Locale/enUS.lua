@@ -430,6 +430,7 @@ L["RD_SPEAKER_TT2"] =
 L["RD_DESC_HINT"] = "Describe this room, point out hidden doors, lore..."
 L["RD_SAVE"] = "Save"
 L["RD_CANCEL"] = "Cancel"
+L["RD_DELETE_ROOM"] = "Delete room"
 L["RD_TT_BACK"] = "Back to the map."
 L["RD_LEAVE_ASK"] = "Save your changes?"
 L["RD_KEEP_EDITING"] = "Keep editing"

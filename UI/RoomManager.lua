@@ -102,7 +102,7 @@ local function GetSharedHouseList()
             -- list, matching the floor plan. Owned houses (above) keep theirs.
             local visible = {}
             for _, zone in ipairs(h.zones) do
-                if not zone.secret then
+                if not zone.secret and not zone.part then
                     visible[#visible + 1] = zone
                 end
             end
@@ -333,7 +333,7 @@ local function BuildSections()
         local out = {}
         for _, item in ipairs(list) do
             if Matches(item) then
-                item.tag = tostring(#item.zones)
+                item.tag = tostring(CH.ZoneCount(item.zones))
                 out[#out + 1] = item
             end
         end
@@ -579,7 +579,7 @@ local function PopulateDetail(item, p)
     local h = item and ChamberlainDB.houses[item.guid]
 
     detailTitle:SetText(item and item.label or "")
-    local meta = h and string.format(CH.L["RM_ROOMS_FLOORS_X"], #item.zones, h.floorCount or 1) or ""
+    local meta = h and string.format(CH.L["RM_ROOMS_FLOORS_X"], CH.ZoneCount(item.zones), h.floorCount or 1) or ""
     if item and item.sub then
         meta = item.sub .. "    " .. meta
     end
@@ -606,7 +606,9 @@ local function PopulateDetail(item, p)
     local w = FitScrollChild(roomScroll, roomChild, 340)
     local y = 0
     for zoneIdx, zone in ipairs(h and item.zones or {}) do
-        y = AddZoneRow(zoneIdx, w, y, zone, item.guid, item.own)
+        if not zone.part then
+            y = AddZoneRow(zoneIdx, w, y, zone, item.guid, item.own)
+        end
     end
     roomChild:SetHeight(math.max(y, 1))
 

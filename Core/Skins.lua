@@ -658,6 +658,7 @@ function CH.TouchHouse(guid)
     local h = guid and ChamberlainDB.houses[guid]
     if h then
         h.updatedAt = GetServerTime()
+        CH.BuildParts(h)
     end
     if CH.RebuildFloorPlan then
         CH.RebuildFloorPlan()

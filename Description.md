@@ -49,8 +49,12 @@ your map into the next one and click Smart drop. Chamberlain knows which of the 
 rooms you're in, so the new room gets the right shape and size. It goes onto
 the open door you came in by, turned so you're inside it, and it's remembered
 for the floor check. The turn is a guess at first. Walk into one of the room's
-arms and it turns to fit where you've been. The themed rooms aren't known
-yet, so add those by hand.
+arms and it turns to fit where you've been. Of the themed rooms only the
+Westfall barns are known so far. The map draws their raised stall bay with
+its railing and the three steps up into it, and the stairs to the loft.
+Smart drop puts the loft on the floor above as a room of its own, and the
+barn's stairs take the map up and down with you. Add the other themed rooms
+by hand.
 
 A left or right stairwell gets its steps drawn on the map, lighter toward the
 top, with a railing round the well that depends on the stairwells above and

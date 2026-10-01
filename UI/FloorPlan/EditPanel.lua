@@ -14,6 +14,8 @@ local STEP = 0.5 -- yards per button click
 -- After an edit lands: stamp the house, redraw and tell the group.
 local function Commit(h)
     h.updatedAt = GetServerTime()
+    -- a moved or turned barn takes its stairs along
+    CH.BuildParts(h)
     FP.Build()
     if CH.RefreshRoomList then
         CH.RefreshRoomList()
@@ -42,7 +44,10 @@ function FP.AdjustSelected(dMinX, dMaxX, dMinY, dMaxY)
     if not h or not zone then
         return
     end
-    if zone.shape and not (dMinX == dMaxX and dMinY == dMaxY) then
+    local resize = not (dMinX == dMaxX and dMinY == dMaxY)
+    if resize and CH.FixedSize(zone) then
+        return
+    elseif zone.shape and resize then
         -- A shaped room keeps its shape, so any Grow or Shrink button scales it
         -- about the centre by a yard, both axes together.
         local grow = (dMaxX - dMinX) + (dMaxY - dMinY) > 0
@@ -67,7 +72,7 @@ end
 -- The Quick resize chips and the Game size button: a set box about the centre.
 function FP.SetSelectedBox(w, h)
     local house, zone = FP.CurrentHouse(), CH.tbSelZone
-    if house and zone and SizeAbout(zone, w, h) then
+    if house and zone and not CH.FixedSize(zone) and SizeAbout(zone, w, h) then
         Commit(house)
     end
 end
@@ -464,7 +469,8 @@ function FP.PositionHandles()
     -- L's missing corner, and there is no single wall to pull there anyway.
     -- With snap on the edge grips turn into doors. A square's are on its doors
     -- already. A shaped room's grips move onto its own doors, fewer than four
-    -- on an L or a T and off the middle.
+    -- on an L or a T and off the middle. An artisanal room never resizes, so
+    -- it keeps the move grip and, with snap on, its doors.
     local shaped = zone.shape ~= nil
     local snaps = Snaps(zone)
     local doors = snaps and shaped and CH.ZoneDoors(zone)
@@ -485,7 +491,7 @@ function FP.PositionHandles()
                 hb:SetPoint("CENTER", canvas, "TOPLEFT", dx, -dy)
             end
             hb:SetShown(d ~= nil)
-        elseif shaped and not spec.move and not spec.fx then
+        elseif shaped and not spec.move and (not spec.fx or CH.FixedSize(zone)) then
             hb:Hide()
         else
             hb:SetPoint("CENTER", canvas, "TOPLEFT", px + spec.px * zw, -(py + spec.py * zh))

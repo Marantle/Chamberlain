@@ -89,14 +89,19 @@ local function AtTop(h, z)
     return last ~= nil and floor >= last
 end
 
+local function RoomAt(h, floor, x, y)
+    for _, o in ipairs(h.zones) do
+        if CH.IsRoom(o) and (o.floor or 1) == floor and CH.ZoneContains(o, x, y) then
+            return true
+        end
+    end
+end
+
 -- A copy of stairwell z on floor, the map's floors raised to reach it. False
 -- when a room is there already.
 local function CopyStairwell(h, z, floor)
-    local cx, cy = CH.ZoneCentre(z)
-    for _, o in ipairs(h.zones) do
-        if CH.IsRoom(o) and (o.floor or 1) == floor and CH.ZoneContains(o, cx, cy) then
-            return false
-        end
+    if RoomAt(h, floor, CH.ZoneCentre(z)) then
+        return false
     end
     h.floorCount = math.max(h.floorCount or 1, floor)
     table.insert(h.zones, {
@@ -111,6 +116,18 @@ local function CopyStairwell(h, z, floor)
         maxY = z.maxY,
     })
     return true
+end
+
+-- A barn's loft, a plain room of its own on the floor above, unless a room is
+-- there already.
+local function AddLoft(h, z, box)
+    local loft = { name = z.name, mapID = z.mapID, floor = z.floor + 1 }
+    loft.minX, loft.maxX, loft.minY, loft.maxY = CH.ShapeBox(z, box)
+    if RoomAt(h, loft.floor, CH.ZoneCentre(loft)) then
+        return
+    end
+    h.floorCount = math.max(h.floorCount or 1, loft.floor)
+    table.insert(h.zones, loft)
 end
 
 -- The same stairwell on the floor its steps lead to. On the ground floor that
@@ -207,15 +224,18 @@ local function Drop(auto)
     -- a stairwell's id can cover more than one floor, and the floor check would
     -- pull you to this floor from the other one, so it goes in unlinked
     z.gameRoom = not stairs and room or nil
-    local stairwell = IsStairwell(z)
-    if stairwell then
+    if IsStairwell(z) then
         OtherEnd(h, z)
+    end
+    local def = z.shape and CH.SHAPES[z.shape]
+    if def and def.loft then
+        AddLoft(h, z, def.loft)
     end
     table.insert(h.zones, z)
     CH.TouchHouse(CH.currentHouseGUID)
     CH.SetSelection(z, CH.currentHouseGUID)
-    -- a stairwell's one door already told its turn
-    if any and not stairwell then
+    -- a room with one door, like a stairwell or a barn, already told its turn
+    if any and #CH.ZoneDoors(z) > 1 then
         watch = { zone = z, room = room, spots = spots }
         Mark(z)
     end

@@ -918,6 +918,16 @@ local foot = FP.PanelFooter(dialog, "RD_SAVE", function()
     ConfirmZone()
 end)
 
+-- The same delete as the Build toolbox's trash, so Undo delete works after it.
+-- Any unsaved edit goes with the room.
+local deleteBtn = CH.MakeButton(foot, "RD_DELETE_ROOM", 100, 22)
+deleteBtn:SetPoint("LEFT")
+deleteBtn:SetScript("OnClick", function()
+    local z, guid = renameTarget, DialogGUID()
+    FP.ClosePanel()
+    CH.DeleteRoom(z, guid)
+end)
+
 local ask = CreateFrame("Frame", nil, dialog)
 ask:SetAllPoints(foot)
 ask:Hide()
@@ -1138,6 +1148,7 @@ function CH.OpenRenameDialog(zone, houseGUID)
     editBox:SetEnabled(not locked)
     mainSwatch:SetShown(not locked)
     copyBtn:SetShown(not locked)
+    deleteBtn:SetShown(not locked)
     Asking(false)
     -- the map shows the floor the room is on and holds there
     CH.fpViewedFloor = pendingFloor

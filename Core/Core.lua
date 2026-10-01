@@ -1,6 +1,6 @@
 local ADDON, CH = ...
 
-CH.VERSION = "3.33.0"
+CH.VERSION = "3.34.0"
 
 -- How often the zone ticker samples your position, in seconds. Drives stair
 -- detection and the per-room time stats both, so they stay in step if it changes.
@@ -339,6 +339,7 @@ events:SetScript("OnEvent", function(_, event, arg1)
                     end
                     SplitRoomSound(z)
                 end
+                CH.BuildParts(h)
             end
         end
         for _, entry in ipairs(ChamberlainDB.archive) do

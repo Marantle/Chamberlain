@@ -82,6 +82,50 @@ function CH.IsRoom(zone)
     return not CH.IsAnchor(zone) and not zone.noBanner
 end
 
+-- A barn brings the stairs to its loft with it. They're never shared since
+-- every client bulds them from the barn, at the end of the zone list, so the rooms
+-- before them keep the numbers the wire uses. z.part is the index of the room
+-- they belong to.
+function CH.ZoneCount(zones)
+    local n = #zones
+    while n > 0 and zones[n].part do
+        n = n - 1
+    end
+    return n
+end
+
+local function PartOf(z, i, p)
+    local floor = (z.floor or 1) + p.up
+    local to = (z.floor or 1) + p.to
+    local part = {
+        part = i,
+        mapID = z.mapID,
+        floor = floor,
+        name = string.format(CH.L["ST_DEFAULT_STAIRS_UP"], to),
+        setFloor = to,
+        fromFloor = floor,
+    }
+    part.minX, part.maxX, part.minY, part.maxY = CH.ShapeBox(z, p.box)
+    return part
+end
+
+function CH.BuildParts(h)
+    for i = #h.zones, 1, -1 do
+        if h.zones[i].part then
+            table.remove(h.zones, i)
+        end
+    end
+    for i = 1, #h.zones do
+        local z = h.zones[i]
+        local def = z.shape and CH.SHAPES[z.shape]
+        for _, p in ipairs(def and def.parts or {}) do
+            local part = PartOf(z, i, p)
+            h.floorCount = math.max(h.floorCount or 1, part.floor)
+            h.zones[#h.zones + 1] = part
+        end
+    end
+end
+
 local function Overlaps(a, b)
     return a.minX < b.maxX - 0.1 and b.minX < a.maxX - 0.1 and a.minY < b.maxY - 0.1 and b.minY < a.maxY - 0.1
 end
@@ -673,7 +717,7 @@ function CH.CheckZones()
 
     -- 0. The game room you walked into can put you on its floor, before the
     -- stairs and the rooms look at it (Housing/FloorCheck.lua).
-    CH.CheckFloorLink(h)
+    CH.CheckFloorLink(h, x, y, mapID)
 
     -- 1. Anchor pass: the stair-landing footprint we're standing on that fires from
     -- the active floor (see FindActiveAnchor for the rules).

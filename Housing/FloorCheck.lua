@@ -9,6 +9,10 @@ local _, CH = ...
 -- you walk in. Only on the way in, so stairs and "Move to floor" still get the
 -- last word inside the room.
 --
+-- A smaller room no game room remembers holds the floor you're on while you
+-- stand in it, a barn's loft say, which is in the barn's game room one floor
+-- up. Stepping out of it counts as walking into the game room again.
+--
 -- The game's room ids are the same on every character and after a relog, and
 -- a room keeps its id when it's moved. A stairwell can link too, but one id
 -- reaches over more than one floor (three floors of stairwells showed two
@@ -40,7 +44,34 @@ local function Paused()
     return CH.editingLayout or (FP.win:IsShown() and not FP.viewGUID and CH.fpViewedFloor ~= CH.activeFloor)
 end
 
-function CH.CheckFloorLink(h)
+local function Linked(h, room)
+    for _, z in ipairs(h.zones) do
+        if z.gameRoom == room then
+            return z
+        end
+    end
+end
+
+-- Whether you stand in a room on this floor that no game room remembers and
+-- that is smaller than linked. A big hand drawn room over a whole floor
+-- doesn't count, or it would keep a wrong floor for good.
+local function Held(h, linked, x, y, mapID)
+    local area = CH.ZoneArea(linked)
+    for _, z in ipairs(h.zones) do
+        if
+            not z.gameRoom
+            and CH.IsRoom(z)
+            and (z.floor or 1) == CH.activeFloor
+            and z.mapID == mapID
+            and CH.ZoneContains(z, x, y)
+            and CH.ZoneArea(z) < area
+        then
+            return true
+        end
+    end
+end
+
+function CH.CheckFloorLink(h, x, y, mapID)
     ticks = ticks + 1
     if ticks < CHECK_EVERY or Paused() then
         return
@@ -48,23 +79,21 @@ function CH.CheckFloorLink(h)
     ticks = 0
     local room = C_HousingLayout.GetRoomPlayerIsIn()
     CH.SmartDropCheck(room)
+    local linked = room and Linked(h, room)
+    if linked and Held(h, linked, x, y, mapID) then
+        -- so stepping out of it is walking in
+        seenRoom = nil
+        return
+    end
     if room == seenRoom then
         return
     end
     seenRoom = room
-    if not room then
-        return
-    end
-    for _, z in ipairs(h.zones) do
-        if z.gameRoom == room then
-            local floor = z.floor or 1
-            if floor ~= CH.activeFloor then
-                CH.SetActiveFloor(floor)
-                -- a landing under you on the new floor waits until you step off it
-                CH.SyncAnchorLatch()
-            end
-            return
-        end
+    local floor = linked and (linked.floor or 1)
+    if floor and floor ~= CH.activeFloor then
+        CH.SetActiveFloor(floor)
+        -- a landing under you on the new floor waits until you step off it
+        CH.SyncAnchorLatch()
     end
 end
 

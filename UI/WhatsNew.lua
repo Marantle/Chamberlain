@@ -18,8 +18,35 @@ local _, CH = ...
 -- (title, buttons) is still localized. A block may also carry `toggles`, a list of
 -- { label key, settings key } pairs drawn as toggle buttons under its notes, plus
 -- an `onToggle` run after any of them flips. `extra` builds anything else to
--- show under the notes, a frame with a Refresh method.
+-- show under the notes, or under the `lead` when there is one, a frame with a
+-- Refresh method.
 CH.WHATS_NEW = {
+    {
+        v = "3.34.0",
+        lead = {
+            icon = "icon-build",
+            title = "The Westfall barn",
+            text = "Smart drop and Auto map know the Autumnal and the Springtime Westfall Barn, the first of "
+                .. "the artisanal rooms. It goes on the map at its own shape, with the raised stall bay, its "
+                .. "railing and its steps drawn in. The stairs to the loft are there too.\n\nSmart drop puts "
+                .. "the loft on the floor above as a room of its own and adds "
+                .. "the floor if your map needs it. The barn's stairs work both ways, so the map follows you "
+                .. "up to the loft and back down.\n\nArtisanal rooms come in one size, so they move and turn "
+                .. "but don't resize.",
+        },
+        notes = {
+            "The floor check leaves you alone in a smaller room it doesn't remember, like a loft. Step out "
+                .. "and you're back on the floor of the room you're in.",
+            "The room editor has a Delete room button, and Undo delete brings the room back.",
+        },
+        -- the barn as the house map draws it, under the game's own name for it
+        extra = function(parent)
+            local entry = C_HousingCatalog.GetCatalogEntryInfoByRecordID(Enum.HousingCatalogEntryType.Room, 400)
+            local w = CH.SHAPES.barn.w
+            local barn = { name = entry and entry.name or "", shape = "barn", minX = 0, maxX = w, minY = 0, maxY = w }
+            return CH.FP.MakeRoomSample(parent, barn, 160)
+        end,
+    },
     {
         v = "3.33.0",
         notes = {
@@ -623,6 +650,18 @@ local function Populate(blocks)
         f:Hide()
     end
     local y, i = -4, 0
+    -- a block's extra goes under its lead when it has one, the picture of
+    -- what the lead is about, and under its notes otherwise
+    local function PlaceExtra(block)
+        local f = extras[block] or block.extra(scrollChild)
+        extras[block] = f
+        f:ClearAllPoints()
+        f:SetPoint("TOPLEFT", 12, y)
+        f:SetWidth(CONTENT_W - 12)
+        f:Refresh()
+        f:Show()
+        y = y - f:GetHeight()
+    end
     for _, block in ipairs(blocks) do
         i = i + 1
         local head = AcquireLine(i)
@@ -644,6 +683,10 @@ local function Populate(blocks)
             f:Refresh()
             f:Show()
             y = y - f:GetHeight() - 8
+            if block.extra then
+                PlaceExtra(block)
+                y = y - 8
+            end
         end
 
         for _, line in ipairs(block.notes) do
@@ -665,15 +708,8 @@ local function Populate(blocks)
             b:Show()
             y = y - 24
         end
-        if block.extra then
-            local f = extras[block] or block.extra(scrollChild)
-            extras[block] = f
-            f:ClearAllPoints()
-            f:SetPoint("TOPLEFT", 12, y)
-            f:SetWidth(CONTENT_W - 12)
-            f:Refresh()
-            f:Show()
-            y = y - f:GetHeight()
+        if block.extra and not block.lead then
+            PlaceExtra(block)
         end
         y = y - 8
     end
