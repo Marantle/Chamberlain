@@ -123,8 +123,10 @@ function FP.MirrorSelectedStairs()
     if not house or not other then
         return
     end
-    if zone.name == GameName(zone.shape) then
-        zone.name = GameName(other) or zone.name
+    -- the game's name, or the game's name with a number after it
+    local base = GameName(zone.shape)
+    if base and (zone.name == base or zone.name:match("^(.-) %d+$") == base) then
+        zone.name = CH.FreeName(house, GameName(other) or base)
     end
     zone.shape = other
     Commit(house)

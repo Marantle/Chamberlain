@@ -13,11 +13,6 @@ CH.locales.fiFI = L
 -- untranslated (blank or equal to English) are omitted on purpose so they fall
 -- back. Re-run the script to regenerate after the CSV changes.
 
-L["CMD_DELETE_OWN_ONLY"] = "Voit poistaa vain oman talosi huoneita."
-L["CMD_DELETE_USAGE"] = "Käyttö:  /chamberlain delete <name>"
-L["CMD_NOT_IN_HOUSE"] = "Ei tunnistetun talon sisällä."
-L["CMD_DELETED_ROOM_X"] = "Poistettu huone ”%s”."
-L["CMD_ROOM_NOT_FOUND_X"] = "Huonetta ”%s” ei löydy."
 L["CMD_POSITIONS_RESET"] = "Kehysten sijainnit nollataan."
 L["CMD_HUD_HIDDEN"] = "Addon on piilotettu. Palauta se komennolla /chamberlain hud."
 L["CMD_HUD_SHOWN"] = "Addon on näkyvissä."
@@ -29,7 +24,6 @@ L["CMD_HELP_BUILD"] = "  /chamberlain build           - avaa rakennustyökalupak
 L["CMD_HELP_MANAGE"] = "  /chamberlain manage          - avaa huonehallinta"
 L["CMD_HELP_FLOOR"] = "  /chamberlain floor           - avaa talokartta"
 L["CMD_HELP_SETTINGS"] = "  /chamberlain settings        - avaa asetukset"
-L["CMD_HELP_DELETE"] = "  /chamberlain delete <name>   - poista huone"
 L["CMD_HELP_RESET"] = "  /chamberlain reset           - nollaa kehysten sijainnit"
 L["CMD_HELP_HUD"] = "  /chamberlain hud             - kytke sijainti-HUD päälle/pois"
 L["CMD_HELP_WHATSNEW"] = "  /chamberlain whatsnew        - näytä viimeisimmät päivitystiedot"

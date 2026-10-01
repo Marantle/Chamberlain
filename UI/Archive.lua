@@ -290,7 +290,7 @@ end
 -- map's rooms and floors and says whether that map is stored as it stands.
 local function RefreshNow()
     local h, key = OwnHouse()
-    local rooms = h and h.zones and #h.zones or 0
+    local rooms = h and CH.RoomCount(h.zones) or 0
     if not h then
         nowStrip.line1:SetText(CH.L["AR_NOW_AWAY"])
         nowStrip.line2:SetText(CH.L["AR_NOW_AWAY_HINT"])
@@ -380,7 +380,8 @@ local function FillRow(row, e, inUse, striped, hereKey)
     row.delBtn:SetText(CH.L["AR_DELETE"])
     row.bg:SetColorTexture(0, 0, 0, striped and 0.18 or 0)
     row.name:SetText(e.name)
-    local info = string.format(CH.L["AR_ROW_INFO_X"], #e.zones, e.floorCount or 1, date("%Y-%m-%d", e.savedAt or 0))
+    local info =
+        string.format(CH.L["AR_ROW_INFO_X"], CH.RoomCount(e.zones), e.floorCount or 1, date("%Y-%m-%d", e.savedAt or 0))
     if e.blueprint then
         info = info .. string.format(CH.L["AR_ROW_BLUEPRINT_X"], e.blueprint.name or e.blueprint.code)
     end

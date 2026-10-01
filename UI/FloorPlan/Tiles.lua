@@ -745,6 +745,8 @@ function FP.Build()
 
     local h = FP.CurrentHouse()
 
+    -- the rail first, since a panel whose room is gone closes in there
+    FP.RefreshRail(h)
     if FP.editZone then
         FP.sub:SetText(string.format(CH.L["FP_EDITING_X"], FP.editZone.name))
     elseif h and h.owner then
@@ -754,7 +756,6 @@ function FP.Build()
     else
         FP.sub:SetText(CH.L["FP_NOT_IN_HOUSE"])
     end
-    FP.RefreshRail(h)
     -- The rail's pick is the one selection. The index is only where that room
     -- sits right now, which a delete anywhere can shift.
     FP.selectedIdx = not FP.viewGUID and h and h.zones and CH.tbSelZone and tIndexOf(h.zones, CH.tbSelZone) or nil

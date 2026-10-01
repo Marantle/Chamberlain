@@ -24,7 +24,6 @@ Named after the manor officer who announced guests to each room.
 
 - `/chamberlain manage` - open the room manager (alias: `/rooms`)
 - `/chamberlain floor` - open the floor plan
-- `/chamberlain delete <name>` - remove a room
 - `/chamberlain reset` - reset frame positions
 - `/chamberlain hud` - toggle the position HUD
 - `/chamberlain debug` - toggle share debug logging

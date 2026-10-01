@@ -190,7 +190,7 @@ function CH.ShowPlaque(guid, preview)
     end
     owner:SetText(houseName and whose or "")
     motto:SetText(text and text ~= "" and string.format(CH.L["PL_MOTTO_X"], text) or "")
-    local rooms = h and h.zones and #h.zones or 0
+    local rooms = h and CH.RoomCount(h.zones) or 0
     if rooms == 0 then
         facts:SetText("")
     elseif (h.floorCount or 1) > 1 then

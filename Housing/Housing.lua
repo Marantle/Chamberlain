@@ -94,6 +94,19 @@ function CH.ZoneCount(zones)
     return n
 end
 
+-- How many rooms a player would count. Stairs of any kind and sound spots
+-- aren't rooms, so only the numbers on screen use this, never the wire.
+function CH.RoomCount(zones)
+    local n = 0
+    for _, z in ipairs(zones or {}) do
+        local def = z.shape and CH.SHAPES[z.shape]
+        if CH.IsRoom(z) and not (def and def.stack) then
+            n = n + 1
+        end
+    end
+    return n
+end
+
 local function PartOf(z, i, p)
     local floor = (z.floor or 1) + p.up
     local to = (z.floor or 1) + p.to

@@ -50,7 +50,7 @@ btnShare:SetScript("OnClick", function()
     -- SendLayout goes out on the party/raid channel, so this reaches everyone,
     -- not just whoever asked. Word it that way so it isn't misleading.
     local h = ChamberlainDB.houses[pendingConsentGUID]
-    local count = h and h.zones and #h.zones or 0
+    local count = h and CH.RoomCount(h.zones) or 0
     local houseName = (h and h.owner) and string.format(CH.L["SHARE_X_HOUSE"], h.owner) or CH.L["SUI_THE_LAYOUT"]
     CH.Print(CH.L["SUI_SHARED_GROUP_X"], houseName, count)
     consentDialog:Hide()
@@ -126,8 +126,11 @@ local function DescribeLayout(data)
         lines[#lines + 1] = string.format(CH.L["SUI_PREVIEW_OWNER_X"], Plain(data.owner))
     end
     local floors = data.floorCount or 1
-    lines[#lines + 1] =
-        string.format(CH.L[floors > 1 and "SUI_PREVIEW_SIZE_FLOORS_X" or "SUI_PREVIEW_SIZE_X"], #data.zones, floors)
+    lines[#lines + 1] = string.format(
+        CH.L[floors > 1 and "SUI_PREVIEW_SIZE_FLOORS_X" or "SUI_PREVIEW_SIZE_X"],
+        CH.RoomCount(data.zones),
+        floors
+    )
     lines[#lines + 1] = string.format(CH.L["SUI_PREVIEW_CHANGED_X"], date("%Y-%m-%d", data.timestamp))
 
     local has = { AMBIENCE = data.ambience, MUSIC = data.music, ARRIVAL = data.arrival }
@@ -177,8 +180,8 @@ local function ShowNextAccept()
     end
     pendingGUID, pendingData, pendingSender, pendingImport = item.guid, item.data, item.sender, item.isImport
     local existing = ChamberlainDB.houses[item.guid]
-    local myCount = existing and existing.zones and #existing.zones or 0
-    local newCount = #item.data.zones
+    local myCount = existing and CH.RoomCount(existing.zones) or 0
+    local newCount = CH.RoomCount(item.data.zones)
     local houseName = (item.data.owner and string.format(CH.L["SHARE_X_HOUSE"], Plain(item.data.owner)))
         or CH.L["SHARE_A_HOUSE"]
 

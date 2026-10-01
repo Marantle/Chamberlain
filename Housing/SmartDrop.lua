@@ -105,7 +105,7 @@ local function CopyStairwell(h, z, floor)
     end
     h.floorCount = math.max(h.floorCount or 1, floor)
     table.insert(h.zones, {
-        name = z.name,
+        name = CH.FreeName(h, z.name),
         mapID = z.mapID,
         shape = z.shape,
         rot = z.rot,
@@ -121,7 +121,7 @@ end
 -- A barn's loft, a plain room of its own on the floor above, unless a room is
 -- there already.
 local function AddLoft(h, z, box)
-    local loft = { name = z.name, mapID = z.mapID, floor = z.floor + 1 }
+    local loft = { name = CH.FreeName(h, z.name), mapID = z.mapID, floor = z.floor + 1 }
     loft.minX, loft.maxX, loft.minY, loft.maxY = CH.ShapeBox(z, box)
     if RoomAt(h, loft.floor, CH.ZoneCentre(loft)) then
         return
@@ -224,6 +224,8 @@ local function Drop(auto)
     -- a stairwell's id can cover more than one floor, and the floor check would
     -- pull you to this floor from the other one, so it goes in unlinked
     z.gameRoom = not stairs and room or nil
+    -- in before its other end or loft, so they don't get its name
+    table.insert(h.zones, z)
     if IsStairwell(z) then
         OtherEnd(h, z)
     end
@@ -231,7 +233,6 @@ local function Drop(auto)
     if def and def.loft then
         AddLoft(h, z, def.loft)
     end
-    table.insert(h.zones, z)
     CH.TouchHouse(CH.currentHouseGUID)
     CH.SetSelection(z, CH.currentHouseGUID)
     -- a room with one door, like a stairwell or a barn, already told its turn

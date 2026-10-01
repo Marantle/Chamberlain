@@ -1310,7 +1310,7 @@ function CH.NewZone(h, x, y, mapID, shape, name, size)
     -- New rooms land on the floor the player is viewing (which tracks the active
     -- floor), so dropping one upstairs files it upstairs.
     local z = {
-        name = name or string.format(CH.L["TB_DEFAULT_ROOM_X"], CH.ShapeName(shape), nth),
+        name = name and CH.FreeName(h, name) or CH.FreeName(h, CH.ShapeName(shape), nth),
         mapID = mapID,
         shape = def and shape or nil,
         floor = CH.MapFloor(),

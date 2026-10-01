@@ -22,6 +22,7 @@ local CHECK_EVERY = 4 -- zone ticks, under half a second
 
 local ticks = 0
 local seenRoom = nil -- the game room the last check saw
+local held = false -- standing in a smaller room the check leaves alone
 
 -- The game room you stand in and whether it's a stairwell, or nil outside one.
 function CH.GameRoomHere()
@@ -34,6 +35,11 @@ end
 -- Leaving the house, so the first room of the next visit counts as walked into.
 function CH.ForgetGameRoom()
     seenRoom = nil
+    held = false
+end
+
+function CH.FloorCheckHeld()
+    return held
 end
 
 -- Browsing another floor of this house on the map would get thrown back to
@@ -44,7 +50,8 @@ local function Paused()
     return CH.editingLayout or (FP.win:IsShown() and not FP.viewGUID and CH.fpViewedFloor ~= CH.activeFloor)
 end
 
-local function Linked(h, room)
+-- The room of house h that remembers game room room, or nil.
+function CH.LinkedZone(h, room)
     for _, z in ipairs(h.zones) do
         if z.gameRoom == room then
             return z
@@ -79,8 +86,9 @@ function CH.CheckFloorLink(h, x, y, mapID)
     ticks = 0
     local room = C_HousingLayout.GetRoomPlayerIsIn()
     CH.SmartDropCheck(room)
-    local linked = room and Linked(h, room)
-    if linked and Held(h, linked, x, y, mapID) then
+    local linked = room and CH.LinkedZone(h, room)
+    held = linked and Held(h, linked, x, y, mapID) or false
+    if held then
         -- so stepping out of it is walking in
         seenRoom = nil
         return

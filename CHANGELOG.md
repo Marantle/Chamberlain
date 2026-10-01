@@ -1,5 +1,26 @@
 # Changelog
 
+## 3.36.0
+- /chamberlain delete is gone. It deleted the first room with the name you
+  typed, so it could hit the wrong one when two rooms share a name. Delete a
+  room on the Build toolbox, in the room editor or in the Rooms window, where
+  Undo delete can bring it back.
+- A new room gets the next free number when another room of the house
+  already has its name, like Stairwell 2. That counts for the barn's loft
+  and a stairwell's other end too. Rooms you already have keep their names,
+  and you can still rename a room to anything.
+- Room counts leave out stairs and sound spots. That covers the Rooms
+  window, the plaque, the archive and the lines about a shared map. A house
+  with a barn used to count its loft stairs as two more rooms.
+- Delete in the Rooms window works like the trash can now, so Undo delete
+  can bring the room back. The Rooms window shows the room you deleted last
+  over the list of rooms, with its own Undo delete button.
+- The floor check line at the foot of the Build toolbox says it's frozen
+  while you stand in a smaller room it leaves alone, like the barn's loft.
+  Before, it showed the floor of the barn below.
+- The house map no longer says Editing a room after the room editor closed
+  on its own because the room was gone.
+
 ## 3.35.0
 - The banner style in Settings is now Personal banner, and it only ever sets
   your own look. Before, it set the house's style when the game said you

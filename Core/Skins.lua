@@ -678,16 +678,30 @@ function CH.TouchHouse(guid)
     end
 end
 
--- Drop a deleted room's time stats, unless another room still uses the name
--- (stats are keyed by room name and duplicates are allowed).
-function CH.DropZoneStats(house, name)
-    if not house or not house.stats or not name then
-        return
-    end
+local function NameTaken(house, name)
     for _, z in ipairs(house.zones) do
         if z.name == name then
-            return
+            return true
         end
     end
+end
+
+-- Drop a deleted room's time stats, unless another room still uses the name
+-- (stats are keyed by room name and a rename can still make a duplicate).
+function CH.DropZoneStats(house, name)
+    if not house or not house.stats or not name or NameTaken(house, name) then
+        return
+    end
     house.stats[name] = nil
+end
+
+-- A name for a new room no other room of the house has: name, then name 2,
+-- name 3 and on. With n the count starts there and the bare name is skipped.
+function CH.FreeName(house, name, n)
+    local try = n and string.format(CH.L["TB_DEFAULT_ROOM_X"], name, n) or name
+    while NameTaken(house, try) do
+        n = (n or 1) + 1
+        try = string.format(CH.L["TB_DEFAULT_ROOM_X"], name, n)
+    end
+    return try
 end

@@ -151,7 +151,7 @@ local dupBtn = IconButton("icon-copy", "TB_TT_DUPLICATE", 26, function()
     end
     local copy = CopyTable(z)
     copy.gameRoom = nil
-    copy.name = string.format(CH.L["TB_COPY_NAME_X"], z.name)
+    copy.name = CH.FreeName(h, string.format(CH.L["TB_COPY_NAME_X"], z.name))
     -- right and down on the map is lower X and Y, as the map's X runs mirrored
     local dx, dy = (z.maxX - z.minX) * 0.5, (z.maxY - z.minY) * 0.5
     copy.minX, copy.maxX = z.minX - dx, z.maxX - dx
@@ -179,15 +179,15 @@ local deleted
 
 -- The room Undo delete would bring back to house guid, or nil. It's gone
 -- once its floor is.
-local function DeletedRoom(guid)
+function CH.DeletedRoom(guid)
     local h = deleted and deleted.guid == guid and ChamberlainDB.houses[guid]
     if h and (deleted.zone.floor or 1) <= (h.floorCount or 1) then
         return deleted.zone
     end
 end
 
--- Delete room z of house guid, kept for Undo delete. The trash button here and
--- Delete room in the room editor both come through this.
+-- Delete room z of house guid, kept for Undo delete. The trash button here,
+-- Delete room in the room editor and the Rooms window all come through this.
 function CH.DeleteRoom(z, guid)
     local h = z and guid and ChamberlainDB.houses[guid]
     if not h then
@@ -206,22 +206,21 @@ local delBtn = IconButton("icon-trash", "TB_TT_DELETE", 24, function()
 end)
 delBtn:SetPoint("LEFT", editBtn, "RIGHT", 6, 0)
 
--- Put the last deleted room back where it was in the list, with its time,
--- and show it: picked, on its floor and in the middle of the map.
-local function UndoDelete()
-    local z = DeletedRoom(CH.currentHouseGUID)
+-- Put the last deleted room of house guid back where it was in the list, with
+-- its time. Returns the room, or nil when there's none to bring back.
+function CH.UndoDelete(guid)
+    local z = CH.DeletedRoom(guid)
     if not z then
         return
     end
-    local guid, h = deleted.guid, ChamberlainDB.houses[deleted.guid]
+    local h = ChamberlainDB.houses[guid]
     table.insert(h.zones, math.min(deleted.index, #h.zones + 1), z)
     -- a room of the same name kept the time when it was deleted
     h.stats = h.stats or {}
     h.stats[z.name] = h.stats[z.name] or deleted.stats
     deleted = nil
     CH.TouchHouse(guid)
-    CH.SetSelection(z, guid, true)
-    FP.CenterOn(z)
+    return z
 end
 
 -- Quick resize: the game's sizes as chips for a square or an octagon, with
@@ -369,22 +368,10 @@ CH.zoneLabel:SetText("-")
 local roomLabel = FootLabel(24, true)
 local floorLabel = FootLabel(10, true)
 
--- The floor the floor check puts you on in this game room: the floor of the
--- room that remembers it, or nil when none does.
-local function LinkedFloor(room)
-    local h = room and CH.currentHouseGUID and ChamberlainDB.houses[CH.currentHouseGUID]
-    if not h then
-        return
-    end
-    for _, z in ipairs(h.zones) do
-        if z.gameRoom == room then
-            return z.floor or 1
-        end
-    end
-end
-
 -- The zone ticker calls this while the rail shows. A label is only set again
 -- when its text would change, so standing still costs nothing but the look.
+-- The floor is the one the floor check puts you on in this game room, or
+-- "frozen" while it leaves you alone in a smaller room like a loft.
 local shownRoom, shownFloor = false, false
 function CH.RefreshRoomLabel()
     local room = C_HousingLayout.GetRoomPlayerIsIn()
@@ -392,10 +379,16 @@ function CH.RefreshRoomLabel()
         shownRoom = room
         roomLabel:SetText(room and string.format(CH.L["TB_ROOM_ID_X"], room) or CH.L["TB_ROOM_ID_NONE"])
     end
-    local floor = LinkedFloor(room)
+    local h = room and CH.currentHouseGUID and ChamberlainDB.houses[CH.currentHouseGUID]
+    local linked = h and CH.LinkedZone(h, room)
+    local floor = CH.FloorCheckHeld() and "frozen" or linked and (linked.floor or 1)
     if floor ~= shownFloor then
         shownFloor = floor
-        floorLabel:SetText(floor and string.format(CH.L["TB_FLOOR_CHECK_X"], floor) or CH.L["TB_FLOOR_CHECK_NONE"])
+        if floor == "frozen" then
+            floorLabel:SetText(CH.L["TB_FLOOR_CHECK_FROZEN"])
+        else
+            floorLabel:SetText(floor and string.format(CH.L["TB_FLOOR_CHECK_X"], floor) or CH.L["TB_FLOOR_CHECK_NONE"])
+        end
     end
 end
 
@@ -433,7 +426,7 @@ function CH.RefreshToolbox()
         b:SetEnabled(z ~= nil)
     end
     dupBtn:SetEnabled(z ~= nil and not CH.IsAnchor(z))
-    local undo = not z and DeletedRoom(CH.currentHouseGUID) or nil
+    local undo = not z and CH.DeletedRoom(CH.currentHouseGUID) or nil
     editBtn.undo = undo
     editBtn:SetEnabled(z ~= nil or undo ~= nil)
     editBtn:SetText(undo and string.format(CH.L["TB_UNDO_DELETE_X"], undo.name) or CH.L["RD_TITLE_EDIT_ROOM"])
@@ -654,6 +647,12 @@ editBtn:SetScript("OnClick", function()
     if CH.tbSelZone then
         CH.OpenRenameDialog(CH.tbSelZone, CH.tbSelGuid)
     elseif editBtn.undo then
-        UndoDelete()
+        -- show it back: picked, on its floor and in the middle of the map
+        local guid = CH.currentHouseGUID
+        local z = CH.UndoDelete(guid)
+        if z then
+            CH.SetSelection(z, guid, true)
+            FP.CenterOn(z)
+        end
     end
 end)

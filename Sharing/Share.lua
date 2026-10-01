@@ -665,7 +665,7 @@ function CH.ApplyLayout(houseGUID, data, senderName)
     CH.BuildParts(ChamberlainDB.houses[houseGUID])
     Debug("ApplyLayout: saved", houseGUID, "(" .. #data.zones .. " zones) from", senderName)
     local houseName = (data.owner and string.format(CH.L["SHARE_X_HOUSE"], data.owner)) or CH.L["SHARE_A_HOUSE"]
-    CH.Print(CH.L["SHARE_RECEIVED_X"], #data.zones, houseName, senderName)
+    CH.Print(CH.L["SHARE_RECEIVED_X"], CH.RoomCount(data.zones), houseName, senderName)
     -- Only a heads up. Whatever this version can't read was already left out
     -- and the rest is fine.
     if data.madeWith and VersionOlder(CH.VERSION, data.madeWith) then

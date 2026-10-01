@@ -1,6 +1,6 @@
 local ADDON, CH = ...
 
-CH.VERSION = "3.35.0"
+CH.VERSION = "3.36.0"
 
 -- How often the zone ticker samples your position, in seconds. Drives stair
 -- detection and the per-room time stats both, so they stay in step if it changes.
@@ -403,9 +403,7 @@ end)
 SLASH_CH1 = "/chamberlain"
 SLASH_CH2 = "/rooms"
 SlashCmdList["CH"] = function(msg)
-    local cmd, rest = string.match(msg, "^(%S+)%s*(.*)")
-    cmd = string.lower(cmd or "")
-    rest = string.match(rest or "", "^%s*(.-)%s*$")
+    local cmd = string.lower(string.match(msg, "^(%S+)") or "")
 
     if cmd == "list" or cmd == "manage" then
         CH.OpenRoomManager()
@@ -413,33 +411,6 @@ SlashCmdList["CH"] = function(msg)
         CH.OpenToolbox()
     elseif cmd == "settings" or cmd == "options" then
         CH.OpenSettings()
-    elseif cmd == "delete" or cmd == "del" then
-        if not CH.isOwnHouse then
-            CH.Print(CH.L["CMD_DELETE_OWN_ONLY"])
-            return
-        end
-        if CH.RefuseLocked() then
-            return
-        end
-        if rest == "" then
-            CH.Print(CH.L["CMD_DELETE_USAGE"])
-            return
-        end
-        local h = CH.currentHouseGUID and ChamberlainDB.houses[CH.currentHouseGUID]
-        if not h then
-            CH.Print(CH.L["CMD_NOT_IN_HOUSE"])
-            return
-        end
-        for i, z in ipairs(h.zones) do
-            if z.name:lower() == rest:lower() then
-                table.remove(h.zones, i)
-                CH.DropZoneStats(h, z.name)
-                CH.TouchHouse(CH.currentHouseGUID)
-                CH.Print(CH.L["CMD_DELETED_ROOM_X"], z.name)
-                return
-            end
-        end
-        CH.Print(CH.L["CMD_ROOM_NOT_FOUND_X"], rest)
     elseif cmd == "reset" then
         ChamberlainDB.hudX = -320
         ChamberlainDB.hudY = 0
@@ -488,7 +459,6 @@ SlashCmdList["CH"] = function(msg)
         print(CH.L["CMD_HELP_FLOOR"])
         print(CH.L["CMD_HELP_ARCHIVE"])
         print(CH.L["CMD_HELP_SETTINGS"])
-        print(CH.L["CMD_HELP_DELETE"])
         print(CH.L["CMD_HELP_RESET"])
         print(CH.L["CMD_HELP_HUD"])
         print(CH.L["CMD_HELP_WHATSNEW"])

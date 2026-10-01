@@ -333,7 +333,7 @@ local function BuildSections()
         local out = {}
         for _, item in ipairs(list) do
             if Matches(item) then
-                item.tag = tostring(CH.ZoneCount(item.zones))
+                item.tag = tostring(CH.RoomCount(item.zones))
                 out[#out + 1] = item
             end
         end
@@ -487,6 +487,22 @@ roomEmpty:SetTextColor(CH.RGBA(CH.COLORS.dim, 1))
 local ROW_H = 26
 local rowPool = {}
 
+-- Above the rooms of your house, the one you deleted last and a way back.
+local undoRow = CreateFrame("Frame", nil, roomChild)
+undoRow:SetHeight(ROW_H)
+local undoBtn = CH.MakeButton(undoRow, "RM_UNDO_DELETE", 90, 20)
+undoBtn:SetPoint("RIGHT", -2, 0)
+CH.Tip(undoBtn, "RM_TT_UNDO_DELETE")
+undoBtn:SetScript("OnClick", function()
+    CH.UndoDelete(undoRow.guid)
+end)
+local undoLabel = undoRow:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+undoLabel:SetPoint("LEFT", 4, 0)
+undoLabel:SetPoint("RIGHT", undoBtn, "LEFT", -6, 0)
+undoLabel:SetJustifyH("LEFT")
+undoLabel:SetWordWrap(false)
+undoLabel:SetTextColor(CH.RGBA(CH.COLORS.dim, 1))
+
 local function AddZoneRow(zoneIdx, w, y, zone, houseGUID, own)
     local row = rowPool[zoneIdx]
     if not row then
@@ -522,12 +538,7 @@ local function AddZoneRow(zoneIdx, w, y, zone, houseGUID, own)
         -- the lock leaves Edit for the room's sounds, but no deleting
         row.delBtn:SetEnabled(not CH.LayoutLocked())
         row.delBtn:SetScript("OnClick", function()
-            local house = ChamberlainDB.houses[houseGUID]
-            if house then
-                local removed = table.remove(house.zones, zoneIdx)
-                CH.DropZoneStats(house, removed and removed.name)
-                CH.TouchHouse(houseGUID)
-            end
+            CH.DeleteRoom(zone, houseGUID)
         end)
         row.editBtn:Show()
         row.editBtn:SetScript("OnClick", function()
@@ -579,7 +590,7 @@ local function PopulateDetail(item, p)
     local h = item and ChamberlainDB.houses[item.guid]
 
     detailTitle:SetText(item and item.label or "")
-    local meta = h and string.format(CH.L["RM_ROOMS_FLOORS_X"], CH.ZoneCount(item.zones), h.floorCount or 1) or ""
+    local meta = h and string.format(CH.L["RM_ROOMS_FLOORS_X"], CH.RoomCount(item.zones), h.floorCount or 1) or ""
     if item and item.sub then
         meta = item.sub .. "    " .. meta
     end
@@ -605,6 +616,16 @@ local function PopulateDetail(item, p)
 
     local w = FitScrollChild(roomScroll, roomChild, 340)
     local y = 0
+    local gone = item and item.own and CH.DeletedRoom(item.guid) or nil
+    undoRow:SetShown(gone ~= nil)
+    if gone then
+        undoRow.guid = item.guid
+        undoRow:SetWidth(w)
+        undoRow:SetPoint("TOPLEFT", roomChild, "TOPLEFT", 0, 0)
+        undoLabel:SetText(string.format(CH.L["RM_DELETED_X"], gone.name))
+        undoBtn:SetEnabled(not CH.LayoutLocked())
+        y = ROW_H
+    end
     for zoneIdx, zone in ipairs(h and item.zones or {}) do
         if not zone.part then
             y = AddZoneRow(zoneIdx, w, y, zone, item.guid, item.own)
