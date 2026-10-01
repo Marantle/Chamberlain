@@ -682,6 +682,16 @@ function CH.ApplyLayout(houseGUID, data, senderName)
     if CH.RefreshHUDMode then
         CH.RefreshHUDMode()
     end
+    -- The banner up now still holds the old copy's room, and the zone ticker
+    -- goes by name so it won't notice the new one. Swap it the same way.
+    if houseGUID == CH.currentHouseGUID and CH.bannerRoom then
+        for _, z in ipairs(data.zones) do
+            if z.name == CH.bannerRoom.name then
+                CH.bannerRoom = z
+                break
+            end
+        end
+    end
     CH.RefreshBanner()
 end
 

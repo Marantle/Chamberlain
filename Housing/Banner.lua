@@ -1232,13 +1232,6 @@ function CH.SetHouseBanner(guid, style)
     CH.SendSoundPatch(guid, "banner", baseTs, "H", CH.BANNER_ID[style], true)
 end
 
--- Standing in a house of yours, Settings and What's New pick that house's
--- style. Anywhere else they pick your own.
-local function OwnHouseHere()
-    local guid = CH.currentHouseGUID
-    return CH.isOwnHouse and ChamberlainDB.houses[guid] and guid or nil
-end
-
 -- A grey backdrop behind a banner, a stand-in for the world it shows over.
 function CH.BannerScene(f)
     local t = f:CreateTexture(nil, "BACKGROUND")
@@ -1248,9 +1241,11 @@ function CH.BannerScene(f)
     f:SetClipsChildren(true)
 end
 
--- A sample banner in the chosen style with a button that opens the picker, h
--- tall, the one Settings and What's New both show. p:Refresh() syncs it to
--- the house's style or yours, see OwnHouseHere.
+-- A sample banner in your own style with a button that opens the picker, h
+-- tall, the one Settings and What's New both show. It never picks for a
+-- house, even your own. Until 3.35.0 it did when the game said you stood in
+-- a house of yours, and owners picked for themselves without knowing it.
+-- A house's style is picked in the House panel.
 function CH.MakeBannerStylePicker(parent, h)
     local p = CreateFrame("Frame", nil, parent)
     p:SetHeight(h)
@@ -1261,13 +1256,11 @@ function CH.MakeBannerStylePicker(parent, h)
     local choose = CH.MakeButton(p, "SET_BANNER_CHOOSE", 140, 22)
     choose:SetPoint("TOPRIGHT")
     choose:SetScript("OnClick", function()
-        CH.OpenBannerPicker(OwnHouseHere())
+        CH.OpenBannerPicker()
     end)
 
     function p.Refresh()
-        local guid = OwnHouseHere()
-        local style = guid and ChamberlainDB.houses[guid].bannerStyle or ChamberlainDB.settings.bannerStyle
-        CH.PaintBanner(sample, CH.L["SET_BANNER_SAMPLE"], nil, true, style)
+        CH.PaintBanner(sample, CH.L["SET_BANNER_SAMPLE"], nil, true, ChamberlainDB.settings.bannerStyle)
     end
     samples[#samples + 1] = p
     return p

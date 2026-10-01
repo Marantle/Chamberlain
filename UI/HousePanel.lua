@@ -107,13 +107,25 @@ refreshers[#refreshers + 1] = function()
     gameName:SetText(CH.GameHouseName(guid) or CH.L["HP_NO_NAME"])
 end
 
--- Banner style, picked in the same list Settings opens.
-local bannerBtn = Control(Row("HP_BANNER", "HP_HINT_BANNER"))
+-- Banner style, picked in the same list Settings opens, with a sample in the
+-- bottom 80 px like the one there. Visitor's own draws in your style, as the
+-- list does.
+local bannerRow = Row("HP_BANNER", "HP_HINT_BANNER", 80)
+local bannerBtn = Control(bannerRow)
 bannerBtn:SetScript("OnClick", function()
     CH.OpenBannerPicker(guid)
 end)
+local sampleArea = CreateFrame("Frame", nil, bannerRow)
+sampleArea:SetPoint("BOTTOMLEFT")
+sampleArea:SetPoint("BOTTOMRIGHT")
+sampleArea:SetHeight(80)
+local bannerSample = CH.MakeBanner(sampleArea)
+bannerSample:SetPoint("CENTER")
+bannerSample:SetScale(0.85)
 refreshers[#refreshers + 1] = function()
-    bannerBtn:SetText((CH.BannerPickText(House().bannerStyle)))
+    local style = House().bannerStyle
+    bannerBtn:SetText((CH.BannerPickText(style)))
+    CH.PaintBanner(bannerSample, CH.L["SET_BANNER_SAMPLE"], nil, true, style or ChamberlainDB.settings.bannerStyle)
 end
 
 TextRow("HP_MOTTO", "HP_HINT_MOTTO", "motto")

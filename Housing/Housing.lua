@@ -32,7 +32,7 @@ function CH.CurrentHouse()
     local guid = CH.currentHouseGUID
     local h = ChamberlainDB.houses[guid]
     if not h then
-        h = { owner = CH.currentHouseOwner, zones = {} }
+        h = { owner = CH.currentHouseOwner, zones = {}, bannerStyle = "gilded" }
         ChamberlainDB.houses[guid] = h
     end
     h.owner = CH.currentHouseOwner or h.owner

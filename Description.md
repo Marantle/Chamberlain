@@ -11,11 +11,13 @@ fit the name, a nameplate and a rolled scroll among them, and nine are
 rainbows. The other 71 come from the game's own art, from the banners it puts
 over its scenarios to a line for every class. Choose style opens a list with
 the groups down the side
-and a search box over them. Pick one while you stand in your own house and it
-becomes that house's look, so visitors see your rooms that way unless they
-keep their own in Settings. A room can have its own style too, on the Banner
-tab of the room editor, where the list opens in place of the map. Rooms
-without one use the house's.
+and a search box over them. The one in Settings is your personal banner, and
+only you see it. A house of yours starts on Gilded, and you change its look
+in the House panel, so
+visitors see your rooms that way unless they turn on Personal banner override
+in Settings. A room can have its own style too, on the Banner tab of the room
+editor, where the list opens in place of the map. Rooms without one use the
+house's.
 
 When you walk into a house, a plaque shows the house's name, whose house it is
 and the owner's motto, then fades. In the House panel you can write your motto

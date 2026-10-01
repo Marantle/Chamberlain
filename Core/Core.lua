@@ -1,6 +1,6 @@
 local ADDON, CH = ...
 
-CH.VERSION = "3.34.0"
+CH.VERSION = "3.35.0"
 
 -- How often the zone ticker samples your position, in seconds. Drives stair
 -- detection and the per-room time stats both, so they stay in step if it changes.
@@ -273,6 +273,21 @@ events:SetScript("OnEvent", function(_, event, arg1)
         if not ChamberlainDB.settings.snapTurnedOn then
             ChamberlainDB.settings.snapRooms = true
             ChamberlainDB.settings.snapTurnedOn = true
+        end
+        -- A house of yours starts on the gilded banner since 3.35.0. Before it
+        -- started on Visitor's own, which owners hardly ever meant, so your
+        -- houses without a style get gilded once. A new stamp lets the group
+        -- take it with the next share. Copies of other houses aren't ours to
+        -- change.
+        if not ChamberlainDB.settings.houseGildedOn then
+            ChamberlainDB.settings.houseGildedOn = true
+            for guid in pairs(ChamberlainDB.myHouses) do
+                local h = ChamberlainDB.houses[guid]
+                if h and not h.bannerStyle then
+                    h.bannerStyle = "gilded"
+                    h.updatedAt = GetServerTime()
+                end
+            end
         end
         -- The lock on your own map, open to start with. (3.27.0)
         if ChamberlainDB.settings.layoutLocked == nil then

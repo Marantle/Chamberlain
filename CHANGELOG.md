@@ -1,5 +1,21 @@
 # Changelog
 
+## 3.35.0
+- The banner style in Settings is now Personal banner, and it only ever sets
+  your own look. Before, it set the house's style when the game said you
+  stood in a house of yours and your own anywhere else, so an owner could
+  pick for themselves without knowing it. A house's style is picked in the
+  House panel.
+- A house of yours starts on the Gilded banner instead of Visitor's own.
+  Your houses that had no style get Gilded once with this update. Houses
+  with a style keep it, and Visitor's own can still be picked.
+- The House panel shows a sample of the house's banner style under its
+  button.
+- Keep my style in other houses is now called Personal banner override.
+- When a shared map comes in while you stand in one of its rooms, the
+  banner shows that room's new style straight away. Before, it kept the old
+  look until you walked into another room.
+
 ## 3.34.0
 - Smart drop and Auto map know the Autumnal and the Springtime Westfall Barn.
   The barn goes onto the door you came in by at its own shape, which is off
