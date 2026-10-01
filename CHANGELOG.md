@@ -1,6 +1,12 @@
 # Changelog
 
 ## 3.36.0
+- Five new banner styles from the game's own art. Victory is the band from
+  a boss kill, with a chip for the skull and one for the star the game shows
+  when you beat a Mythic+ timer. Housing celebration is the glow with the
+  house mark between two vine rails. PvP line is the glow under the PvP
+  scoreboard's title, in Alliance blue and Horde red. A friend on an older
+  version sees their own style instead.
 - /chamberlain delete is gone. It deleted the first room with the name you
   typed, so it could hit the wrong one when two rooms share a name. Delete a
   room on the Build toolbox, in the room editor or in the Rooms window, where

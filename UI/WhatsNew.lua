@@ -22,6 +22,14 @@ local _, CH = ...
 -- Refresh method.
 CH.WHATS_NEW = {
     {
+        v = "3.36.0",
+        notes = {
+            "Five new banner styles come from the game's own art. Victory is the band from a boss kill, "
+                .. "with the skull or the star of a beaten Mythic+ timer. Housing celebration has the house "
+                .. "mark, and the PvP line comes in Alliance and Horde colors.",
+        },
+    },
+    {
         v = "3.34.0",
         lead = {
             icon = "icon-build",

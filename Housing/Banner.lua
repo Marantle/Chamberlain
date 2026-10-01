@@ -52,6 +52,12 @@ CH.BANNER_GROUPS = {
             "gilded",
             "objective",
             "prestige",
+            "housing",
+            {
+                family = "BP_FAM_VICTORY",
+                styles = { "victoryskull", "victorystar" },
+                chips = { { 0.6, 0.15, 0.12 }, { 0.85, 0.66, 0.2 } },
+            },
         },
     },
     {
@@ -145,6 +151,11 @@ CH.BANNER_GROUPS = {
                     { 0.5, 0.13, 0.85 },
                     { 0.85, 0.71, 0.51 },
                 },
+            },
+            {
+                family = "BP_FAM_PVP",
+                styles = { "pvpalliance", "pvphorde" },
+                chips = { { 0.2, 0.45, 0.9 }, { 0.85, 0.15, 0.1 } },
             },
             -- chips in the class colours, see CH.BannerChip
             {
@@ -270,6 +281,11 @@ CH.BANNER_IDS = {
     "classshaman",
     "classwarlock",
     "classwarrior",
+    "victoryskull",
+    "victorystar",
+    "housing",
+    "pvpalliance",
+    "pvphorde",
 }
 CH.BANNER_ID = {}
 for id, style in ipairs(CH.BANNER_IDS) do
@@ -742,6 +758,8 @@ end
 -- top places it down from the style's top edge, else it's centred. x and
 -- extra are in the atlas's own pixels, its left edge off the style's and how
 -- much wider it runs. A wide layer keeps the difference in natural width.
+-- A fixed layer is one ornament at its own size, centred, and cx moves it off
+-- the middle in its own pixels too.
 -- The first layer sets the style's width, or the one lead names.
 -- A style with an atlas a later patch drops shows Classic.
 local GAME = {
@@ -983,6 +1001,57 @@ for class, art in pairs(CLASS_LINES) do
     }
 end
 
+-- The boss kill banner, the band the game also puts under a beaten Mythic+
+-- timer with a star for the skull. The band is three strips drawn at 0.8 and
+-- the crest sits on its top line, reach being how far out the curls go.
+local VICTORY = {
+    victoryskull = {
+        reach = 64,
+        crest = {
+            { atlas = "BossBanner-SkullSpikes", kind = "fixed", top = 4 },
+            { atlas = "BossBanner-SkullCircle", kind = "fixed", top = 18.4 },
+        },
+    },
+    victorystar = {
+        reach = 66,
+        crest = { { atlas = "ChallengeMode-SpikeyStar", kind = "fixed", scale = 0.29, top = 7 } },
+    },
+}
+for name, v in pairs(VICTORY) do
+    local layers = {
+        { atlas = "BossBanner-BgBanner-Mid", kind = "stretch", h = 64 * 0.8, top = 36 },
+        { atlas = "BossBanner-BgBanner-Top", kind = "stretch", top = 9.6 },
+        { atlas = "BossBanner-BgBanner-Bottom", kind = "stretch", top = 17.6 },
+        { atlas = "BossBanner-LeftFillagree", kind = "fixed", top = 20, cx = -v.reach },
+        { atlas = "BossBanner-RightFillagree", kind = "fixed", top = 20, cx = v.reach },
+    }
+    for _, l in ipairs(v.crest) do
+        layers[#layers + 1] = l
+    end
+    -- last, clear of the crest when it shares the crest's sublevel
+    layers[#layers + 1] = { atlas = "BossBanner-BottomFillagree", kind = "fixed", top = 82.4 }
+    GAME[name] = { h = 107, ny = -11, band = 0.6, lead = 2, layers = layers }
+end
+
+-- The housing celebration banner, the glow with the house mark between two
+-- rails. The mark and the rails' middle keep their size.
+GAME.housing = {
+    h = 120,
+    ny = 0,
+    band = 0.5,
+    lead = 2,
+    layers = {
+        { atlas = "housing-celebrationtoast-back", cut = { 0.33, 0.64 }, scale = 0.45, extra = -80 },
+        { atlas = "housing-celebrationtoast-frame", cut = { 0.26, 0.745 }, scale = 0.45 },
+    },
+}
+
+-- The glow under the PvP scoreboard's title, the name just over it.
+for _, side in ipairs({ "alliance", "horde" }) do
+    GAME["pvp" .. side] =
+        { atlas = "scoreboard-header-" .. side, kind = "stretch", h = 60, mid = 0.333, band = 0.4, size = 20 }
+end
+
 -- Part of the atlas a, from x1 to x2 across it, drawn w by h.
 local function Slice(t, a, x1, x2, w, h)
     local u = a.rightTexCoord - a.leftTexCoord
@@ -1003,6 +1072,8 @@ local function Pieces(l)
         return { { a, 0, c[1] }, { a, c[1], c[2], true }, { r, 1 - c[2], 1 - c[1], true }, { r, 1 - c[1], 1 } }
     elseif l.kind == "stretch" then
         return { { a, 0, 1, true } }
+    elseif l.kind == "fixed" then
+        return { { a, 0, 1 } }
     end
     local pieces, from, grow = {}, 0, l.kind ~= "plate"
     for i = 1, #c + 1 do
@@ -1063,17 +1134,19 @@ local function DrawGame(b, read, g)
     for i, l in ipairs(g.layers) do
         local s = Scale(l, s0)
         local all, grow = Widths(l, s)
-        local lw = w + (l.extra or 0) * s + (l.wide and all - full or 0)
-        local k = (lw - all + grow) / grow
+        local lw = l.kind == "fixed" and all or w + (l.extra or 0) * s + (l.wide and all - full or 0)
+        local k = grow > 0 and (lw - all + grow) / grow or 1
         local lh = l.info.height * s
-        local x = l.x and l.x * s or (w - lw) * 0.5
+        local x = l.x and l.x * s or (w - lw) * 0.5 + (l.cx or 0) * s
         local top = l.top or (g.h - lh) * 0.5
         for _, p in ipairs(l.pieces) do
             local pw = (p[3] - p[2]) * p[1].width * s * (p[4] and k or 1)
             n = n + 1
             local t = GameTex(b, n)
             Slice(t, p[1], p[2], p[3], pw, lh)
-            t:SetDrawLayer("BACKGROUND", i)
+            -- sublevels stop at 7, so an eighth layer shares one and mustn't
+            -- overlap the seventh
+            t:SetDrawLayer("BACKGROUND", math.min(i, 7))
             t:SetPoint("TOPLEFT", x, -top)
             x = x + pw
         end
