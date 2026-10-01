@@ -318,6 +318,15 @@ function FP.RefreshFloorControls(h)
     FP.snapBtn:SetShown(tools)
     FP.autoBtn:SetShown(tools)
 
+    -- a side panel holds the map where it is until it closes
+    local free = FP.panel == nil
+    for _, b in ipairs(row) do
+        b:SetEnabled(free)
+    end
+    for _, b in ipairs({ moveBtn, ambienceBtn, musicBtn, arrivalBtn, FP.snapBtn, FP.autoBtn }) do
+        b:SetEnabled(free)
+    end
+
     local spots = h ~= nil and h.zones ~= nil and HasSpots(h)
     spotsCheck:SetShown(spots)
     spotsCheck:SetChecked(ChamberlainDB.settings.showSpotsOnMap)

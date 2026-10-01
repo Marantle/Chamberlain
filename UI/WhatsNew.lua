@@ -21,6 +21,23 @@ local _, CH = ...
 -- show under the notes, a frame with a Refresh method.
 CH.WHATS_NEW = {
     {
+        v = "3.33.0",
+        notes = {
+            "The room editor opens inside the house map, down its left side, and the map holds still until "
+                .. "you save or cancel.",
+            "Leaving the editor with unsaved changes asks first.",
+            "Delete is a trash can next to Edit room, and Undo delete brings the room back.",
+            "A room dropped with Snap on only goes onto a door within 50 yards. Further off, it lands where "
+                .. "you stand.",
+            "The button next to the selected room on the Build toolbox makes a copy of it.",
+            "The Banner tab shows its styles where the map is.",
+            "Add stairs, Floor pin and the stairs editor open down the map's side too, and stairs can go back "
+                .. "to being a room with Make it a room.",
+            "Edit room is bigger on the Build toolbox and sits on the map over the selected room. A double "
+                .. "click on a room opens it too.",
+        },
+    },
+    {
         v = "3.32.0",
         -- shown even to players who turned the window off, Auto map is worth it
         force = true,

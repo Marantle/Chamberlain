@@ -1,5 +1,44 @@
 # Changelog
 
+## 3.33.0
+- The room editor is part of the house map now. It opens down the left side
+  in place of the Build toolbox, and the map holds still while it's open. You
+  can still hover the other rooms, but a click doesn't pick them, and the
+  grips, the floor buttons, Snap, Auto map and the house sounds wait until
+  you save or cancel. The other rooms fade back so the one you edit stands
+  out.
+- Leaving the editor with changes you haven't saved asks first, from the back
+  arrow, the map's close button or Escape in the name box. Save, Keep editing
+  or Discard. Escape with the name box not in use closes the map and drops
+  the changes.
+- Delete is a trash can next to Edit room on the Build toolbox. After a
+  delete, Edit room turns into Undo delete until you pick a room. It puts
+  the room back with everything it had, picks it and slides the map to it,
+  on its own floor. It remembers the last room you deleted until you reload.
+- A copy button next to the selected room on the Build toolbox duplicates
+  it, half its size right and down on the map, with its look, yapper,
+  sounds and banner. The copy is named after it and gets picked so you can
+  drag it. It doesn't take over the room the floor check remembers.
+- With Snap on, a room dropped from the Build toolbox only goes onto an open
+  door within 50 yards of you. With none that close, it lands where you
+  stand, on the grid. Either way the map slides over so the new room is in
+  the middle.
+- Add stairs, Floor pin and the stairs editor open the same way, down the
+  map's left side with the map held still, and no longer as windows of their
+  own. Only one of them, or the room editor, is open at a time.
+- The stairs editor has Make it a room, which turns stairs back into a room
+  on the same floor and opens it in the room editor.
+- The Banner tab shows the list of banner styles where the map is. Picking
+  one sets it for the room, the same as before.
+- Edit room on the Build toolbox is bigger and lit, right under the room
+  you've selected. A selected room also gets an Edit room button on the map,
+  and a double click on a room opens it too.
+- The mirror button for stairwells has a new icon, two arrows pointing
+  opposite ways.
+- Smart drop's name fits on its button.
+- A room the floor check remembers says which floor in the room editor,
+  Remembered as floor 2, and changes with the Floor button.
+
 ## 3.32.0
 - Smart drop in the Build toolbox maps the room you stand in. Walk into a
   room from one that's already on your map and click Smart drop. The room

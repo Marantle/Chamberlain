@@ -347,7 +347,7 @@ for i, spec in ipairs(HANDLE_SPECS) do
     hb.fill = hb:CreateTexture(nil, "OVERLAY")
     hb.fill:SetAllPoints()
     hb:SetScript("OnMouseDown", function(self, button)
-        if button ~= "LeftButton" or not FP.CanEdit() then
+        if button ~= "LeftButton" or not FP.CanEdit() or FP.panel then
             return
         end
         local h = FP.CurrentHouse()
@@ -388,6 +388,14 @@ rotateBtn:SetFrameLevel(FP.Level("grips"))
 rotateBtn:Hide()
 CH.Tip(rotateBtn, "TB_ROTATE")
 rotateBtn:SetScript("OnClick", FP.RotateSelected)
+
+-- Edit room over the picked room, the same as the one on the build rail.
+local editBtn = CH.MakeButton(canvas, "RD_TITLE_EDIT_ROOM", 70, 18)
+editBtn:SetFrameLevel(FP.Level("buttons"))
+editBtn:Hide()
+editBtn:SetScript("OnClick", function()
+    CH.OpenRenameDialog(CH.tbSelZone, CH.tbSelGuid)
+end)
 
 -- The Snap switch in the map's top left corner, your own house only.
 -- Floors.lua shows it with the other tools.
@@ -433,11 +441,12 @@ function FP.PositionHandles()
     local h = FP.CurrentHouse()
     local zone = (h and FP.selectedIdx) and h.zones[FP.selectedIdx] or nil
     local k = FP.ZoomedScale()
-    if not zone or not FP.CanEdit() or not k or not FP.ZoneFrameByIdx(FP.selectedIdx) then
+    if not zone or not FP.CanEdit() or FP.panel or not k or not FP.ZoneFrameByIdx(FP.selectedIdx) then
         for _, hb in ipairs(handles) do
             hb:Hide()
         end
         rotateBtn:Hide()
+        editBtn:Hide()
         return
     end
     local px, py = FP.WorldToCanvas(zone.maxX, zone.maxY) -- tile top-left (screen)
@@ -487,4 +496,13 @@ function FP.PositionHandles()
     rotateBtn:ClearAllPoints()
     rotateBtn:SetPoint("CENTER", canvas, "TOPLEFT", px + zw * 0.5 + HANDLE_SIZE + 8, -(py + zh * 0.5))
     rotateBtn:SetShown(def and def.rotates or false)
+    -- over the top wall, or under the bottom one when the room is up against
+    -- the map's top edge
+    editBtn:ClearAllPoints()
+    if py > 30 then
+        editBtn:SetPoint("BOTTOM", canvas, "TOPLEFT", px + zw * 0.5, -py + 10)
+    else
+        editBtn:SetPoint("TOP", canvas, "TOPLEFT", px + zw * 0.5, -(py + zh) - 10)
+    end
+    editBtn:Show()
 end

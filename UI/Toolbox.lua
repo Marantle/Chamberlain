@@ -59,8 +59,18 @@ local function LayoutRow(shown, all, y)
     end
 end
 
+-- A square button with only an icon on it, its name in the tooltip.
+local function IconButton(icon, tip, h, onClick)
+    local b = CH.MakeButton(tb, "", 26, h)
+    CH.AddButtonIcon(b, icon, 12):SetPoint("CENTER")
+    CH.Tip(b, tip)
+    b:SetScript("OnClick", onClick)
+    return b
+end
+
 -- Drop a fresh room of the given shape where the player stands, select it, and
--- open the editor so it can be named right away.
+-- open the editor so it can be named right away. The map moves to it, since
+-- Snap can put it on a door some way off.
 local function DropRoom(shape)
     local x, y, mapID = CH.GetWorldPos()
     if not x then
@@ -71,6 +81,7 @@ local function DropRoom(shape)
     if z then
         CH.SetSelection(z, guid)
         CH.OpenRenameDialog(z, guid)
+        FP.CenterOn(z)
     end
 end
 
@@ -97,8 +108,9 @@ local function AddTile(key, icon, col)
     CH.AddButtonIcon(b, icon, 14):SetPoint("TOP", 0, -6)
     local fs = b:GetFontString()
     fs:ClearAllPoints()
-    fs:SetPoint("BOTTOMLEFT", 4, 6)
-    fs:SetPoint("BOTTOMRIGHT", -4, 6)
+    -- tight to the edges, Smart drop needs every pixel of the third
+    fs:SetPoint("BOTTOMLEFT", 1, 6)
+    fs:SetPoint("BOTTOMRIGHT", -1, 6)
     return b
 end
 
@@ -117,7 +129,7 @@ Header("TB_SELECTED_HEADER", -152)
 
 -- Picks the room from a list, and names the one picked with its size and a chip
 -- in its map colour.
-local selDrop = CH.MakeButton(tb, "TB_SELECT_ROOM", ROW_W, 26)
+local selDrop = CH.MakeButton(tb, "TB_SELECT_ROOM", ROW_W - 32, 26)
 selDrop:SetPoint("TOPLEFT", PAD, -170)
 local selDropFS = selDrop:GetFontString()
 selDropFS:ClearAllPoints()
@@ -128,11 +140,90 @@ local selChip = selDrop:CreateTexture(nil, "OVERLAY")
 selChip:SetSize(10, 10)
 selChip:SetPoint("LEFT", 7, 0)
 
+-- A copy of the picked room, half its size right and down on the map so it
+-- shows which is which. The copy keeps everything but the game room, which
+-- only one room can hold, and the time spent in it.
+local dupBtn = IconButton("icon-copy", "TB_TT_DUPLICATE", 26, function()
+    local z, guid = CH.tbSelZone, CH.tbSelGuid
+    local h = z and guid and ChamberlainDB.houses[guid]
+    if not h then
+        return
+    end
+    local copy = CopyTable(z)
+    copy.gameRoom = nil
+    copy.name = string.format(CH.L["TB_COPY_NAME_X"], z.name)
+    -- right and down on the map is lower X and Y, as the map's X runs mirrored
+    local dx, dy = (z.maxX - z.minX) * 0.5, (z.maxY - z.minY) * 0.5
+    copy.minX, copy.maxX = z.minX - dx, z.maxX - dx
+    copy.minY, copy.maxY = z.minY - dy, z.maxY - dy
+    table.insert(h.zones, copy)
+    CH.TouchHouse(guid)
+    CH.SetSelection(copy, guid)
+end)
+dupBtn:SetPoint("LEFT", selDrop, "RIGHT", 6, 0)
+
+-- The way into the room editor, lit so it doesn't get lost among the tools.
+-- A double click on the room does the same, and so does Edit room on the map.
+-- With nothing picked right after a delete, it brings that room back
+-- instead.
+local editBtn = CH.MakeButton(tb, "RD_TITLE_EDIT_ROOM", ROW_W - 32, 24)
+editBtn:SetPoint("TOPLEFT", PAD, -200)
+CH.SetButtonActive(editBtn, true)
+CH.Tip(editBtn, function()
+    return editBtn.undo and "TB_TT_UNDO_DELETE" or "TB_TT_EDIT_ROOM"
+end)
+
+-- The last room deleted, kept for the session so Undo delete can bring it
+-- back: { zone, guid, index, stats }.
+local deleted
+
+-- The room Undo delete would bring back to house guid, or nil. It's gone
+-- once its floor is.
+local function DeletedRoom(guid)
+    local h = deleted and deleted.guid == guid and ChamberlainDB.houses[guid]
+    if h and (deleted.zone.floor or 1) <= (h.floorCount or 1) then
+        return deleted.zone
+    end
+end
+
+local delBtn = IconButton("icon-trash", "TB_TT_DELETE", 24, function()
+    local z, guid = CH.tbSelZone, CH.tbSelGuid
+    local h = z and guid and ChamberlainDB.houses[guid]
+    if not h then
+        return
+    end
+    local index = tIndexOf(h.zones, z)
+    table.remove(h.zones, index)
+    deleted = { zone = z, guid = guid, index = index, stats = h.stats and h.stats[z.name] }
+    CH.DropZoneStats(h, z.name)
+    CH.SetSelection(nil, nil) -- clear it on the map too
+    CH.TouchHouse(guid)
+end)
+delBtn:SetPoint("LEFT", editBtn, "RIGHT", 6, 0)
+
+-- Put the last deleted room back where it was in the list, with its time,
+-- and show it: picked, on its floor and in the middle of the map.
+local function UndoDelete()
+    local z = DeletedRoom(CH.currentHouseGUID)
+    if not z then
+        return
+    end
+    local guid, h = deleted.guid, ChamberlainDB.houses[deleted.guid]
+    table.insert(h.zones, math.min(deleted.index, #h.zones + 1), z)
+    -- a room of the same name kept the time when it was deleted
+    h.stats = h.stats or {}
+    h.stats[z.name] = h.stats[z.name] or deleted.stats
+    deleted = nil
+    CH.TouchHouse(guid)
+    CH.SetSelection(z, guid, true)
+    FP.CenterOn(z)
+end
+
 -- Quick resize: the game's sizes as chips for a square or an octagon, with
 -- the one the room is at lit. An L or a T turns instead, and every shaped
 -- room can go back to the game's size after a hand resize.
 local quickLabel = tb:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-quickLabel:SetPoint("TOPLEFT", PAD, -201)
+quickLabel:SetPoint("TOPLEFT", PAD, -231)
 quickLabel:SetText(CH.L["TB_QUICK_RESIZE"])
 quickLabel:SetTextColor(CH.RGBA(CH.COLORS.muted, 1))
 
@@ -176,7 +267,7 @@ local MOVE, GROW = MODES[1], MODES[2]
 local mode = MOVE
 for i, m in ipairs(MODES) do
     m.btn = CH.MakeButton(tb, m.key, 63, 22)
-    m.btn:SetPoint("TOPLEFT", PAD + (i - 1) * 62, -242)
+    m.btn:SetPoint("TOPLEFT", PAD + (i - 1) * 62, -272)
     m.btn:SetScript("OnClick", function()
         mode = m
         CH.RefreshToolbox()
@@ -186,7 +277,7 @@ end
 -- One cell of the 3x3 pad, an arrow on all but the middle one.
 local function PadButton(dir, col, row)
     local b = CH.MakeButton(tb, "", 26, 22)
-    b:SetPoint("TOPLEFT", PAD + col * 29, -272 - row * 25)
+    b:SetPoint("TOPLEFT", PAD + col * 29, -302 - row * 25)
     if dir ~= "all" then
         CH.AddButtonIcon(b, "arrow-" .. dir, 10):SetPoint("CENTER")
     end
@@ -209,7 +300,7 @@ CH.Tip(padAll, function()
 end)
 
 local padHint = tb:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-padHint:SetPoint("TOPLEFT", PAD + 96, -274)
+padHint:SetPoint("TOPLEFT", PAD + 96, -304)
 padHint:SetWidth(92)
 padHint:SetJustifyH("LEFT")
 padHint:SetSpacing(2)
@@ -227,11 +318,8 @@ local radiusBtn = CH.MakeButton(tb, "TB_SET_RADIUS", 91, 22)
 -- or right one swaps sides, from icon buttons small enough to leave Slide to
 -- me its name.
 local function StairsButton(icon, tip, onClick)
-    local b = CH.MakeButton(tb, "", 26, 22)
+    local b = IconButton(icon, tip, 22, onClick)
     b.fixedW = 26
-    CH.AddButtonIcon(b, icon, 12):SetPoint("CENTER")
-    CH.Tip(b, tip)
-    b:SetScript("OnClick", onClick)
     return b
 end
 local mirrorBtn = StairsButton("icon-mirror", "TB_TT_STAIRS_MIRROR", FP.MirrorSelectedStairs)
@@ -243,11 +331,6 @@ local belowBtn = StairsButton("arrow-down", "TB_TT_STAIRS_BELOW", function()
 end)
 local fitAll = { slideBtn, snapBtn, radiusBtn, mirrorBtn, aboveBtn, belowBtn }
 local fit = {}
-
-local editBtn = CH.MakeButton(tb, "TB_EDIT", 91, 22)
-editBtn:SetPoint("TOPLEFT", PAD, -382)
-local delBtn = CH.MakeButton(tb, "TB_DELETE", 91, 22)
-delBtn:SetPoint("LEFT", editBtn, "RIGHT", 6, 0)
 
 -- Everything that acts on the picked room, greyed out while there is none.
 local needsRoom = { editBtn, delBtn, padAll }
@@ -344,6 +427,11 @@ function CH.RefreshToolbox()
     for _, b in ipairs(needsRoom) do
         b:SetEnabled(z ~= nil)
     end
+    dupBtn:SetEnabled(z ~= nil and not CH.IsAnchor(z))
+    local undo = not z and DeletedRoom(CH.currentHouseGUID) or nil
+    editBtn.undo = undo
+    editBtn:SetEnabled(z ~= nil or undo ~= nil)
+    editBtn:SetText(undo and string.format(CH.L["TB_UNDO_DELETE_X"], undo.name) or CH.L["RD_TITLE_EDIT_ROOM"])
     for _, m in ipairs(MODES) do
         CH.SetButtonActive(m.btn, m == mode)
     end
@@ -399,8 +487,8 @@ function CH.RefreshToolbox()
         fit[1] = slideBtn
     end
     quickLabel:SetShown(#quick > 0)
-    LayoutRow(quick, quickAll, -214)
-    LayoutRow(fit, fitAll, -354)
+    LayoutRow(quick, quickAll, -244)
+    LayoutRow(fit, fitAll, -384)
 end
 
 -- One place to set the selected room so the rail and the map always agree.
@@ -552,23 +640,7 @@ end)
 editBtn:SetScript("OnClick", function()
     if CH.tbSelZone then
         CH.OpenRenameDialog(CH.tbSelZone, CH.tbSelGuid)
+    elseif editBtn.undo then
+        UndoDelete()
     end
-end)
-
-delBtn:SetScript("OnClick", function()
-    local z = CH.tbSelZone
-    local guid = CH.tbSelGuid
-    local h = guid and ChamberlainDB.houses[guid]
-    if not z or not h then
-        return
-    end
-    for i, zone in ipairs(h.zones) do
-        if zone == z then
-            table.remove(h.zones, i)
-            break
-        end
-    end
-    CH.DropZoneStats(h, z.name)
-    CH.SetSelection(nil, nil) -- clear it on the map too
-    CH.TouchHouse(guid)
 end)

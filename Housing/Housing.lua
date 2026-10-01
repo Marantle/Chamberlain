@@ -181,13 +181,17 @@ end
 -- a hallway turns whichever way lands it nearest to you, and a spot that runs
 -- into another room is passed over for the next door out. With spots given
 -- only a place holding all of them counts, which is how smart drop finds the
--- turn from where you've walked. True once it moved the room.
-function CH.FitToOpenDoor(h, zone, px, py, spots)
+-- turn from where you've walked. With reach, a door further than that many
+-- yards from you is too far to go to. True once it moved the room.
+function CH.FitToOpenDoor(h, zone, px, py, spots, reach)
     local doors, rooms = OpenDoors(h, zone, px, py)
     local def = zone.shape and CH.SHAPES[zone.shape]
     -- a box looks the same half way round but a masked shape or a stairwell doesn't
     local turns = def and def.rotates and ((def.mask or def.art) and 3 or 1) or 0
     for _, open in ipairs(doors) do
+        if reach and open.d > reach * reach then
+            return -- the rest are further still
+        end
         local best, bestD, bestRot
         for rot = 0, turns do
             local b, dist = OnDoor(zone, rot, open, px, py, rooms, spots)

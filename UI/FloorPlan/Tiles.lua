@@ -294,6 +294,10 @@ local function StyleTile(f, zone, i, selected, stairBoxes)
     -- a marker's name is in its tooltip
     f.label:SetText(marker and "" or zone.name)
     f.label:SetTextColor(0.95, 0.92, 0.85, 1)
+    -- the room a side panel works on stands out from the rest
+    local a = FP.editZone and FP.editZone ~= zone and 0.4 or 1
+    f:SetAlpha(a)
+    f.label:SetAlpha(a)
     return r, g, b
 end
 
@@ -391,6 +395,9 @@ local function ShowZoneTooltip(owner, name, dim, timeSpent, r, g, b)
     if timeSpent and timeSpent >= 1 then
         GameTooltip:AddLine(string.format(CH.L["FP_TIME_HERE_X"], CH.FormatDuration(timeSpent)), 0.7, 0.7, 0.7)
     end
+    if FP.panel then
+        GameTooltip:AddLine(CH.L["FP_EDITING_TIP"], 0.5, 0.5, 0.5, true)
+    end
     GameTooltip:Show()
 end
 
@@ -402,6 +409,10 @@ function FP.ZoneFrameByIdx(idx)
         end
     end
 end
+
+-- The room the last click landed on and when, for the double click.
+local DOUBLE_CLICK = 0.35
+local pickedIdx, pickedAt = nil, 0
 
 local function GetZoneFrame(i)
     if zonePool[i] then
@@ -438,8 +449,12 @@ local function GetZoneFrame(i)
     end)
 
     -- Click selects for editing. Where rooms overlap, repeated clicks cycle
-    -- through every room under the cursor (topmost first), then deselect.
+    -- through every room under the cursor (topmost first), then deselect. A
+    -- second click on the room just picked opens it in the editor.
     f:SetScript("OnMouseDown", function(self)
+        if FP.panel then
+            return
+        end
         if not FP.CanEdit() then
             -- Your own map under the lock opens the room on its Sound tab. Stairs
             -- have no sounds, so a click goes through them to the room below.
@@ -456,6 +471,15 @@ local function GetZoneFrame(i)
         end
         local hits = ZonesAtCursor()
         if #hits == 0 then
+            return
+        end
+        local house = FP.CurrentHouse()
+        if pickedIdx and GetTime() - pickedAt < DOUBLE_CLICK and tIndexOf(hits, pickedIdx) then
+            local zone = house.zones[pickedIdx]
+            pickedIdx = nil
+            GameTooltip:Hide()
+            CH.SetSelection(zone, CH.currentHouseGUID)
+            CH.OpenRenameDialog(zone, CH.currentHouseGUID)
             return
         end
         local pos
@@ -475,8 +499,9 @@ local function GetZoneFrame(i)
         end
         -- Route through the shared setter so the build toolbox follows along. It
         -- sets FP.selectedIdx (via CH.FloorPlanSelect) and rebuilds.
-        local house = FP.CurrentHouse()
         CH.SetSelection(newIdx and house and house.zones[newIdx] or nil, CH.currentHouseGUID)
+        -- the room this click landed on, even when it cycled past it to none
+        pickedIdx, pickedAt = newIdx or hits[pos], GetTime()
         -- Refresh the tooltip to the room we just cycled to (OnEnter only fires on
         -- mouse motion or a frame re-show, so a click alone wouldn't update it).
         local sel = FP.selectedIdx and FP.ZoneFrameByIdx(FP.selectedIdx)
@@ -694,7 +719,9 @@ function FP.Build()
 
     local h = FP.CurrentHouse()
 
-    if h and h.owner then
+    if FP.editZone then
+        FP.sub:SetText(string.format(CH.L["FP_EDITING_X"], FP.editZone.name))
+    elseif h and h.owner then
         FP.sub:SetText(string.format(CH.L["FP_X_HOUSE"], h.owner))
     elseif FP.HouseGUID() then
         FP.sub:SetText(CH.L["FP_HOME_INTERIOR"])

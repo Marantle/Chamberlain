@@ -20,6 +20,7 @@ local trScale, trMinY, trMaxX, trCanvasH, trCanvasW
 -- move, so they stay the same size. Reset on house/floor change and on open.
 local zoom, panX, panY = 1, 0, 0
 local ZOOM_MIN, ZOOM_MAX = 1, 6
+local slideAt, fromX, fromY, toX, toY -- a slide in progress, see FP.CenterOn
 
 -- X is mirrored: higher world X is left from entrance (X decreases as you move right).
 function FP.WorldToCanvas(x, y)
@@ -119,6 +120,7 @@ end
 
 function FP.ResetView()
     zoom, panX, panY = 1, 0, 0
+    slideAt = nil
 end
 
 -- The dot loop calls this each frame: a canvas resized since the last fit
@@ -147,11 +149,41 @@ function FP.UpdateResetButton()
     resetBtn:SetShown(zoom ~= 1 or panX ~= 0 or panY ~= 0)
 end
 
-local function ClampPan()
+local function Clamped(x, y)
     local limX = (trCanvasW or 0) * zoom * 0.5
     local limY = (trCanvasH or 0) * zoom * 0.5
-    panX = math.max(-limX, math.min(limX, panX))
-    panY = math.max(-limY, math.min(limY, panY))
+    return math.max(-limX, math.min(limX, x)), math.max(-limY, math.min(limY, y))
+end
+
+local function ClampPan()
+    panX, panY = Clamped(panX, panY)
+end
+
+-- A slide of the view to another pan, stepped from the dot loop's OnUpdate
+-- (FP.UpdatePanDrag) for SLIDE seconds. A drag or a zoom ends it where it is.
+local SLIDE = 0.35
+
+-- Slide so the middle of a room sits in the middle of the map, at the zoom
+-- you have. The pan limit can leave a room near the house's edge a bit off it.
+function FP.CenterOn(zone)
+    FP.EnsureFit()
+    if not trScale then
+        return
+    end
+    local px, py = FP.WorldToCanvas(CH.ZoneCentre(zone))
+    fromX, fromY = panX, panY
+    toX, toY = Clamped(panX + trCanvasW * 0.5 - px, panY + trCanvasH * 0.5 - py)
+    slideAt = GetTime()
+end
+
+local function StepSlide()
+    local t = math.min(1, (GetTime() - slideAt) / SLIDE)
+    local e = 1 - (1 - t) ^ 3 -- fast out of the start, slow into the room
+    panX, panY = fromX + (toX - fromX) * e, fromY + (toY - fromY) * e
+    if t == 1 then
+        slideAt = nil
+    end
+    FP.TileReposition()
 end
 
 -- Cursor in canvas-local pixels: x rightward from the left edge, y downward from
@@ -176,6 +208,7 @@ canvas:SetScript("OnMouseWheel", function(_, delta)
     if not trScale then
         return
     end
+    slideAt = nil
     local z0 = zoom
     zoom = math.max(ZOOM_MIN, math.min(ZOOM_MAX, zoom * (delta > 0 and 1.2 or 1 / 1.2)))
     if zoom == z0 then
@@ -204,6 +237,7 @@ canvas:SetScript("OnMouseDown", function(_, button)
         return
     end
     lastCanvasClick = now
+    slideAt = nil
     dragging = true
     dragSX, dragSY = FP.CanvasCursor()
     panStartX, panStartY = panX, panY
@@ -217,7 +251,7 @@ canvas:SetScript("OnMouseUp", function(_, button)
         return
     end
     dragging = false
-    if FP.CanEdit() and dragSX then
+    if FP.CanEdit() and not FP.panel and dragSX then
         local mx, my = FP.CanvasCursor()
         if math.abs(mx - dragSX) < 4 and math.abs(my - dragSY) < 4 then
             CH.SetSelection(nil, nil)
@@ -231,6 +265,10 @@ end)
 -- the event, leaving the pan stuck to the mouse, so this also bails the moment
 -- the button is no longer held.
 function FP.UpdatePanDrag()
+    if slideAt then
+        StepSlide()
+        return
+    end
     if not dragging then
         return
     end

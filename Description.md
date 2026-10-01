@@ -14,7 +14,8 @@ the groups down the side
 and a search box over them. Pick one while you stand in your own house and it
 becomes that house's look, so visitors see your rooms that way unless they
 keep their own in Settings. A room can have its own style too, on the Banner
-tab of the room editor. Rooms without one use the house's.
+tab of the room editor, where the list opens in place of the map. Rooms
+without one use the house's.
 
 When you walk into a house, a plaque shows the house's name, whose house it is
 and the owner's motto, then fades. In the House panel you can write your motto
@@ -25,7 +26,8 @@ Houses list, for everyone who has your map.
 
 To make a room, open the Build toolbox and click the shape of the room you
 built. All eight of the game's rooms are there, closet and hallway too. The room drops where you stand
-at the size the game builds it, and the name box opens. Quick resize switches a square
+at the size the game builds it, and the room editor opens so you can name it.
+Quick resize switches a square
 or an octagon between the game's sizes, and Rotate turns an L, a T, a closet or a hallway. To fit
 the room to the walls, select it, walk to a wall and click Slide to me, then do
 the same at a wall facing the other way. A square can also stretch one wall to
@@ -37,8 +39,9 @@ A house with no map yet starts easy. The empty house map has an Add the
 entrance button, and it puts the entrance closet exactly where the game has
 it, the spot you stand in when you walk in. Every other room can snap on from
 there. With Snap on, a room you drop from the toolbox goes straight onto the
-nearest open door, turned whichever way puts it closest to you. Rotate turns
-a room around the door it's joined at. On the map a selected L, T, closet or
+nearest open door, turned whichever way puts it closest to you. A door more
+than 50 yards away is too far, and the room lands where you stand instead.
+Rotate turns a room around the door it's joined at. On the map a selected L, T, closet or
 hallway has a small turn button next to its middle grip.
 
 Smart drop in the Build toolbox maps the room you stand in. Walk from a room on
@@ -113,6 +116,10 @@ Chamberlain puts you on the floor of that mark.
 
 For a tall shaft, a fall or a balcony, drop a Floor pin. A Floor pin works on
 every floor, and you set the floor it sends you to.
+
+Stairs, Floor pin and editing a mark all open down the map's left side, so you
+can walk to the steps with the map still open. Make it a room in the stairs
+editor turns a mark you made from a room back into a room.
 
 The house map has a tab for each floor, and its + button adds one. Its
 Move to floor button corrects Chamberlain when it has the wrong floor. If your
@@ -311,6 +318,10 @@ backup that you made.
   are. Zoom it and move it with the mouse.
 - Rooms on the minimap indoors, in place of the game's still house picture.
 - Edit rooms on the house map. You can move, resize, rename and recolor them.
+  Edit room, or a double click on a room, opens the room editor down the
+  map's left side, and the map holds still until you save or cancel. Delete a
+  room by mistake and Undo delete on the Build toolbox brings it back. The
+  copy button next to the selected room makes a copy of it.
 - A talking head "Yapper" reads the description of a room like an NPC. Your
   computer can speak it with its TTS (text to speech) voices.
 - Secret rooms stay off the maps of your visitors but still announce

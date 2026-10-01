@@ -22,6 +22,10 @@ CH.FP = FP
 local RAIL_W = 208
 local MAP_W = 500
 local WIN_H = 520
+-- A side panel (the room editor and the stair panels) takes the rail's
+-- place, wider than it.
+FP.EDIT_W = 380
+FP.RAIL_H = WIN_H - 26
 
 local fp = CreateFrame("Frame", "ChamberlainFloorPlan", UIParent, "BackdropTemplate")
 fp:SetSize(RAIL_W + 1 + MAP_W, WIN_H)
@@ -48,7 +52,9 @@ CH.ResetMapPos()
 local closeBtn = CH.MakeGlyphButton(fp, "x")
 closeBtn:SetPoint("TOPRIGHT", -4, -4)
 closeBtn:SetScript("OnClick", function()
-    fp:Hide()
+    FP.LeavePanel(function()
+        fp:Hide()
+    end)
 end)
 
 -- Shows and hides the build sidebar, lit while it's out. Like the bar's Build
@@ -257,6 +263,93 @@ end
 -- FP.selectedIdx: index into the house's zones of the room picked on the rail
 -- (CH.tbSelZone), or nil. Worked out again on every build, read everywhere.
 
+-- Side panels ---------------------------------------------------------------
+
+-- FP.panel: the side panel in the rail's place (the room editor, the stair
+-- editor, Add stairs or Floor pin), or nil. While one is open the map shows
+-- but takes no clicks or drags. A panel is { frame, leave, check }.
+-- leave(after) is for a panel that asks before it lets go (the room editor)
+-- and check() runs on every build to close one whose house or room is gone.
+-- FP.editZone is the room or stair a panel works on, lit on the map.
+FP.panel = nil
+FP.editZone = nil
+
+-- A panel's frame with the back arrow and its title on top.
+function FP.MakePanel(titleKey)
+    local f = CreateFrame("Frame", nil, rail)
+    f:SetAllPoints()
+    f:Hide()
+    local back = CH.MakeGlyphButton(f, nil, "arrow-left")
+    back:SetPoint("TOPLEFT", 8, -8)
+    CH.Tip(back, "RD_TT_BACK")
+    back:SetScript("OnClick", function()
+        FP.LeavePanel()
+    end)
+    f.title = CH.MakeSectionHeader(f, titleKey, -10)
+    f.title:SetPoint("TOPLEFT", back, "TOPRIGHT", 4, -2)
+    return f
+end
+
+-- The rule and the Cancel and Save buttons along a panel's bottom. The row
+-- is a frame of its own so the room editor's leave question can take its
+-- place.
+function FP.PanelFooter(f, saveKey, onSave)
+    local rule = CH.MakeRule(f)
+    rule:SetPoint("BOTTOMLEFT", 1, 36)
+    rule:SetPoint("BOTTOMRIGHT", -1, 36)
+    local foot = CreateFrame("Frame", nil, f)
+    foot:SetPoint("BOTTOMLEFT", 12, 8)
+    foot:SetPoint("BOTTOMRIGHT", -12, 8)
+    foot:SetHeight(22)
+    local save = CH.MakeButton(foot, saveKey, 90, 22)
+    save:SetPoint("RIGHT")
+    CH.SetButtonActive(save, true)
+    save:SetScript("OnClick", onSave)
+    local cancel = CH.MakeButton(foot, "RD_CANCEL", 90, 22)
+    cancel:SetPoint("RIGHT", save, "LEFT", -8, 0)
+    cancel:SetScript("OnClick", function()
+        FP.ClosePanel()
+    end)
+    return foot, save
+end
+
+-- Put panel p in the rail and hold the map. The caller has alredy let go
+-- of any other one through FP.LeavePanel.
+function FP.OpenPanel(p, zone)
+    FP.panel, FP.editZone = p, zone
+    p.frame:Show()
+    FP.Build()
+    fp:Raise()
+end
+
+-- noBuild is for a close from inside a map build, which draws the map itself.
+-- The panel's own OnHide does its tidying up.
+function FP.ClosePanel(noBuild)
+    local p = FP.panel
+    if not p then
+        return
+    end
+    FP.panel, FP.editZone = nil, nil
+    p.frame:Hide()
+    if not noBuild and fp:IsShown() then
+        FP.Build()
+    end
+end
+
+-- Close the open panel, or let it ask first, then run after. after never
+-- runs when you keep editing.
+function FP.LeavePanel(after)
+    local p = FP.panel
+    if p and p.leave then
+        p.leave(after)
+        return
+    end
+    FP.ClosePanel()
+    if after then
+        after()
+    end
+end
+
 -- Which floor the map is currently showing. Starts on the player's active floor
 -- and follows it up and down the stairs. The floor tabs browse the others.
 -- Public (not on FP) so the create dialog can default a new room to the floor
@@ -325,17 +418,21 @@ fp:SetScript("OnHide", function()
     if ChamberlainDB and ChamberlainDB.settings then
         ChamberlainDB.settings.floorPlanOpen = false
     end
+    -- Escape closes the map without asking, and an open panel goes with it
+    FP.ClosePanel(true)
     FP.viewGUID = nil
 end)
 
 -- Folded, the window is the map alone with the build sidebar tucked away
 -- (3.25.0, before that it folded the other way). Only your own house folds.
 -- The top right corner stays put, so the map doesn't jump when the sidebar
--- comes and goes.
+-- comes and goes, or when a side panel widens it.
 function FP.ApplyFold()
     local edit = FP.CanEdit()
-    local folded = edit and ChamberlainDB.settings.railHidden
-    local w = folded and MAP_W or RAIL_W + 1 + MAP_W
+    local editing = FP.panel ~= nil
+    local folded = edit and ChamberlainDB.settings.railHidden and not editing
+    local railW = editing and FP.EDIT_W or RAIL_W
+    local w = folded and MAP_W or railW + 1 + MAP_W
     if fp:GetWidth() ~= w then
         local right, top = fp:GetRight(), fp:GetTop()
         if right then
@@ -344,6 +441,7 @@ function FP.ApplyFold()
         end
         fp:SetWidth(w)
     end
+    rail:SetWidth(railW)
     rail:SetShown(not folded)
     map:ClearAllPoints()
     if folded then
@@ -353,6 +451,7 @@ function FP.ApplyFold()
     end
     map:SetPoint("BOTTOMRIGHT")
     buildBtn:SetShown(edit)
+    buildBtn:SetEnabled(not editing)
     CH.SetButtonActive(buildBtn, not folded)
     fp.title:ClearAllPoints()
     if edit then
@@ -362,16 +461,25 @@ function FP.ApplyFold()
     end
     local own = FP.OwnMap()
     readOnly:SetShown(not own)
-    lockBtn:SetShown(own)
+    -- a glyph button has no greyed look, so it goes while a panel is open
+    lockBtn:SetShown(own and not editing)
     CH.SetIconFile(lockBtn.glyph, CH.LayoutLocked() and "icon-lock" or "icon-unlock")
 end
 
 -- The rail holds the build tools on a map you can edit and the house card on
--- any other. Called from every build pass.
+-- any other, or a side panel over either one. Called from every build pass.
 function FP.RefreshRail(h)
+    if FP.panel and FP.panel.check then
+        FP.panel.check()
+    end
     local edit = FP.CanEdit()
-    CH.toolbox:SetShown(edit)
-    FP.card:SetShown(not edit)
+    local editing = FP.panel ~= nil
+    CH.toolbox:SetShown(edit and not editing)
+    FP.card:SetShown(not edit and not editing)
+    if editing then
+        FP.ApplyFold()
+        return
+    end
     if edit then
         CH.RefreshToolbox()
     else

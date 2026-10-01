@@ -1,30 +1,24 @@
 local _, CH = ...
 
 -- ─────────────────────────────────────────────────────────────────────
--- Room dialog: create and edit (name, color, head, description)
+-- Room editor: name, colour, yapper, sounds and banner of one room
 -- ─────────────────────────────────────────────────────────────────────
--- The name and colour sit on top with a live copy of the banner under them.
--- The rest sits on four tabs, Room, Yapper, Sound and Banner.
+-- It lives in the house map, in the rail's place (3.33.0, a window of its
+-- own before that), and the map holds still while it's open. The name and
+-- colour sit on top with a live copy of the banner under them. The rest
+-- sits on four tabs, Room, Yapper, Sound and Banner. The Banner tab puts the
+-- style list where the map is.
 
-local W, H = 380, 470
+local FP = CH.FP
+local W, H = FP.EDIT_W, FP.RAIL_H
 local LABEL_W = 90 -- the label column, the controls start after it
 local PANE_W = W - 24
 local PANE_TOP, PANE_BOTTOM = -142, 40
 local PANE_H = H + PANE_TOP - PANE_BOTTOM
 
-local dialog = CreateFrame("Frame", "ChamberlainNameDialog", UIParent, "BackdropTemplate")
-dialog:SetSize(W, H)
-dialog:SetFrameStrata("DIALOG")
-dialog:SetToplevel(true) -- clicking/showing lifts it above other windows, like the rest
-dialog:SetPoint("CENTER")
-CH.MakeDraggable(dialog) -- blocks click-through and lets the player drag it
-CH.SkinWindow(dialog, "RD_TITLE_NAME_ROOM")
-dialog:Hide()
+local dialog = FP.MakePanel("RD_TITLE_EDIT_ROOM")
 
-local closeBtn = CH.MakeGlyphButton(dialog, "x")
-closeBtn:SetPoint("TOPRIGHT", -4, -4)
-
-local renameTarget = nil -- zone being renamed; nil means create mode
+local renameTarget = nil -- the zone in the editor
 local renameHouseGUID = nil -- house the renamed zone belongs to (nil = current)
 local pendingColor = nil -- color for the room being named; nil = default gold
 local pendingHeadID = nil -- talking-head index for the room; nil/1 = default
@@ -377,9 +371,15 @@ Label(
 local linkBtn = CH.MakeButton(linkRow, "RD_LINK_ROOM", PANE_W - LABEL_W, 22)
 linkBtn:SetPoint("TOPLEFT", LABEL_W, 0)
 
+-- Remembered, it names the floor the floor check puts you on, which is the
+-- room's own floor and follows the Floor button.
+local function RefreshLinkText()
+    linkBtn:SetText(pendingGameRoom and string.format(CH.L["RD_LINKED_X"], pendingFloor or 1) or CH.L["RD_LINK_ROOM"])
+end
+
 local function SetPendingGameRoom(room)
     pendingGameRoom = room
-    linkBtn:SetText(CH.L[room and "RD_LINKED" or "RD_LINK_ROOM"])
+    RefreshLinkText()
 end
 
 -- The room is read on the click, so walking about with the dialog open is fine.
@@ -773,54 +773,47 @@ end)
 -- ── Banner tab ───────────────────────────────────────────────────────
 
 -- The room's own banner style, over the house's. It goes out with the map
--- onyl, never as a patch of its own. A room with Banner unticked on the Room
--- tab shows none, so the tab greys out for it.
-local bannerStage = CreateFrame("Frame", nil, paneBanner)
-bannerStage:SetPoint("TOPLEFT", 0, -4)
-bannerStage:SetPoint("TOPRIGHT", 0, -4)
-bannerStage:SetHeight(96)
-CH.BannerScene(bannerStage)
-local stageBanner = CH.MakeBanner(bannerStage)
-stageBanner:SetPoint("CENTER")
-
+-- onyl, never as a patch of its own. The list of styles takes the map's
+-- place while this tab is open (UI/BannerPicker.lua). A room with Banner
+-- unticked on the Room tab shows none, so the list stays away for it.
 local styleName = paneBanner:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-styleName:SetPoint("TOPLEFT", bannerStage, "BOTTOMLEFT", 2, -10)
+styleName:SetPoint("TOPLEFT", 2, -6)
 local styleNote = paneBanner:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 styleNote:SetPoint("TOPLEFT", styleName, "BOTTOMLEFT", 0, -3)
-styleNote:SetWidth(PANE_W - 130)
+styleNote:SetWidth(PANE_W - 4)
 styleNote:SetJustifyH("LEFT")
 styleNote:SetTextColor(CH.RGBA(CH.COLORS.dim, 1))
 
-local chooseBtn = CH.MakeButton(paneBanner, "SET_BANNER_CHOOSE", 110, 22)
-chooseBtn:SetPoint("TOPRIGHT", bannerStage, "BOTTOMRIGHT", 0, -10)
-
 local bannerHint = paneBanner:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-bannerHint:SetPoint("TOPLEFT", bannerStage, "BOTTOMLEFT", 2, -68)
+bannerHint:SetPoint("TOPLEFT", styleNote, "BOTTOMLEFT", 0, -14)
 bannerHint:SetWidth(PANE_W - 4)
 bannerHint:SetJustifyH("LEFT")
+bannerHint:SetSpacing(2)
 bannerHint:SetTextColor(CH.RGBA(CH.COLORS.dim, 1))
+
+local roomPick = {
+    done = function(style)
+        pendingBannerStyle = style
+        UpdatePreview()
+    end,
+}
 
 UpdateBannerTab = function()
     local on = bannerCheck:GetChecked()
-    PaintPreview(stageBanner, 0.85)
-    bannerStage:SetAlpha(on and 1 or 0.35)
-    chooseBtn:SetEnabled(on)
     local name, note = CH.BannerPickText(pendingBannerStyle, true)
     styleName:SetText(name)
     styleNote:SetText(note)
     bannerHint:SetText(CH.L[on and "RD_BANNER_STYLE_HINT" or "RD_BANNER_STYLE_OFF"])
+    if on and paneBanner:IsVisible() then
+        roomPick.style = pendingBannerStyle
+        CH.ShowRoomBannerPicker(DialogGUID(), roomPick)
+    else
+        CH.HideRoomBannerPicker()
+    end
 end
 bannerCheck:HookScript("OnClick", UpdateBannerTab)
-
-chooseBtn:SetScript("OnClick", function()
-    CH.OpenBannerPicker(DialogGUID(), {
-        style = pendingBannerStyle,
-        done = function(style)
-            pendingBannerStyle = style
-            UpdatePreview()
-        end,
-    })
-end)
+paneBanner:SetScript("OnShow", UpdateBannerTab)
+paneBanner:SetScript("OnHide", UpdateBannerTab)
 
 -- ── Floor row behaviour ──────────────────────────────────────────────
 
@@ -839,6 +832,7 @@ end
 local function RefreshFloorButtons()
     floorBtn:SetText(string.format(CH.L["RD_FLOOR_X"], pendingFloor or 1))
     stairsBtn:SetText(StairsText())
+    RefreshLinkText()
 end
 
 floorBtn:SetScript("OnClick", function(self)
@@ -917,15 +911,33 @@ end
 
 -- ── Footer ───────────────────────────────────────────────────────────
 
-local footLine = CH.MakeRule(dialog)
-footLine:SetPoint("BOTTOMLEFT", 1, 36)
-footLine:SetPoint("BOTTOMRIGHT", -1, 36)
+-- The row of buttons, and the question that takes its place when you try to
+-- leave with changes that aren't saved.
+local ConfirmZone -- set below
+local foot = FP.PanelFooter(dialog, "RD_SAVE", function()
+    ConfirmZone()
+end)
 
-local btnOK = CH.MakeButton(dialog, "RD_SAVE", 90, 22)
-local btnCancel = CH.MakeButton(dialog, "RD_CANCEL", 90, 22)
-btnOK:SetPoint("BOTTOMRIGHT", -12, 8)
-btnCancel:SetPoint("RIGHT", btnOK, "LEFT", -8, 0)
-CH.SetButtonActive(btnOK, true)
+local ask = CreateFrame("Frame", nil, dialog)
+ask:SetAllPoints(foot)
+ask:Hide()
+local askSave = CH.MakeButton(ask, "RD_SAVE", 60, 22)
+local askStay = CH.MakeButton(ask, "RD_KEEP_EDITING", 90, 22)
+local askDrop = CH.MakeButton(ask, "RD_DISCARD", 80, 22)
+askSave:SetPoint("RIGHT")
+askStay:SetPoint("RIGHT", askSave, "LEFT", -6, 0)
+askDrop:SetPoint("RIGHT", askStay, "LEFT", -6, 0)
+CH.SetButtonActive(askSave, true)
+local askText = ask:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+askText:SetPoint("LEFT")
+askText:SetPoint("RIGHT", askDrop, "LEFT", -6, 0)
+askText:SetJustifyH("LEFT")
+askText:SetText(CH.L["RD_LEAVE_ASK"])
+
+local function Asking(on)
+    ask:SetShown(on)
+    foot:SetShown(not on)
+end
 
 -- Fill the fields with a room's settings: its colour, its yapper, its sounds
 -- and its ticks. The name, the shape, the floor and the stairs are its own
@@ -950,7 +962,66 @@ local function FillSettings(zone)
     UpdateDescHint()
 end
 
-local function CloseDialog()
+-- What Save writes onto the room, as the fields stand now. The name and the
+-- shape need more than a copy on Save, so they sit outside SAVED.
+local SAVED = {
+    "color",
+    "headID",
+    "headDisplay",
+    "speaker",
+    "useOwnerHead",
+    "rpText",
+    "secret",
+    "noBanner",
+    "bannerStyle",
+    "ambience",
+    "music",
+    "sfx",
+    "sfxPlays",
+    "echo",
+    "voice",
+    "floor",
+    "setFloor",
+    "floorDelta",
+    "gameRoom",
+}
+
+local function Pending()
+    return {
+        name = editBox:GetText():match("^%s*(.-)%s*$"),
+        shape = pendingShape,
+        color = pendingColor,
+        headID = pendingHeadID or 1,
+        headDisplay = GetHeadDisplay(),
+        speaker = GetSpeaker(),
+        useOwnerHead = ownerCheck:GetChecked() or nil,
+        rpText = GetDescText(),
+        secret = secretCheck:GetChecked() or nil,
+        noBanner = not bannerCheck:GetChecked() or nil,
+        bannerStyle = pendingBannerStyle,
+        ambience = pendingAmbience,
+        music = pendingMusic,
+        sfx = pendingSfx,
+        sfxPlays = pendingSfxPlays,
+        echo = pendingEcho,
+        voice = pendingVoice,
+        floor = pendingFloor or 1,
+        setFloor = pendingSetFloor,
+        floorDelta = pendingFloorDelta,
+        gameRoom = pendingGameRoom,
+    }
+end
+
+-- The fields as they were when the room opened, to tell whether leaving
+-- throws somthing away.
+local opened
+
+local function Changed()
+    return not tCompare(Pending(), opened, 2) -- 2 reaches into the colour
+end
+
+-- Whichever way the editor closes, the tests stop and the boxes let go.
+dialog:SetScript("OnHide", function()
     editBox:ClearFocus()
     descBox:ClearFocus()
     headIdBox:ClearFocus()
@@ -960,16 +1031,68 @@ local function CloseDialog()
     end -- don't keep narrating after the dialog closes
     SetTesting(false)
     SetPreviewing(false)
-    CH.CloseRoomBannerPicker()
-    dialog:Hide()
+    Asking(false)
     renameTarget = nil
     renameHouseGUID = nil
+end)
+
+local leaveAfter -- what to do once the question is answered
+
+local panel = { frame = dialog }
+
+-- A map build checks the room is still there to edit: a delete somewhere
+-- else, or the map moving to another house, ends the edit unsaved.
+function panel.check()
+    local h = DialogHouse()
+    if DialogGUID() ~= FP.HouseGUID() or not (h and tIndexOf(h.zones, renameTarget)) then
+        FP.ClosePanel(true)
+    end
 end
 
--- Opens the dialog to edit an existing zone (name, color, head, description).
--- Used by the floor plan and the room manager. houseGUID is optional: when the
--- zone belongs to a house you aren't standing in, pass it so the edit lands on
--- the right house. nil falls back to the current house.
+-- Leaving asks first when something changed.
+function panel.leave(after)
+    if Changed() then
+        leaveAfter = after
+        Asking(true)
+        return
+    end
+    FP.ClosePanel()
+    if after then
+        after()
+    end
+end
+
+local function Answer(save)
+    local after = leaveAfter
+    leaveAfter = nil
+    if save then
+        ConfirmZone()
+        if renameTarget then
+            return -- the save was refused and chat says why
+        end
+    else
+        FP.ClosePanel()
+    end
+    if after then
+        after()
+    end
+end
+
+askSave:SetScript("OnClick", function()
+    Answer(true)
+end)
+askDrop:SetScript("OnClick", function()
+    Answer(false)
+end)
+askStay:SetScript("OnClick", function()
+    leaveAfter = nil
+    Asking(false)
+end)
+
+-- Opens a room in the editor, in the map of its house. Used by the floor plan
+-- and the room manager. houseGUID is optional: when the zone belongs to a
+-- house you aren't standing in, pass it so the edit lands on the right house.
+-- nil falls back to the current house.
 function CH.OpenRenameDialog(zone, houseGUID)
     -- Stair anchors get a stripped editor (name, floor, behaviour) instead of the
     -- full room dialog, which has yapper/description/voice/secret they never use.
@@ -979,6 +1102,18 @@ function CH.OpenRenameDialog(zone, houseGUID)
         end
         return
     end
+    houseGUID = houseGUID or CH.currentHouseGUID
+    if zone == renameTarget then
+        return
+    elseif FP.panel then
+        FP.LeavePanel(function()
+            CH.OpenRenameDialog(zone, houseGUID)
+        end)
+        return
+    end
+    if not FP.win:IsShown() or FP.HouseGUID() ~= houseGUID then
+        CH.OpenFloorPlan(houseGUID)
+    end
     renameTarget = zone
     renameHouseGUID = houseGUID
     pendingFloor = zone.floor or 1
@@ -986,13 +1121,13 @@ function CH.OpenRenameDialog(zone, houseGUID)
     pendingFloorDelta = zone.floorDelta
     pendingShape = zone.shape
     SetPendingGameRoom(zone.gameRoom)
-    dialog.title:SetText(CH.L["RD_TITLE_EDIT_ROOM"])
     editBox:SetText(zone.name)
     RefreshSwatches()
     BuildHeadPicker()
     FillSettings(zone)
     RefreshShapeButtons()
     RefreshFloorRow()
+    opened = Pending()
     -- Locked, the dialog is the Sound tab (3) alone, so a save can only change
     -- what goes to the group as a patch.
     local locked = CH.LayoutLocked()
@@ -1003,7 +1138,10 @@ function CH.OpenRenameDialog(zone, houseGUID)
     editBox:SetEnabled(not locked)
     mainSwatch:SetShown(not locked)
     copyBtn:SetShown(not locked)
-    dialog:Show()
+    Asking(false)
+    -- the map shows the floor the room is on and holds there
+    CH.fpViewedFloor = pendingFloor
+    FP.OpenPanel(panel, zone)
     if not locked then
         editBox:SetFocus()
         editBox:HighlightText()
@@ -1034,14 +1172,14 @@ copyBtn:SetScript("OnClick", function(self)
     end)
 end)
 
-local function ConfirmZone()
-    local name = editBox:GetText():match("^%s*(.-)%s*$")
+ConfirmZone = function()
+    local p = Pending()
+    local name = p.name
     if name == "" then
         CH.Print(CH.L["RD_ENTER_NAME"])
         return
     end
 
-    -- Rename mode: the dialog was opened for an existing zone
     if renameTarget then
         local guid = renameHouseGUID or CH.currentHouseGUID
         local h = guid and ChamberlainDB.houses[guid]
@@ -1054,32 +1192,17 @@ local function ConfirmZone()
                 h.stats[renameTarget.name] = nil
             end
             renameTarget.name = name
-            renameTarget.color = pendingColor
-            renameTarget.headID = pendingHeadID or 1
-            renameTarget.headDisplay = GetHeadDisplay()
-            renameTarget.speaker = GetSpeaker()
-            renameTarget.useOwnerHead = ownerCheck:GetChecked() or nil
+            -- the banner style has no patch, so a new one makes the group pull
+            -- the map, and the voice never leaves this client
+            for _, k in ipairs(SAVED) do
+                renameTarget[k] = p[k]
+            end
             -- Stamp our current character GUID once on the house (not per room) so
             -- visitors can match us in their party even on an alt whose name differs
             -- from the stored buyer name. Only when we own the house we're standing in.
             if renameTarget.useOwnerHead and CH.isOwnHouse then
                 h.ownerGUID = UnitGUID("player")
             end
-            renameTarget.rpText = GetDescText()
-            renameTarget.secret = secretCheck:GetChecked() or nil
-            renameTarget.noBanner = not bannerCheck:GetChecked() or nil
-            -- no patch for this one, so a new style makes the group pull the map
-            renameTarget.bannerStyle = pendingBannerStyle
-            renameTarget.ambience = pendingAmbience
-            renameTarget.music = pendingMusic
-            renameTarget.sfx = pendingSfx
-            renameTarget.sfxPlays = pendingSfxPlays
-            renameTarget.echo = pendingEcho
-            renameTarget.voice = pendingVoice -- local-only; not shared
-            renameTarget.floor = pendingFloor or 1
-            renameTarget.setFloor = pendingSetFloor
-            renameTarget.floorDelta = pendingFloorDelta
-            renameTarget.gameRoom = pendingGameRoom
             if pendingShape ~= renameTarget.shape then
                 ChangeShape(renameTarget, pendingShape)
             end
@@ -1125,24 +1248,21 @@ local function ConfirmZone()
                 end
             end
         end
-        CloseDialog()
-        return
     end
-
-    -- No rename target means create mode, which is gone: rooms are dropped at the
-    -- player's spot from the build rail (CH.CreateZoneAt) and named here after.
-    -- Nothing to save, so just close.
-    CloseDialog()
+    FP.ClosePanel()
 end
 
 -- Drop a new room at a world position. This is the build rail's "add room
 -- here": it makes a room centred on (x, y) at the game's own size for its
 -- shape (the smallest square for a plain room), moves it onto the nearest
--- open door when Snap is on (CH.FitToOpenDoor), files it under the current
--- house, and returns the zone and its house guid so the caller can select it
+-- open door in DROP_REACH when Snap is on (CH.FitToOpenDoor), files it under
+-- the current house, and returns the zone and its house guid so the caller can select it
 -- and open this dialog to name it. shape is a CH.SHAPES key or nil for a
 -- rectangle. Without a name it's named after its shape. Replaces the old
--- Mark A/B flow.
+-- Mark A/B flow. Past the reach it lands at your feet, since a door across
+-- the house is hardly ever the one you meant.
+local DROP_REACH = 50
+
 function CH.CreateZoneAt(x, y, mapID, shape, name)
     if not CH.currentHouseGUID then
         CH.Print(CH.L["RD_HOUSE_NOT_IDENTIFIED"])
@@ -1150,7 +1270,7 @@ function CH.CreateZoneAt(x, y, mapID, shape, name)
     end
     local h = CH.CurrentHouse()
     local z = CH.NewZone(h, x, y, mapID, shape, name)
-    if ChamberlainDB.settings.snapRooms and not CH.FitToOpenDoor(h, z, x, y) then
+    if ChamberlainDB.settings.snapRooms and not CH.FitToOpenDoor(h, z, x, y, nil, DROP_REACH) then
         CH.SnapToGrid(z)
     end
     table.insert(h.zones, z)
@@ -1188,8 +1308,7 @@ function CH.NewZone(h, x, y, mapID, shape, name, size)
     return z
 end
 
-btnOK:SetScript("OnClick", ConfirmZone)
-btnCancel:SetScript("OnClick", CloseDialog)
-closeBtn:SetScript("OnClick", CloseDialog)
 editBox:SetScript("OnEnterPressed", ConfirmZone)
-editBox:SetScript("OnEscapePressed", CloseDialog)
+editBox:SetScript("OnEscapePressed", function()
+    FP.LeavePanel()
+end)
