@@ -63,16 +63,25 @@ local STEPS = { SPAN, SPAN + 2 * ARM, SPAN + 4 * ARM }
 local a, b = ARM / SIDE, ARM / SPAN
 local armMid = (1 + a) / 2
 
--- The Autumnal Westfall Barn, walked in a house on 2026-10-01. A themed room
--- keeps its own sizes off the grid and only its door lands on a grid line.
--- It's artisanal: the game builds it at one size, so it moves and turns but
--- never resizes. More of them come one at a time as they're walked. Yards
--- from the box's low x, low y corner as the barn stood, door on the high y
--- side and the raised stall bay along the low x side.
-local BARN = 43.2
-local function Barn(x0, y0, x1, y1)
-    return { x0 / BARN, y0 / BARN, x1 / BARN, y1 / BARN }
+-- The themed rooms keep the sizes they were walked at, and only the door is
+-- sure to land on a grid line. They're artisanal: the game builds each at
+-- one size, so it moves and turns but never resizes. More of them come one at
+-- a time as they're walked. Their cuts and boxes are in yards from the box's
+-- low x, low y corner as the room stood when walked.
+local function Yards(side)
+    return function(x0, y0, x1, y1)
+        return { x0 / side, y0 / side, x1 / side, y1 / side }
+    end
 end
+-- The Autumnal Westfall Barn, walked on 2026-10-01, door on the high y side
+-- and the raised stall bay along the low x side.
+local BARN = 43.2
+local Barn = Yards(BARN)
+-- The Stormwind Display Room, walked on 2026-10-02. A small room's square on
+-- the grid with an alcove across the far wall and the door in the middle of
+-- the low y side, opening onto a sunken landing.
+local DISPLAY = SPAN
+local Display = Yards(DISPLAY)
 CH.SHAPES = {
     L = {
         w = SIDE,
@@ -145,20 +154,49 @@ CH.SHAPES = {
         },
         doors = { { 24 / BARN, 1 } },
     },
+    display = {
+        w = DISPLAY,
+        h = DISPLAY,
+        rotates = true,
+        artisanal = true,
+        mask = CH.MEDIA .. "mask-display",
+        deco = CH.MEDIA .. "display.tga",
+        cuts = { Display(0, 21.5, 3, DISPLAY), Display(21, 21.5, DISPLAY, DISPLAY) },
+        doors = { { 0.5, 0 } },
+    },
 }
 
 -- The shapes as the build rail and the room dialog offer them, in order, with
--- the icon and the name a fresh room takes. A plain room has no shape.
+-- the icon and the name a fresh room takes. A plain room has no shape. record
+-- is the game room whose name a new room takes when Game room names is on,
+-- the smallest one where the game sells sizes.
 CH.SHAPE_LIST = {
-    { icon = "icon-square", name = "TB_ADD_SQUARE" },
-    { shape = "L", icon = "icon-l", name = "TB_ADD_L" },
-    { shape = "T", icon = "icon-t", name = "TB_ADD_T" },
-    { shape = "plus", icon = "icon-plus", name = "TB_ADD_PLUS" },
-    { shape = "oct", icon = "icon-oct", name = "TB_ADD_OCT" },
-    { shape = "circle", icon = "icon-circle", name = "TB_ADD_CIRCLE" },
-    { shape = "closet", icon = "icon-closet", name = "TB_ADD_CLOSET" },
-    { shape = "hall", icon = "icon-hall", name = "TB_ADD_HALL" },
+    { icon = "icon-square", name = "TB_ADD_SQUARE", record = 7 },
+    { shape = "L", icon = "icon-l", name = "TB_ADD_L", record = 8 },
+    { shape = "T", icon = "icon-t", name = "TB_ADD_T", record = 6 },
+    { shape = "plus", icon = "icon-plus", name = "TB_ADD_PLUS", record = 13 },
+    { shape = "oct", icon = "icon-oct", name = "TB_ADD_OCT", record = 14 },
+    { shape = "circle", icon = "icon-circle", name = "TB_ADD_CIRCLE", record = 223 },
+    { shape = "closet", icon = "icon-closet", name = "TB_ADD_CLOSET", record = 3 },
+    { shape = "hall", icon = "icon-hall", name = "TB_ADD_HALL", record = 2 },
 }
+
+-- The game's name for one of its rooms in the client's language, nil if the
+-- catalog doesn't have it. A square or an octagon carries its size in
+-- brackets at the end, like Square Room (Small), and a Chinese client uses
+-- full width brackets. Rooms resize so the size goes. Russian puts the size
+-- in front as a word and keeps it. Other names stay whole since the two
+-- round rooms might be told apart by a bracket.
+function CH.GameRoomName(record)
+    local entry = C_HousingCatalog.GetCatalogEntryInfoByRecordID(Enum.HousingCatalogEntryType.Room, record)
+    if not entry then
+        return nil
+    end
+    if not CH.GAME_ROOMS[record].size then
+        return entry.name
+    end
+    return (entry.name:gsub("%s*%b()$", ""):gsub("%s*（.-）$", ""))
+end
 
 function CH.ShapeEntry(shape)
     for _, e in ipairs(CH.SHAPE_LIST) do
@@ -171,7 +209,8 @@ end
 -- What a room of this shape is called, a square room for one not on the
 -- build rail.
 function CH.ShapeName(shape)
-    return CH.L[(CH.ShapeEntry(shape) or CH.SHAPE_LIST[1]).name]
+    local e = CH.ShapeEntry(shape) or CH.SHAPE_LIST[1]
+    return ChamberlainDB.settings.gameRoomNames and CH.GameRoomName(e.record) or CH.L[e.name]
 end
 
 -- How much of its box a shape fills, for picking the smallest room.
@@ -199,7 +238,8 @@ CH.SQUARE_SIZES = {
 -- The game's rooms smart drop knows, by the room's catalog record, which is
 -- also the middle number of its room id (Housing-2-<record>-<slot>). A size
 -- is the side of a plain room or an octagon. The Entry (46) isn't sold and
--- has no catalog record. Of the themed rooms only the barn is measured yet.
+-- has no catalog record. Of the themed rooms only the barn and the Display
+-- Room are measured yet.
 CH.GAME_ROOMS = {
     [7] = { size = CORE },
     [1] = { size = STEPS[1] },
@@ -223,6 +263,7 @@ CH.GAME_ROOMS = {
     -- the Autumnal and the Springtime barn, the same room
     [400] = { shape = "barn", gameName = true },
     [401] = { shape = "barn", gameName = true },
+    [281] = { shape = "display", gameName = true },
 }
 CH.ENTRY_ROOM = 46
 -- where the Entry sits in every house, and the map's entrance closet with it

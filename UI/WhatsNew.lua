@@ -10,6 +10,16 @@ local _, CH = ...
 -- manual path is CH.OpenWhatsNew (/rooms whatsnew), which ignores the opt-out so a
 -- silenced player can still read the notes.
 
+-- A themed room as the house map draws it, under the game's own name for it.
+-- Its box is square.
+local function RoomSample(record, shape)
+    return function(parent)
+        local w = CH.SHAPES[shape].w
+        local room = { name = CH.GameRoomName(record) or "", shape = shape, minX = 0, maxX = w, minY = 0, maxY = w }
+        return CH.FP.MakeRoomSample(parent, room, 160)
+    end
+end
+
 -- Release notes shown in-game, newest first. Keep in step with CHANGELOG.md, but
 -- trimmed to the lines worth surfacing in a popup. Only versions strictly newer
 -- than the player's last-seen version are shown, so a release just appends a new
@@ -21,6 +31,23 @@ local _, CH = ...
 -- show under the notes, or under the `lead` when there is one, a frame with a
 -- Refresh method.
 CH.WHATS_NEW = {
+    {
+        v = "3.37.0",
+        lead = {
+            icon = "icon-build",
+            title = "The Stormwind Display Room",
+            text = "Smart drop and Auto map know the Stormwind Display Room. It goes on the map at its own "
+                .. "shape, with the sunken landing inside the door drawn darker than the floor, its step "
+                .. "and the railed ledges on both sides.",
+        },
+        notes = {
+            "Like the barn, the Display Room moves and turns but doesn't resize.",
+            "Turn on Game room names in Settings and new rooms get the game's names in your game's "
+                .. "language. Rooms on your map keep their names.",
+            "The Plus room is now the Cross room.",
+        },
+        extra = RoomSample(281, "display"),
+    },
     {
         v = "3.36.0",
         notes = {
@@ -47,13 +74,7 @@ CH.WHATS_NEW = {
                 .. "and you're back on the floor of the room you're in.",
             "The room editor has a Delete room button, and Undo delete brings the room back.",
         },
-        -- the barn as the house map draws it, under the game's own name for it
-        extra = function(parent)
-            local entry = C_HousingCatalog.GetCatalogEntryInfoByRecordID(Enum.HousingCatalogEntryType.Room, 400)
-            local w = CH.SHAPES.barn.w
-            local barn = { name = entry and entry.name or "", shape = "barn", minX = 0, maxX = w, minY = 0, maxY = w }
-            return CH.FP.MakeRoomSample(parent, barn, 160)
-        end,
+        extra = RoomSample(400, "barn"),
     },
     {
         v = "3.33.0",

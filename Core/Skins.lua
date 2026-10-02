@@ -145,7 +145,10 @@ end
 function CH.MakeShapeButton(parent, entry, size)
     local b = CH.MakeButton(parent, "", size, size)
     CH.AddButtonIcon(b, entry.icon, size - 12):SetPoint("CENTER")
-    CH.Tip(b, entry.name)
+    -- looked up on hover, so Game room names shows at once
+    CH.TipText(b, function()
+        return CH.ShapeName(entry.shape)
+    end)
     return b
 end
 
@@ -321,16 +324,23 @@ function CH.SkinScrollBar(scroll)
     thumb:SetSize(6, 36)
 end
 
--- One-line hover tooltip on a button, looked up by locale key. key can be a
--- function handing back the key, for a button whose job changes.
-function CH.Tip(btn, key)
+-- One-line hover tooltip on a button, its text from text() at each hover.
+function CH.TipText(btn, text)
     btn:HookScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
-        GameTooltip:SetText(CH.L[type(key) == "function" and key() or key], 1, 1, 1, 1, true)
+        GameTooltip:SetText(text(), 1, 1, 1, 1, true)
         GameTooltip:Show()
     end)
     btn:HookScript("OnLeave", function()
         GameTooltip:Hide()
+    end)
+end
+
+-- The same looked up by locale key. key can be a function handing back the
+-- key, for a button whose job changes.
+function CH.Tip(btn, key)
+    CH.TipText(btn, function()
+        return CH.L[type(key) == "function" and key() or key]
     end)
 end
 

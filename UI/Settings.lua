@@ -213,6 +213,7 @@ refreshers[#refreshers + 1] = function()
 end
 SwitchRow(pageRooms, "SET_OWN_BANNER", "SET_HINT_OWN_BANNER", "ownBannerStyle", CH.RefreshBanner)
 SwitchRow(pageRooms, "SET_PLAQUE", "SET_HINT_PLAQUE", "housePlaque")
+SwitchRow(pageRooms, "SET_GAME_ROOM_NAMES", "SET_HINT_GAME_ROOM_NAMES", "gameRoomNames")
 
 -- ── Sound ────────────────────────────────────────────────────────────
 local pageSound = Page("SET_PAGE_SOUND")

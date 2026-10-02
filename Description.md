@@ -47,15 +47,17 @@ hallway has a small turn button next to its middle grip.
 
 Smart drop in the Build toolbox maps the room you stand in. Walk from a room on
 your map into the next one and click Smart drop. Chamberlain knows which of the game's
-rooms you're in, so the new room gets the right shape and size. It goes onto
-the open door you came in by, turned so you're inside it, and it's remembered
-for the floor check. The turn is a guess at first. Walk into one of the room's
-arms and it turns to fit where you've been. Of the themed rooms only the
-Westfall barns are known so far. The map draws their raised stall bay with
-its railing and the three steps up into it, and the stairs to the loft.
-Smart drop puts the loft on the floor above as a room of its own, and the
-barn's stairs take the map up and down with you. Add the other themed rooms
-by hand.
+rooms you're in, so the new room gets the right shape and size. With Game
+room names on in Settings it gets the game's own name in your language too.
+It goes onto the open door you came in by, turned so you're inside it, and
+it's remembered for the floor check. The turn is a guess at first. Walk into one of the room's
+arms and it turns to fit where you've been. Of the themed rooms the
+Westfall barns and the Stormwind Display Room are known so far. The map draws
+the barn's raised stall bay with its railing and the three steps up into it,
+and the stairs to the loft. Smart drop puts the loft on the floor above as a
+room of its own, and the barn's stairs take the map up and down with you. The
+Display Room shows its sunken landing by the door, darker than the floor, and
+the railed ledges round it. Add the other themed rooms by hand.
 
 A left or right stairwell gets its steps drawn on the map, lighter toward the
 top, with a railing round the well that depends on the stairwells above and
@@ -289,14 +291,14 @@ backup that you made.
   when their map is older than yours, from 3.15.0 on both sides. A room's own
   sound needs their map to match yours, so send it again with Share after you
   add, move or delete a room.
-- L, T and plus rooms need version 3.21.0 on both sides. A group member on an
+- L, T and cross rooms need version 3.21.0 on both sides. A group member on an
   older version sees your other rooms and skips these.
 - A room's own banner style needs version 3.25.0 on both sides. A group member
   on an older version sees the house's style in that room.
 
 ## Features
 
-- Make rooms from the Build toolbox. A square, L, T, plus, octagon, round
+- Make rooms from the Build toolbox. A square, L, T, cross, octagon, round
   room, closet or hallway drops at the size the game builds it, onto the
   nearest open door when Snap is on.
 - Smart drop maps the room you stand in at the game's shape and size, on the

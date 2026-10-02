@@ -1,5 +1,21 @@
 # Changelog
 
+## 3.37.0
+- Smart drop and Auto map know the Stormwind Display Room. It goes on the
+  map at its own shape, a small room's square with the alcove across the far
+  wall.
+- The map draws the sunken landing inside the door darker than the floor,
+  with the one step up out of it and the railed ledges on both sides.
+- Like the barn, the Display Room moves and turns but doesn't resize.
+- A friend on an older version sees it as a plain square.
+- A new Game room names switch on the Rooms page in Settings names new rooms
+  the way the game does, in your game's language. A square becomes Square
+  Room and a cross becomes Cross-Shaped Room. That covers Smart drop, Auto
+  map and the shape buttons. Chamberlain drops the size the game adds to a
+  square or an octagon, since you can resize the room. It's off to start
+  with, and rooms already on your map keep their names.
+- The Plus room is now the Cross room.
+
 ## 3.36.0
 - Five new banner styles from the game's own art. Victory is the band from
   a boss kill, with a chip for the skull and one for the star the game shows

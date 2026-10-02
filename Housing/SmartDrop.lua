@@ -211,7 +211,7 @@ local function Drop(auto)
         return "TB_SMART_UNKNOWN_X", entry and entry.name or CH.L["TB_SMART_THIS_ROOM"]
     end
 
-    local name = kind.gameName and entry and entry.name
+    local name = (kind.gameName or ChamberlainDB.settings.gameRoomNames) and CH.GameRoomName(record) or nil
     local z = CH.NewZone(h, x, y, mapID, kind.shape, name, kind.size)
     local spots = { { x, y } }
     -- the first room of a floor has no door to go on, so it stays at your
