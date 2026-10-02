@@ -32,6 +32,20 @@ end
 -- Refresh method.
 CH.WHATS_NEW = {
     {
+        v = "3.38.0",
+        notes = {
+            "Click the eye on the Chamberlain bar and hide the UI in your house. The banner, the "
+                .. "plaque, the talking head and your rooms on the minimap stay on screen.",
+        },
+    },
+    {
+        v = "3.37.1",
+        notes = {
+            "Walking into your own house could show the visitor bar with no Build button until a "
+                .. "reload. The Build button now comes back on its own.",
+        },
+    },
+    {
         v = "3.37.0",
         lead = {
             icon = "icon-build",

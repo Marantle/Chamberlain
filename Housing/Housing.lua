@@ -514,6 +514,7 @@ function CH.CheckHousingState()
         CH.ForgetEchoes()
         CH.SetHudRoom(nil)
         CH.HidePlaque()
+        CH.RefreshKeepOnScreen()
         currentZone = nil
         echoZone = nil
         currentAnchor = nil
@@ -550,6 +551,7 @@ function CH.CheckHousingState()
     CH.hud:Show()
     CH.isOwnHouse = isInsideOwn()
     CH.RefreshHUDMode()
+    CH.RefreshKeepOnScreen()
     if CH.WarmUpHeadModel then
         CH.WarmUpHeadModel()
     end -- one-time, only inside a house
@@ -607,9 +609,15 @@ function CH.OnHouseInfo(info)
         CH.CheckHousingState()
     end
     local guid = CH.HouseKey(info) or info.houseGUID or info.guid or info.houseID
-    if guid == CH.currentHouseGUID then
+    -- A friend walked into their own house and got the visitor bar until a
+    -- reload, so the game can still say no to ownership at the door. Every
+    -- answer asks again, and a changed one runs the rest as if the house were new.
+    local own = isInsideOwn()
+    if guid == CH.currentHouseGUID and own == CH.isOwnHouse then
         return
     end
+    local ownChanged = own ~= CH.isOwnHouse
+    CH.isOwnHouse = own
     CH.currentHouseGUID = guid
     CH.currentHouseOwner = info.ownerName or info.owner
     CH.currentHouseName = info.houseName
@@ -639,6 +647,13 @@ function CH.OnHouseInfo(info)
     -- The minimap only swaps its picture for a house we hold rooms for.
     CH.RefreshHUDMode()
     CH.RefreshMinimapRooms()
+    -- A map of this house picked in the Rooms window before the walk-in turns
+    -- into the live one, or it stays read only on your own house.
+    if guid and CH.FP.viewGUID == guid then
+        CH.OpenFloorPlan()
+    elseif ownChanged and CH.floorPlan:IsShown() then
+        CH.FP.Build()
+    end
 
     if CH.isOwnHouse and guid then
         CH.MigrateLegacyHouse(guid, CH.currentHouseOwner)

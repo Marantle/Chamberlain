@@ -1,6 +1,6 @@
 local ADDON, CH = ...
 
-CH.VERSION = "3.37.0"
+CH.VERSION = "3.38.0"
 
 -- How often the zone ticker samples your position, in seconds. Drives stair
 -- detection and the per-room time stats both, so they stay in step if it changes.
@@ -257,6 +257,11 @@ events:SetScript("OnEvent", function(_, event, arg1)
         -- The launcher as one slim row instead of the card. (3.17.0)
         if ChamberlainDB.settings.hudStrip == nil then
             ChamberlainDB.settings.hudStrip = false
+        end
+        -- The eye on the bar keeps the banner, plaque, talking head and
+        -- minimap rooms up through Hide UI in a house. Off to start with. (3.38.0)
+        if ChamberlainDB.settings.keepOnScreen == nil then
+            ChamberlainDB.settings.keepOnScreen = false
         end
         -- Draw stair anchors as boxes on the floor plan, on by default. Its "Show
         -- stairs" checkbox turns them into icons alone.

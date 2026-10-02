@@ -324,6 +324,9 @@ backup that you made.
 - A house map that draws your rooms to scale and shows where you and your group
   are. Zoom it and move it with the mouse.
 - Rooms on the minimap indoors, in place of the game's still house picture.
+- The eye on the Chamberlain bar keeps the banner, the plaque, the talking head
+  and your rooms on the minimap on screen when you hide the UI in a house.
+  Everything else goes, the game's minimap too.
 - Edit rooms on the house map. You can move, resize, rename and recolor them.
   Edit room, or a double click on a room, opens the room editor down the
   map's left side, and the map holds still until you save or cancel. Delete a

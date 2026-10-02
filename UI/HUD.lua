@@ -138,11 +138,47 @@ btnSettings:SetScript("OnClick", function()
     CH.ToggleSettings()
 end)
 
+-- The eye, see Keep on screen at the end of the file.
+local btnKeep = CH.MakeGlyphButton(hud, nil, "icon-eye-off")
+btnKeep:SetSize(16, 16)
+btnKeep:SetPoint("RIGHT", btnSettings, "LEFT", -4, 0)
+
+local function PaintKeep()
+    CH.SetIconFile(btnKeep.glyph, ChamberlainDB.settings.keepOnScreen and "icon-eye" or "icon-eye-off")
+end
+
+btnKeep:SetScript("OnClick", function()
+    ChamberlainDB.settings.keepOnScreen = not ChamberlainDB.settings.keepOnScreen
+    PaintKeep()
+    CH.RefreshKeepOnScreen()
+end)
+
+local function GoldKey(key)
+    return "|cffffd700" .. GetBindingText(key) .. "|r"
+end
+
+local function HideUIKeyText()
+    local a, b = GetBindingKey("TOGGLEUI")
+    if not a then
+        return string.format(CH.L["HUD_TT_KEEP_NO_KEY"], BINDING_NAME_TOGGLEUI)
+    end
+    local keys = GoldKey(a)
+    if b then
+        keys = string.format(CH.L["HUD_KEEP_KEY_OR"], keys, GoldKey(b))
+    end
+    return string.format(CH.L["HUD_TT_KEEP_KEY"], keys)
+end
+
+CH.TipText(btnKeep, function()
+    local state = ChamberlainDB.settings.keepOnScreen and "HUD_TT_KEEP_ON" or "HUD_TT_KEEP_OFF"
+    return CH.L[state] .. "\n\n" .. HideUIKeyText()
+end)
+
 -- Quick mute for room ambience, the same switch as the one in Settings. Only
 -- on the bar in a house whose map has a sound somewhere. The game's own mute
 -- mark goes over the speaker while it's off.
 local btnSound = MakeHeaderIcon("Interface\\Common\\VoiceChat-Speaker")
-btnSound:SetPoint("RIGHT", btnSettings, "LEFT", -4, 0)
+btnSound:SetPoint("RIGHT", btnKeep, "LEFT", -4, 0)
 
 local muteMark = btnSound:CreateTexture(nil, "OVERLAY")
 muteMark:SetAllPoints()
@@ -556,15 +592,17 @@ function CH.RefreshHUDMode()
     else
         buttons = { btnSharing }
     end
-    -- The header's icons run from the gear leftward. The speaker joins in a
-    -- house with sounds and the note while update notes are unread.
+    -- The header's icons run from the gear leftward, the eye always next to
+    -- it. The speaker joins in a house with sounds and the note while update
+    -- notes are unread.
+    PaintKeep()
     local sounds = h and h.zones and HasAmbience(h)
     btnSound:SetShown(sounds == true)
     if sounds then
         RefreshSound()
     end
-    local leftmost = sounds and btnSound or btnSettings
-    local icons = sounds and 2 or 1
+    local leftmost = sounds and btnSound or btnKeep
+    local icons = sounds and 3 or 2
     local unread = ChamberlainDB.unreadSince ~= nil
     btnNotes:SetShown(unread)
     if unread then
@@ -602,3 +640,59 @@ function CH.ToggleHud()
     CH.RefreshHUDMode()
     return ChamberlainDB.settings.hudHidden
 end
+
+-- ─────────────────────────────────────────────────────────────────────
+-- Keep on screen  (our frames stay up when the player hides the UI)
+-- ─────────────────────────────────────────────────────────────────────
+-- Hide UI hides UIParent and everything on it. With the eye on, inside a
+-- house, our frames move to a holder on WorldFrame until the UI comes back.
+-- Of the minimap only our rooms go, and only while Rooms on the minimap is
+-- on, so the game's own minimap stays hidden with the rest.
+
+local holder = CreateFrame("Frame", nil, WorldFrame)
+holder:SetAllPoints()
+
+local kept -- frame -> what it had before the move, nil while nothing is kept
+
+-- WorldFrame doesn't take the UI scale, so each frame's own scale makes up
+-- the difference. SetParent hands over the holder's strata and level, so
+-- those are put back as well.
+local function Keep(f)
+    local was = { f:GetParent(), f:GetScale(), f:GetFrameStrata(), f:GetFrameLevel() }
+    kept[f] = was
+    f:SetParent(holder)
+    f:SetScale(was[2] * was[1]:GetEffectiveScale() / holder:GetEffectiveScale())
+    f:SetFrameStrata(was[3])
+    f:SetFrameLevel(was[4])
+end
+
+local function Return(f, was)
+    f:SetParent(was[1])
+    f:SetScale(was[2])
+    f:SetFrameStrata(was[3])
+    f:SetFrameLevel(was[4])
+end
+
+-- Leaving the house with the UI hidden puts everything back under UIParent.
+function CH.RefreshKeepOnScreen()
+    local want = ChamberlainDB.settings.keepOnScreen and C_Housing.IsInsideHouse() and not UIParent:IsShown()
+    if want == (kept ~= nil) then
+        return
+    end
+    if want then
+        kept = {}
+        -- the minimap rooms load after this file, so the list is made here
+        for _, f in ipairs({ CH.banner, CH.talkingHead, CH.plaque, CH.minimapRooms }) do
+            Keep(f)
+        end
+    else
+        for f, was in pairs(kept) do
+            Return(f, was)
+        end
+        kept = nil
+    end
+    CH.KeepMinimapRooms(want)
+end
+
+UIParent:HookScript("OnHide", CH.RefreshKeepOnScreen)
+UIParent:HookScript("OnShow", CH.RefreshKeepOnScreen)

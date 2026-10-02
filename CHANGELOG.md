@@ -1,5 +1,24 @@
 # Changelog
 
+## 3.38.0
+- An eye on the Chamberlain bar keeps the room banner, the house plaque, the
+  talking head and the room minimap on screen when you hide the UI in a
+  house. Everything else goes, the game's own frames and other addons too.
+  Hide the UI with your usual key. The eye's tooltip names it.
+- The game's minimap goes with the rest. Your rooms stay, with you and your
+  group drawn on them, as long as Rooms on the minimap is on in Settings.
+  The mouse wheel over them zooms through the game's zoom levels and on into
+  Chamberlain's closer steps.
+- It's off to start with and works only inside a house.
+
+## 3.37.1
+- Walking into your own house could leave you with the visitor bar, no Build
+  button and a read only map, until a reload. Chamberlain asks the game
+  again each time it names the house, and the bar and the map catch up as
+  soon as the game knows it's yours.
+- A map of your house that you picked in the Rooms window turns into the
+  live map when you walk in, with your build tools on it.
+
 ## 3.37.0
 - Smart drop and Auto map know the Stormwind Display Room. It goes on the
   map at its own shape, a small room's square with the alcove across the far

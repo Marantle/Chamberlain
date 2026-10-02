@@ -79,6 +79,13 @@ L["HUD_TT_MAP"] = "Open the house map."
 L["HUD_TT_ARCHIVE"] = "Open the archive: stored maps of this house, to put one away or bring one back."
 L["HUD_TT_SETTINGS"] = "Open Chamberlain settings."
 L["HUD_TT_NOTES"] = "Chamberlain was updated and has notes you haven't read. Click to read them."
+L["HUD_TT_KEEP_ON"] =
+    "Chamberlain's banner, plaque, talking head and room minimap stay on screen when you hide the UI in a house.\nClick to hide them with the rest."
+L["HUD_TT_KEEP_OFF"] =
+    "Click to keep Chamberlain's banner, plaque, talking head and room minimap on screen when you hide the UI in a house."
+L["HUD_TT_KEEP_KEY"] = "Hide the UI with %s."
+L["HUD_TT_KEEP_NO_KEY"] = "No key is bound to %s. Set one in the game's Key Bindings."
+L["HUD_KEEP_KEY_OR"] = "%s or %s"
 L["HUD_SOUND"] = "Sound"
 L["HUD_MUTED"] = "|cffdd5555Muted|r"
 L["HUD_TT_SOUND"] =

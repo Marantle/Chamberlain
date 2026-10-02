@@ -53,6 +53,7 @@ local MORPHEUS = QuestFont_Huge:GetFont()
 local MOTTO_INK = { 0.91, 0.86, 0.69 }
 
 local plaque = CreateFrame("Frame", nil, UIParent, "BackdropTemplate")
+CH.plaque = plaque
 plaque:SetFrameStrata("HIGH")
 -- over the room banner, which shares the strata and can come up under it
 plaque:SetFrameLevel(CH.banner:GetFrameLevel() + 20)
