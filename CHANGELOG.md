@@ -1,5 +1,35 @@
 # Changelog
 
+## 3.39.0
+- 42 new banner styles in a Medallions group. They use the ring from the
+  toast the game shows when you reach a new renown level, at its full size so
+  it stays round. Under the ring is a dark band for the room name.
+- The ring can be empty or hold an icon. There are renown faction emblems for
+  Dragonflight, The War Within and Midnight, a crest for every class and the
+  four covenant sigils. Each set is one row in the picker with a chip for
+  every icon.
+- The tooltip on a chip names the faction, class or covenant in your game's
+  language.
+- A friend on an older version sees their own style instead.
+- Escape no longer closes the dialog that offers you a shared map. It used
+  to throw that map away without a word, and every later offer or import of
+  the same house waited behind the closed dialog until a reload. Now only
+  Accept and Decline close it. The same goes for the dialog that asks
+  whether to share your map, where Escape left the asker without an answer.
+- Sharing in a raid is much quieter. Every change to the raid's roster used
+  to wipe the list of maps in the group and make every Chamberlain in the
+  raid announce all its houses again, so the list kept emptying and refilling
+  and the Rooms window kept redrawing. Now Chamberlain waits until the roster
+  settles and forgets only the people who left. Only someone who just joined
+  announces themselves. A loading screen, like walking through a
+  house door, no longer starts a round of announcements either. Only a
+  login or a reload does.
+- When somebody in your group runs a newer Chamberlain than you, chat says so
+  once after you log in or reload, with both versions.
+- A request for a map and a no to one go out ahead of everything else. In a
+  raid a request could wait a minute or more behind those announcements
+  before it even left, which looked like nothing happened.
+
 ## 3.38.0
 - An eye on the Chamberlain bar keeps the room banner, the house plaque, the
   talking head and the room minimap on screen when you hide the UI in a

@@ -14,8 +14,10 @@ local _, CH = ...
 
 local W, H = 640, 660
 local ROW_H = 64
+local STAGE_H = 110 -- the big sample's backdrop
 local SIDE_ROW_H = 22
 local CHIP, CHIP_GAP = 12, 3
+local ICON_CHIP = 13 -- 13 classes still fit two lines in the map's picker
 
 -- The sizes of the window's picker. The one in the map is narrower.
 local WIDE = { w = W - 24, side = 150, show = 290, top = -34, bottom = 44, scroll = "ChamberlainBannerPickerScroll" }
@@ -39,6 +41,7 @@ end
 local function Build(parent, size)
     local p = { rows = {}, sideRows = {}, groupOf = {}, current = 1, query = "" }
     local listW = size.w - size.side - 32 -- the gap to the sidebar and the scrollbar
+    local rowScale, heroScale = 0.75 * size.show / WIDE.show, 0.9 * size.w / WIDE.w
     local sampleButtons = {}
     local hero, nameFS, noteFS, hintFS, list
 
@@ -76,11 +79,21 @@ local function Build(parent, size)
         p.Refresh()
     end
 
-    -- One colour of a family. Under the mouse it shows in the row's sample,
-    -- and a click picks it.
-    local function Chip(row, style, c)
-        local chip = CH.MakeSwatch(row, CHIP)
-        chip:SetBackdropColor(c[1], c[2], c[3], 1)
+    -- The ith colour of a family, or its icon. Under the mouse it shows in the
+    -- row's sample, and a click picks it.
+    local function Chip(row, fam, i, px)
+        local style = fam.styles[i]
+        local chip = CH.MakeSwatch(row, px)
+        if fam.icons then
+            chip:SetBackdropColor(0, 0, 0, 0.6)
+            local icon = chip:CreateTexture(nil, "ARTWORK")
+            icon:SetPoint("TOPLEFT", 1, -1)
+            icon:SetPoint("BOTTOMRIGHT", -1, 1)
+            icon:SetAtlas(fam.icons[i])
+        else
+            local c = CH.BannerChip(fam, i)
+            chip:SetBackdropColor(c[1], c[2], c[3], 1)
+        end
         chip:SetScript("OnEnter", function(self)
             GameTooltip:SetOwner(self, "ANCHOR_TOP")
             GameTooltip:SetText(CH.BannerStyleName(style), 1, 1, 1, 1, true)
@@ -116,7 +129,6 @@ local function Build(parent, size)
         CH.BannerScene(show)
         row.banner = CH.MakeBanner(show)
         row.banner:SetPoint("CENTER")
-        row.banner:SetScale(0.75 * size.show / WIDE.show)
 
         row.label = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
         row.label:SetPoint("TOPLEFT", show, "TOPRIGHT", 10, -10)
@@ -129,17 +141,13 @@ local function Build(parent, size)
         local words = { row.label:GetText() }
         if fam then
             row.chips = {}
-            local across = math.floor((listW - size.show - 16) / (CHIP + CHIP_GAP))
+            local chipSize = fam.icons and ICON_CHIP or CHIP
+            local step = chipSize + CHIP_GAP
+            local across = math.floor((listW - size.show - 16) / step)
             for i, s in ipairs(fam.styles) do
-                local chip = Chip(row, s, CH.BannerChip(fam, i))
+                local chip = Chip(row, fam, i, chipSize)
                 local col, line = (i - 1) % across, math.floor((i - 1) / across)
-                chip:SetPoint(
-                    "TOPLEFT",
-                    row.label,
-                    "BOTTOMLEFT",
-                    col * (CHIP + CHIP_GAP),
-                    -6 - line * (CHIP + CHIP_GAP)
-                )
+                chip:SetPoint("TOPLEFT", row.label, "BOTTOMLEFT", col * step, -6 - line * step)
                 row.chips[s] = chip
                 words[#words + 1] = CH.BannerStyleName(s)
             end
@@ -167,6 +175,7 @@ local function Build(parent, size)
         -- s draws a colour while the mouse is on its chip
         function row:Paint(s)
             CH.PaintBanner(self.banner, SampleName(), nil, false, Drawn(s or self.shown))
+            CH.FitBanner(self.banner, rowScale, ROW_H - 6)
         end
         row:SetScript("OnEnter", function(self)
             self:Mark(true)
@@ -249,11 +258,10 @@ local function Build(parent, size)
     local stage = CreateFrame("Frame", nil, parent)
     stage:SetPoint("TOPLEFT", 12, size.top)
     stage:SetPoint("TOPRIGHT", -12, size.top)
-    stage:SetHeight(110)
+    stage:SetHeight(STAGE_H)
     CH.BannerScene(stage)
     hero = CH.MakeBanner(stage)
     hero:SetPoint("CENTER")
-    hero:SetScale(0.9 * size.w / WIDE.w)
 
     nameFS = parent:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     nameFS:SetPoint("TOPLEFT", stage, "BOTTOMLEFT", 2, -8)
@@ -344,6 +352,7 @@ local function Build(parent, size)
             row:Mark(row:IsMouseOver())
         end
         CH.PaintBanner(hero, SampleName(), nil, true, Drawn(style))
+        CH.FitBanner(hero, heroScale, STAGE_H)
         local name, note = CH.BannerPickText(style, p.room)
         nameFS:SetText(name)
         noteFS:SetText(note)

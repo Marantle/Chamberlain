@@ -59,6 +59,8 @@ local function VersionOlder(a, b)
     return false
 end
 
+local toldNewer = false -- the update hint goes out once per login or reload
+
 CH.shareDebug = false -- /chamberlain debug
 
 local function Debug(...)
@@ -112,8 +114,8 @@ local SEND_INTERVAL = 0.1
 local TOKENS_MAX = 8 -- leave headroom below the ~10 server allowance
 local TOKEN_RATE = 1 -- 1/sec sustained, matching the server's delivery. Higher
 -- overruns it: past ~16-20 messages every other one drops.
-local sendQueue = {} -- background traffic: HELLO, CATALOG, LAYOUT_REQ/DECLINE
-local sendQueueHi = {} -- user-initiated layout transfer (BLOBSTART/BLOB); jumps ahead
+local sendQueue = {} -- background traffic: HELLO, CATALOG
+local sendQueueHi = {} -- layout transfer (BLOBSTART/BLOB) and LAYOUT_REQ/DECLINE, jumps ahead
 local sendQueueGuild = {} -- the front door for guildmates outside the group, the one thing sent on GUILD
 local sendTicker
 local tokens = TOKENS_MAX
@@ -201,8 +203,13 @@ local function Send(payload)
     end
     -- Layout transfer (BLOBSTART/BLOB/BLOBCANCEL) goes in the priority lane, and an echo
     -- with it since it has to ring while the guest is still in the doorway.
-    -- Everything else (HELLO, CATALOG, requests) in the normal lane.
-    if payload:find("^BLOB") or payload:find("^ECHO") then
+    -- A request or a decline is one short line somebody is waiting on, so it
+    -- goes to the very front. In a raid it sat behind a minute of catalogs and
+    -- people asked again and again. Everything else (HELLO, CATALOG) in the
+    -- normal lane.
+    if payload:find("^LAYOUT_") then
+        table.insert(sendQueueHi, 1, payload)
+    elseif payload:find("^BLOB") or payload:find("^ECHO") then
         sendQueueHi[#sendQueueHi + 1] = payload
     else
         sendQueue[#sendQueue + 1] = payload
@@ -212,6 +219,19 @@ end
 
 local function StripRealm(fullName)
     return fullName:match("([^%-]+)") or fullName
+end
+
+-- A raid's catalogs come in by the dozen a second, so the group list redraws
+-- once for a burst instead of once per line.
+local redrawTimer
+local function GroupMapsChanged()
+    if redrawTimer or not CH.RefreshGroupMaps then
+        return
+    end
+    redrawTimer = C_Timer.NewTimer(0.5, function()
+        redrawTimer = nil
+        CH.RefreshGroupMaps()
+    end)
 end
 
 -- ─────────────────────────────────────────────────────────────────────
@@ -224,6 +244,20 @@ end
 -- not to answer it again (otherwise two clients would HELLO back and forth).
 function CH.SendHello(isReply)
     Send("HELLO|" .. CH.VERSION .. "|" .. PROTOCOL .. (isReply and "|R" or ""))
+end
+
+-- A reply goes to the whole group, so one answers every HELLO that came in
+-- just before it. When a raid filled up, each of us used to queue a reply per
+-- newcomer, 29 of them at a message a second.
+local helloTimer
+local function QueueHelloReply()
+    if helloTimer then
+        helloTimer:Cancel()
+    end
+    helloTimer = C_Timer.NewTimer(2, function()
+        helloTimer = nil
+        CH.SendHello(true)
+    end)
 end
 
 -- Tell the requester (and the rest of the group) that we won't serve a layout.
@@ -485,6 +519,7 @@ function CH.RequestLayout(houseGUID)
     end
     pendingRequests[houseGUID] = true
     Send("LAYOUT_REQ|" .. houseGUID .. "|" .. bestHolder)
+    CH.ShareLog("asked", bestHolder, "for", houseGUID)
 end
 
 -- The whole layout (rooms, coords, colors, heads, descriptions) is sent as one
@@ -516,6 +551,7 @@ function CH.SendLayout(houseGUID)
     local total = math.ceil(#blob / maxChunk)
 
     Debug("SendLayout:", houseGUID, "(" .. #h.zones .. " zones, " .. total .. " chunks) to PARTY")
+    CH.ShareLog("sending", houseGUID, "to the group in", total, "chunks")
     sendRoomsTotal = sendRoomsTotal + total -- accumulates while sends overlap
     sendHouses = sendHouses + 1
     CH.ShowSendProgress(sendRoomsTotal, sendHouses)
@@ -664,6 +700,16 @@ function CH.ApplyLayout(houseGUID, data, senderName)
     end
     CH.BuildParts(ChamberlainDB.houses[houseGUID])
     Debug("ApplyLayout: saved", houseGUID, "(" .. #data.zones .. " zones) from", senderName)
+    CH.ShareLog(
+        "saved",
+        CH.RoomCount(data.zones),
+        "rooms of",
+        houseGUID,
+        "from",
+        senderName,
+        houseGUID == CH.currentHouseGUID and "(the house you're in)"
+            or "(you're in " .. tostring(CH.currentHouseGUID) .. ")"
+    )
     local houseName = (data.owner and string.format(CH.L["SHARE_X_HOUSE"], data.owner)) or CH.L["SHARE_A_HOUSE"]
     CH.Print(CH.L["SHARE_RECEIVED_X"], CH.RoomCount(data.zones), houseName, senderName)
     -- Only a heads up. Whatever this version can't read was already left out
@@ -701,6 +747,7 @@ function CH.ReceiveLayout(houseGUID, data, senderName)
     if ChamberlainDB.myHouses[houseGUID] then
         pendingRequests[houseGUID] = nil
         CH.Print(CH.L["SHARE_IGNORED_OWN_X"], senderName)
+        CH.ShareLog("dropped", houseGUID, "from", senderName, "(your own house)")
         return
     end
     local existing = ChamberlainDB.houses[houseGUID]
@@ -717,6 +764,7 @@ function CH.ReceiveLayout(houseGUID, data, senderName)
 
     -- You explicitly asked for this layout, so apply it without prompting.
     if solicited then
+        CH.ShareLog("asked for, taking it")
         CH.ApplyLayout(houseGUID, data, senderName)
         return
     end
@@ -725,6 +773,7 @@ function CH.ReceiveLayout(houseGUID, data, senderName)
     -- when a request is served). A blocked sender is dropped without a peep.
     if ChamberlainDB.blocks.players[senderName] then
         Debug("ReceiveLayout: dropped, sender blocked:", senderName)
+        CH.ShareLog("dropped", houseGUID, "from", senderName, "(sender blocked)")
         return
     end
 
@@ -732,12 +781,14 @@ function CH.ReceiveLayout(houseGUID, data, senderName)
     -- BLOBSTART guard usually catches this earlier, this is the backstop).
     if existing and (data.timestamp or 0) <= (existing.updatedAt or 0) then
         Debug("ReceiveLayout: kept local copy (incoming is not newer)")
+        CH.ShareLog("dropped", houseGUID, "from", senderName, "(not newer than the copy held)")
         return
     end
 
     -- Consent is required for everything else. If you've trusted this sender,
     -- take it silently, otherwise ask whether to accept it.
     if ChamberlainDB.trusted[senderName] then
+        CH.ShareLog("trusted sender, taking it")
         CH.ApplyLayout(houseGUID, data, senderName)
     elseif CH.onLayoutReceived then
         CH.onLayoutReceived(houseGUID, data, senderName)
@@ -1079,20 +1130,24 @@ function CH.ImportLayout(text)
     local b64 = string.match(text or "", "^CHB1:(.+)$")
     if not b64 then
         CH.Print(CH.L["SHARE_BAD_STRING"])
+        CH.ShareLog("import: not a map string,", #text, "characters")
         return
     end
 
     local data = DeserializeLayout(b64)
     if not data then
         CH.Print(CH.L["SHARE_CANT_READ_STRING"])
+        CH.ShareLog("import: string unreadable,", #text, "characters")
         return
     end
 
     local guid = data.guid or CH.currentHouseGUID
     if not guid then
         CH.Print(CH.L["SHARE_IMPORT_NO_HOUSE"])
+        CH.ShareLog("import: no house in it and not in one")
         return
     end
+    CH.ShareLog("import:", CH.RoomCount(data.zones), "rooms of", guid)
     -- Always through the dialog, which shows what the string holds before
     -- anything is saved.
     CH.ShowAcceptDialog(guid, data, CH.L["SHARE_IMPORTED_STRING"], true)
@@ -1146,6 +1201,12 @@ function CH.HandleMessage(prefix, payload, channel, fullSender)
         local protocol = tonumber(parts[3]) or 0
         local isReply = parts[4] == "R" -- a HELLO answering one of ours
         peerVersions[sender] = version
+        -- Once a session, the first time somebody in the group is ahead of us.
+        -- Only a plain version goes into chat, since this one came off the wire.
+        if not toldNewer and version:find("^[%d%.]+$") and VersionOlder(CH.VERSION, version) then
+            toldNewer = true
+            CH.Print(CH.L["SHARE_PEER_NEWER_X"], sender, version, CH.VERSION)
+        end
         if protocol == PROTOCOL then
             incompatible[sender] = nil
             warnedMismatch[sender] = nil -- they updated; allow a fresh warning if it ever changes again
@@ -1158,14 +1219,15 @@ function CH.HandleMessage(prefix, payload, channel, fullSender)
                 CH.Print(CH.L["SHARE_MISMATCH_X"], sender, version, CH.VERSION, who)
             end
         end
-        -- The sender just (re)started, so it lost any catalog and version info we
-        -- sent before. Re-advertise our houses either way. If this was its own
-        -- announcement (not a reply to ours), greet it back once so it learns our
-        -- version too. A reply never gets answered, so two clients can't volley.
+        -- The sender just (re)started or joined, so it lost any catalog and
+        -- version info we sent before. Greet it back so it learns our version,
+        -- and re-advertise our houses. A reply is somebody already here
+        -- answering a newcomer, which needs neither, so two clients can't
+        -- volley and a raid doesn't re-announce everything twice per joiner.
         if not isReply then
-            CH.SendHello(true)
+            QueueHelloReply()
+            CH.QueueBroadcast()
         end
-        CH.QueueBroadcast()
         return
     end
 
@@ -1201,9 +1263,7 @@ function CH.HandleMessage(prefix, payload, channel, fullSender)
         end
         CH.partyCatalogs[sender] = CH.partyCatalogs[sender] or {}
         CH.partyCatalogs[sender][guid] = { owner = owner, timestamp = ts, zoneCount = count }
-        if CH.RefreshGroupMaps then
-            CH.RefreshGroupMaps()
-        end
+        GroupMapsChanged()
     elseif msgType == "LAYOUT_REQ" then
         local guid = parts[2]
         local target = parts[3]
@@ -1214,17 +1274,17 @@ function CH.HandleMessage(prefix, payload, channel, fullSender)
             return
         end
         local blocks = ChamberlainDB.blocks
-        if blocks.players[sender] then
-            return
-        end
-        if blocks.houses[guid] then
+        if blocks.players[sender] or blocks.houses[guid] then
+            CH.ShareLog(sender, "asked for", guid, "(blocked, no answer sent)")
             return
         end
         local h = ChamberlainDB.houses[guid]
         if not h then
             Send("LAYOUT_DECLINE|" .. guid)
+            CH.ShareLog(sender, "asked for", guid, "(no copy here, declined)")
             return
         end
+        CH.ShareLog(sender, "asked for", guid)
         if CH.onConsentRequired then
             CH.onConsentRequired(sender, guid)
         end
@@ -1250,6 +1310,7 @@ function CH.HandleMessage(prefix, payload, channel, fullSender)
             local have = ChamberlainDB.houses[guid]
             if have and (have.updatedAt or 0) >= ts then
                 Debug("BLOBSTART skipped: already hold", guid, "at ts >=", ts)
+                CH.ShareLog("skipped", guid, "from", sender, "(already held at this version)")
                 return
             end
         end
@@ -1262,8 +1323,19 @@ function CH.HandleMessage(prefix, payload, channel, fullSender)
             chunks = {},
             have = 0,
         }
+        local was = CH.pendingLayouts[guid]
         CH.pendingLayouts[guid] = transfer
         Debug("BLOBSTART from", sender, "expecting", total, "chunks")
+        CH.ShareLog(
+            "incoming",
+            guid,
+            "from",
+            sender,
+            total,
+            "chunks",
+            pendingRequests[guid] and "(asked for)" or "",
+            was and "(replaces one from " .. was.sender .. " at " .. was.have .. "/" .. was.total .. ")" or ""
+        )
         CH.ShowReceiveProgress(ownerSafe, total)
         -- If the transfer hasn't finished after 3 minutes, give up and report what
         -- was missing, so a dead transfer (sender left, real drop) can't hang in
@@ -1274,6 +1346,7 @@ function CH.HandleMessage(prefix, payload, channel, fullSender)
             end
             CH.pendingLayouts[guid] = nil
             CH.HideReceiveProgress()
+            CH.ShareLog("gave up on", guid, "from", sender, "at", transfer.have .. "/" .. transfer.total)
             local missing = {}
             for s = 1, transfer.total do
                 if not transfer.chunks[s] then
@@ -1305,6 +1378,7 @@ function CH.HandleMessage(prefix, payload, channel, fullSender)
             CH.HideReceiveProgress()
         end
         CH.Print(CH.L["SHARE_SENDER_CANCELLED_X"], sender)
+        CH.ShareLog(sender, "cancelled", guid, "at", pending.have .. "/" .. pending.total)
     elseif msgType == "BLOB" then
         -- One chunk of the layout blob. Collect until all arrive, then decode
         -- the whole thing and hand it to the consent/accept flow.
@@ -1335,9 +1409,11 @@ function CH.HandleMessage(prefix, payload, channel, fullSender)
         local data = DeserializeLayout(blob)
         if data then
             Debug("BLOB complete:", guid, "(" .. #data.zones .. " zones) from", sender)
+            CH.ShareLog("got all of", guid, "from", sender)
             CH.ReceiveLayout(guid, data, sender)
         else
             CH.Print(CH.L["SHARE_DECODE_FAILED_X"], sender)
+            CH.ShareLog("got all of", guid, "from", sender, "but it didn't decode")
         end
     elseif PATCH_KIND[msgType] then
         -- See CH.SendSoundPatch. Dropped unless we hold this exact version of
@@ -1491,6 +1567,7 @@ function CH.HandleMessage(prefix, payload, channel, fullSender)
         local h = ChamberlainDB.houses[guid]
         local houseName = (h and h.owner) and string.format(CH.L["SHARE_X_HOUSE"], h.owner) or CH.L["SHARE_THAT_LAYOUT"]
         CH.Print(CH.L["SHARE_DIDNT_SHARE_X"], sender, houseName)
+        CH.ShareLog(sender, "declined", guid, "(your request for it is off)")
     elseif msgType == "OWNERHEAD" then
         local guid = parts[2]
         local ownerGUID = parts[3]
@@ -1512,6 +1589,70 @@ end
 -- Events
 -- ─────────────────────────────────────────────────────────────────────
 
+-- The group by name at the last settled roster, nil while we weren't in one,
+-- and the channel it talked on. A move into an instance group or back counts
+-- as joining, since everybody there is new to everybody.
+local members, membersChannel
+local rosterTimer
+
+-- nil while somebody still loads in, since they show as Unknown and pruning
+-- would forget them for good
+local function GroupNames()
+    local names = { [UnitName("player")] = true }
+    local unit = IsInRaid() and "raid" or "party"
+    for i = 1, GetNumGroupMembers() do
+        local name = UnitName(unit .. i)
+        if name == UNKNOWNOBJECT then
+            return nil
+        elseif name then
+            names[name] = true
+        end
+    end
+    return names
+end
+
+-- What we know about each member, minus whoever left. Until 3.39.0 all of it
+-- was wiped on every roster change and everybody re-announced everything,
+-- which a raid fires for each subgorup move, so the group list never stopped
+-- emptying and refilling.
+local function RosterSettled()
+    rosterTimer = nil
+    local now = {}
+    if IsInGroup() then
+        now = GroupNames()
+        if not now then
+            rosterTimer = C_Timer.NewTimer(3, RosterSettled)
+            return
+        end
+    end
+    for _, byName in ipairs({ CH.partyCatalogs, incompatible, peerVersions }) do
+        for name in pairs(byName) do
+            if not now[name] then
+                byName[name] = nil
+            end
+        end
+    end
+    for guid, owner in pairs(CH.liveOwners) do
+        if not now[owner.name] then
+            CH.liveOwners[guid] = nil
+        end
+    end
+    GroupMapsChanged()
+    if not IsInGroup() then
+        members = nil
+        return
+    end
+    -- The others answer a newcomer's HELLO with their own and their houses,
+    -- so only a client that just joined speaks first.
+    local channel = GroupChannel()
+    if not members or channel ~= membersChannel then
+        CH.SendHello()
+        CH.BroadcastCatalog()
+    end
+    members, membersChannel = now, channel
+    CH.AnnounceOwnerPresence()
+end
+
 local shareFrame = CreateFrame("Frame")
 shareFrame:RegisterEvent("CHAT_MSG_ADDON")
 shareFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
@@ -1520,22 +1661,24 @@ shareFrame:SetScript("OnEvent", function(_, event, arg1, arg2, arg3, arg4)
     if event == "CHAT_MSG_ADDON" then
         CH.HandleMessage(arg1, arg2, arg3, arg4)
     elseif event == "GROUP_ROSTER_UPDATE" then
-        wipe(CH.partyCatalogs)
-        if CH.RefreshGroupMaps then
-            CH.RefreshGroupMaps()
+        -- a raid fires these in bursts, so act once it goes quiet
+        if rosterTimer then
+            rosterTimer:Cancel()
         end
-        wipe(incompatible)
-        wipe(peerVersions)
-        wipe(CH.liveOwners) -- cleared here, present owners re-announce below
-        C_Timer.NewTimer(1, function()
-            CH.SendHello()
-            CH.BroadcastCatalog()
-            CH.AnnounceOwnerPresence()
-        end)
+        rosterTimer = C_Timer.NewTimer(3, RosterSettled)
     elseif event == "PLAYER_ENTERING_WORLD" then
-        -- Announce our version and catalog on login / after each loading screen,
-        -- so party members already grouped before we arrived learn our houses.
+        -- Only a login or a reload forgets the group, and the group forgets
+        -- nothing about us across a loading screen. Announcing after each one
+        -- had the whole group re-announce every house whenever anybody went
+        -- through a house door.
+        if not (arg1 or arg2) then
+            return
+        end
         CH.SendHello()
         CH.QueueBroadcast()
+        if IsInGroup() then
+            -- nil when somebody's still loading, which reads as just joined
+            members, membersChannel = GroupNames(), GroupChannel()
+        end
     end
 end)

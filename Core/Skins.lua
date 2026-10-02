@@ -569,6 +569,29 @@ function CH.MakeScrollList(parent, name)
     return scroll, child
 end
 
+-- A multi-line text box w wide on a skinned scroll frame with a dark backing,
+-- the look of a room's description. The caller places the scroll frame.
+-- Built on UIPanelScrollFrame (not InputScrollFrameTemplate) so it gets the
+-- same slim gold scrollbar as the rest of the addon. InputScrollFrameTemplate
+-- ships the newer MinimalScrollBar that CH.SkinScrollBar can't style.
+function CH.MakeTextArea(parent, name, w)
+    local scroll = CreateFrame("ScrollFrame", name, parent, "UIPanelScrollFrameTemplate")
+    CH.SkinScrollBar(scroll)
+    local bg = scroll:CreateTexture(nil, "BACKGROUND")
+    bg:SetPoint("TOPLEFT", -2, 2)
+    bg:SetPoint("BOTTOMRIGHT", 2, -2)
+    bg:SetColorTexture(0, 0, 0, 0.30)
+    local box = CreateFrame("EditBox", nil, scroll)
+    box:SetMultiLine(true)
+    box:SetAutoFocus(false)
+    box:SetFontObject("ChatFontNormal")
+    box:SetWidth(w)
+    box:SetJustifyH("LEFT")
+    box:SetTextInsets(4, 4, 4, 4)
+    scroll:SetScrollChild(box)
+    return scroll, box
+end
+
 -- Make a frame block clicks (so they don't fall through to the world) and be
 -- draggable by its body. Position is not saved.
 function CH.MakeDraggable(f)

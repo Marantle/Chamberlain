@@ -91,13 +91,19 @@ end
 
 -- A page on the right, filled top down. y is how far down the next row goes.
 -- navKey names it in the side column, when that's shorter than its title.
+-- A page longer than the window scrolls, its bar in the window's right margin.
 local pages = {}
 local function Page(titleKey, navKey)
-    local p = CreateFrame("Frame", nil, win)
+    local scroll, p = CH.MakeScrollList(win, "ChamberlainSettingsPage" .. (#pages + 1))
+    scroll:SetPoint("TOPLEFT", NAV_W + 17, -36)
+    scroll:SetPoint("BOTTOMRIGHT", -16, 10)
+    -- the template reads this on load, so hide the bar once by hand as well
+    scroll.scrollBarHideable = true
+    scroll.ScrollBar:Hide()
+    scroll:Hide()
+    p:SetWidth(PAGE_W)
+    p.scroll = scroll
     p.navKey = navKey or titleKey
-    p:SetPoint("TOPLEFT", NAV_W + 17, -36)
-    p:SetPoint("BOTTOMRIGHT", -16, 10)
-    p:Hide()
     local title = p:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     title:SetPoint("TOPLEFT")
     title:SetText(CH.L[titleKey])
@@ -199,15 +205,16 @@ SecondsRow(pageRooms, {
 })
 SwitchRow(pageRooms, "RM_TOGGLE_ROOM_DESCRIPTIONS", "SET_HINT_DESCRIPTIONS", "showRoomText")
 
--- How your banner looks. The sample and its button take the bottom 80 px of
--- the row, under the help, which got long enough in 3.21.0 to run into a
--- sample hung from the top.
+-- How your banner looks. The sample and its button take the bottom of the
+-- row, under the help, which got long enough in 3.21.0 to run into a sample
+-- hung from the top. 120 since the medallions, which stand 138 tall.
+local STYLE_H = 120
 local styleRow = Row(pageRooms, "SET_BANNER_STYLE", "SET_HINT_BANNER_STYLE", 0)
-styleRow:SetHeight(styleRow:GetHeight() + 80)
-local stylePicker = CH.MakeBannerStylePicker(pageRooms, 80)
+styleRow:SetHeight(styleRow:GetHeight() + STYLE_H)
+local stylePicker = CH.MakeBannerStylePicker(pageRooms, STYLE_H)
 stylePicker:SetPoint("BOTTOMLEFT", styleRow, "BOTTOMLEFT")
 stylePicker:SetPoint("BOTTOMRIGHT", styleRow, "BOTTOMRIGHT")
-pageRooms.y = pageRooms.y + 80
+pageRooms.y = pageRooms.y + STYLE_H
 refreshers[#refreshers + 1] = function()
     stylePicker:Refresh()
 end
@@ -440,7 +447,7 @@ local current = 1
 local function ShowPage(i)
     current = i
     for n, p in ipairs(pages) do
-        p:SetShown(n == i)
+        p.scroll:SetShown(n == i)
         local b = navButtons[n]
         b.bar:SetShown(n == i)
         b.fill:SetShown(n == i)
@@ -452,13 +459,11 @@ local function ShowPage(i)
     end
 end
 
--- The window grows to fit its longest page, which the Rooms page became in
--- 3.25.0.
-local tallest = 0
+-- Until 3.39.0 the window grew to fit its longest page. A short page still
+-- fills the window, since the block list on People runs to its bottom.
 for _, p in ipairs(pages) do
-    tallest = math.max(tallest, p.y)
+    p:SetHeight(math.max(p.y + 10, H - 46))
 end
-win:SetHeight(math.max(H, tallest + 56))
 
 -- A page's entry in the side column. The page that's showing gets a gold bar
 -- and a warm fill.

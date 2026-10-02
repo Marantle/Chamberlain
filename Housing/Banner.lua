@@ -18,7 +18,8 @@ local _, CH = ...
 -- Rainbow is four found rainbows cut in two around the name and five flat
 -- stripe bands. Scenario, Plates, Ribbons and Lines are the game's own
 -- atlases, nothing shipped. A family is one art in several colours, one row in
--- the picker with a chip for each.
+-- the picker with a chip for each. Medallions is built further down with the
+-- art, and its families show an icon on each chip.
 CH.BANNER_GROUPS = {
     {
         key = "BP_DRAWN",
@@ -286,6 +287,48 @@ CH.BANNER_IDS = {
     "housing",
     "pvpalliance",
     "pvphorde",
+    "medal",
+    "medalcentaur",
+    "medalexpedition",
+    "medaltuskarr",
+    "medalvaldrakken",
+    "medalniffen",
+    "medaldream",
+    "medalplunderstorm",
+    "medalcandle",
+    "medalflame",
+    "medalstorm",
+    "medalweb",
+    "medalrocket",
+    "medalstars",
+    "medalnightfall",
+    "medalkaresh",
+    "medalmanaforgevandals",
+    "medallight",
+    "medalorigin",
+    "medalroot",
+    "medalsky",
+    "medaldelve",
+    "medalprey",
+    "medalritualsites",
+    "medalzuljarra",
+    "medaldeathknight",
+    "medaldemonhunter",
+    "medaldruid",
+    "medalevoker",
+    "medalhunter",
+    "medalmage",
+    "medalmonk",
+    "medalpaladin",
+    "medalpriest",
+    "medalrogue",
+    "medalshaman",
+    "medalwarlock",
+    "medalwarrior",
+    "medalkyrian",
+    "medalnecrolord",
+    "medalnightfae",
+    "medalventhyr",
 }
 CH.BANNER_ID = {}
 for id, style in ipairs(CH.BANNER_IDS) do
@@ -1052,6 +1095,102 @@ for _, side in ipairs({ "alliance", "horde" }) do
         { atlas = "scoreboard-header-" .. side, kind = "stretch", h = 60, mid = 0.333, band = 0.4, size = 20 }
 end
 
+-- The renown toast's ring with an icon in it, one family per set of icons.
+-- Unlike Celebration the filigree keeps its full height so the ring stays
+-- round, and the band stretches out to the filigree's width. size is how tall
+-- the icon draws. A set without an atlas is renown emblems, at the game's own
+-- 54. Round cuts a square icon to a circle, the way the toast masks its reward
+-- icon.
+local MEDALS = {
+    {
+        family = "BP_FAM_MEDAL_DF",
+        kits = { "centaur", "expedition", "tuskarr", "valdrakken", "niffen", "dream", "plunderstorm" },
+    },
+    {
+        family = "BP_FAM_MEDAL_TWW",
+        kits = { "candle", "flame", "storm", "web", "rocket", "stars", "nightfall", "karesh", "manaforgevandals" },
+    },
+    {
+        family = "BP_FAM_MEDAL_MIDNIGHT",
+        kits = { "light", "origin", "root", "sky", "delve", "prey", "ritualsites", "zuljarra" },
+    },
+    {
+        family = "BP_FAM_MEDAL_CLASS",
+        atlas = "classicon-%s",
+        size = 46,
+        round = true,
+        kits = {
+            "deathknight",
+            "demonhunter",
+            "druid",
+            "evoker",
+            "hunter",
+            "mage",
+            "monk",
+            "paladin",
+            "priest",
+            "rogue",
+            "shaman",
+            "warlock",
+            "warrior",
+        },
+    },
+    -- the sigils have a lot of glow round them
+    {
+        family = "BP_FAM_MEDAL_COVENANT",
+        atlas = "covenantchoice-celebration-%ssigil",
+        size = 84,
+        kits = { "kyrian", "necrolord", "nightfae", "venthyr" },
+    },
+}
+
+-- The ring is 98 high and the icon sits on its middle, 49 down.
+local function Medal(set, icon)
+    local g = {
+        h = 138,
+        ny = -26,
+        band = 0.6,
+        lead = 2,
+        layers = {
+            { atlas = "evergreen-toast-celebration-bg", kind = "plate", cut = { 0.18, 0.82 }, h = 50, top = 70 },
+            { atlas = "evergreen-toast-celebration-topfiligree", cut = { 0.15, 0.85 }, scale = 1, top = 0 },
+            {
+                atlas = "evergreen-toast-celebration-bottomline",
+                cut = { 0.24, 0.76 },
+                scale = 0.8,
+                top = 104,
+                wide = true,
+            },
+        },
+    }
+    if icon then
+        g.layers[4] = { atlas = icon, kind = "fixed", h = set.size, top = 49 - set.size * 0.5, round = set.round }
+    end
+    return g
+end
+
+-- Each icon's style is medal plus its kit. An icon the client doesn't have
+-- yet stays out of the picker.
+local medalOf = {}
+local medals = { key = "BP_MEDALS", hint = "BP_MEDALS_HINT", styles = { "medal" } }
+GAME.medal = Medal()
+for _, set in ipairs(MEDALS) do
+    set.atlas = set.atlas or "majorfactions_icons_%s512"
+    set.size = set.size or 54
+    local fam = { family = set.family, styles = {}, icons = {} }
+    for _, kit in ipairs(set.kits) do
+        local style, icon = "medal" .. kit, set.atlas:format(kit)
+        medalOf[style] = { family = set.family, kit = kit }
+        if C_Texture.GetAtlasInfo(icon) then
+            GAME[style] = Medal(set, icon)
+            fam.styles[#fam.styles + 1] = style
+            fam.icons[#fam.icons + 1] = icon
+        end
+    end
+    medals.styles[#medals.styles + 1] = fam
+end
+CH.BANNER_GROUPS[#CH.BANNER_GROUPS + 1] = medals
+
 -- Part of the atlas a, from x1 to x2 across it, drawn w by h.
 local function Slice(t, a, x1, x2, w, h)
     local u = a.rightTexCoord - a.leftTexCoord
@@ -1114,6 +1253,28 @@ local function GameTex(b, n)
     return t
 end
 
+-- One mask per banner is enough, since only a medal's icon is round. The
+-- textures go from style to style, so one drawn plain gives the mask back.
+local function RoundOff(b, t, round)
+    if round then
+        if not b.roundMask then
+            b.roundMask = b:CreateMaskTexture()
+            b.roundMask:SetTexture(
+                "Interface\\CharacterFrame\\TempPortraitAlphaMask",
+                "CLAMPTOBLACKADDITIVE",
+                "CLAMPTOBLACKADDITIVE"
+            )
+        end
+        b.roundMask:SetAllPoints(t)
+        if not t.round then
+            t:AddMaskTexture(b.roundMask)
+        end
+    elseif t.round then
+        t:RemoveMaskTexture(b.roundMask)
+    end
+    t.round = round
+end
+
 local function DrawGame(b, read, g)
     Font(b, MORPHEUS, g.size or 24, "", g.ink and 0 or 1)
     local gw = PlaceGroup(b, read, 0, g.ny)
@@ -1148,6 +1309,7 @@ local function DrawGame(b, read, g)
             -- overlap the seventh
             t:SetDrawLayer("BACKGROUND", math.min(i, 7))
             t:SetPoint("TOPLEFT", x, -top)
+            RoundOff(b, t, l.round)
             x = x + pw
         end
     end
@@ -1173,7 +1335,57 @@ for name, g in pairs(GAME) do
     end or STYLES.classic
 end
 
+-- Kits whose faction the game names with a work title, like "[DNT] TBD The
+-- Undermine" and "Prey: Season 1". These get a name of ours.
+local OWN_KIT_NAMES = { rocket = "BP_KIT_UNDERMINE", delve = "BP_KIT_DELVES", prey = "BP_KIT_PREY" }
+
+-- What the game calls a medal's icon, in the client's language. Renown
+-- factions and covenants are found by their texture kit, which is the kit in
+-- the icon's atlas name.
+local kitNames, retried
+local function KitName(kit)
+    if OWN_KIT_NAMES[kit] then
+        return CH.L[OWN_KIT_NAMES[kit]]
+    end
+    if not kitNames then
+        kitNames = {}
+        for exp = Enum.ExpansionLevel.Dragonflight, Enum.ExpansionLevel.Midnight do
+            for _, id in ipairs(C_MajorFactions.GetMajorFactionIDs(exp)) do
+                local d = C_MajorFactions.GetMajorFactionData(id)
+                if d then
+                    kitNames[d.textureKit:lower()] = d.name
+                end
+            end
+        end
+        -- the list runs past the four covenants into the renown factions and
+        -- a blank record with no kit. 43 came back like that on 12.1.0
+        for _, id in ipairs(C_Covenants.GetCovenantIDs()) do
+            local d = C_Covenants.GetCovenantData(id)
+            if d and d.textureKit then
+                kitNames[d.textureKit:lower()] = d.name
+            end
+        end
+        for token, name in pairs(LOCALIZED_CLASS_NAMES_MALE) do
+            kitNames[token:lower()] = name
+        end
+    end
+    local name = kitNames[kit]
+    if name then
+        return name
+    end
+    -- The game may not have had its data yet, so ask it once more. A kit it
+    -- never names would otherwise rebuild the lot on every lookup.
+    if not retried then
+        retried, kitNames = true, nil
+    end
+    return (kit:gsub("^%l", string.upper))
+end
+
 function CH.BannerStyleName(style)
+    local m = medalOf[style]
+    if m then
+        return CH.L["BP_MEDAL_NAME"]:format(CH.L[m.family], KitName(m.kit))
+    end
     return CH.L["SET_BANNER_" .. style:upper()]
 end
 
@@ -1305,6 +1517,16 @@ function CH.SetHouseBanner(guid, style)
     CH.SendSoundPatch(guid, "banner", baseTs, "H", CH.BANNER_ID[style], true)
 end
 
+-- A preview at scale, or smaller where its style would stand taller than h or,
+-- given w, run wider than w. A frame still being built has no width yet.
+function CH.FitBanner(b, scale, h, w)
+    scale = math.min(scale, h / b:GetHeight())
+    if w and w > 0 then
+        scale = math.min(scale, w / b:GetWidth())
+    end
+    b:SetScale(scale)
+end
+
 -- A grey backdrop behind a banner, a stand-in for the world it shows over.
 function CH.BannerScene(f)
     local t = f:CreateTexture(nil, "BACKGROUND")
@@ -1323,8 +1545,7 @@ function CH.MakeBannerStylePicker(parent, h)
     local p = CreateFrame("Frame", nil, parent)
     p:SetHeight(h)
     local sample = CH.MakeBanner(p)
-    sample:SetPoint("CENTER", 0, -12)
-    sample:SetScale(0.85)
+    sample:SetPoint("CENTER", 0, -15)
 
     local choose = CH.MakeButton(p, "SET_BANNER_CHOOSE", 140, 22)
     choose:SetPoint("TOPRIGHT")
@@ -1332,10 +1553,26 @@ function CH.MakeBannerStylePicker(parent, h)
         CH.OpenBannerPicker()
     end)
 
+    -- a tall style shrinks to stay under the button
     function p.Refresh()
         CH.PaintBanner(sample, CH.L["SET_BANNER_SAMPLE"], nil, true, ChamberlainDB.settings.bannerStyle)
+        CH.FitBanner(sample, 0.85, h - 30)
     end
     samples[#samples + 1] = p
+    return p
+end
+
+-- One style's sample banner with no button, h tall. What's New shows new
+-- styles this way, since a picker there read as if it picked for the room.
+function CH.MakeBannerSample(parent, h, style)
+    local p = CreateFrame("Frame", nil, parent)
+    p:SetHeight(h)
+    local sample = CH.MakeBanner(p)
+    sample:SetPoint("CENTER")
+    function p.Refresh()
+        CH.PaintBanner(sample, CH.L["SET_BANNER_SAMPLE"], nil, false, style)
+        CH.FitBanner(sample, 0.85, h)
+    end
     return p
 end
 

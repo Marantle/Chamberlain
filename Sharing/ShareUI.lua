@@ -10,7 +10,8 @@ consentDialog:SetFrameStrata("FULLSCREEN_DIALOG")
 consentDialog:SetPoint("TOP", UIParent, "TOP", 0, -220)
 CH.SkinWindow(consentDialog, "SUI_TITLE_LAYOUT_REQUEST", true)
 consentDialog:Hide()
-table.insert(UISpecialFrames, "ChamberlainConsentDialog")
+-- Not in UISpecialFrames, so Escape can't close it. A close there sent no
+-- answer and left the asker waiting.
 
 local consentText = consentDialog:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 consentText:SetPoint("TOP", 0, -30)
@@ -32,10 +33,14 @@ local pendingConsentSender, pendingConsentGUID
 
 local function DeclineConsent()
     CH.SendDecline(pendingConsentGUID)
+    CH.ShareLog("said no to", pendingConsentSender, "for", pendingConsentGUID)
     consentDialog:Hide()
 end
 
 function CH.ShowConsentDialog(senderName, houseGUID)
+    if consentDialog:IsShown() then
+        CH.ShareLog("the ask from", pendingConsentSender, "was replaced unanswered")
+    end
     pendingConsentSender = senderName
     pendingConsentGUID = houseGUID
     local h = ChamberlainDB.houses[houseGUID]
@@ -46,6 +51,7 @@ function CH.ShowConsentDialog(senderName, houseGUID)
 end
 
 btnShare:SetScript("OnClick", function()
+    CH.ShareLog("said yes to", pendingConsentSender, "for", pendingConsentGUID)
     CH.SendLayout(pendingConsentGUID)
     -- SendLayout goes out on the party/raid channel, so this reaches everyone,
     -- not just whoever asked. Word it that way so it isn't misleading.
@@ -83,7 +89,8 @@ acceptDialog:SetFrameStrata("FULLSCREEN_DIALOG")
 acceptDialog:SetPoint("TOP", UIParent, "TOP", 0, -220)
 CH.SkinWindow(acceptDialog, "SUI_TITLE_SHARED_LAYOUT", true)
 acceptDialog:Hide()
-table.insert(UISpecialFrames, "ChamberlainAcceptDialog")
+-- Not in UISpecialFrames either. Escape used to drop the offer on screen and
+-- leave the rest of the queue waiting behind a dialog nobody could see.
 
 local acceptText = acceptDialog:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 acceptText:SetPoint("TOP", 0, -30)
@@ -219,6 +226,7 @@ local function ShowNextAccept()
     end
     acceptDialog:Show()
     acceptDialog:Raise()
+    CH.ShareLog("offered", item.guid, "from", item.sender, #acceptQueue, "more waiting")
 end
 
 -- senderName is a character name for a shared push, or a label like "the
@@ -238,6 +246,9 @@ function CH.ShowAcceptDialog(houseGUID, incomingData, senderName, isImport)
     for i, item in ipairs(acceptQueue) do
         if item.guid == houseGUID then
             acceptQueue[i] = offer
+            if not acceptDialog:IsShown() then
+                ShowNextAccept()
+            end
             return
         end
     end
@@ -252,6 +263,7 @@ btnAccept:SetScript("OnClick", function()
     if trust then
         ChamberlainDB.trusted[pendingSender] = true
     end
+    CH.ShareLog("accepted", pendingGUID, trust and "and trusted the sender" or "")
     CH.ApplyLayout(pendingGUID, pendingData, pendingSender)
     if trust then
         -- Trusting this sender means auto-accepting the rest of their queued
@@ -273,6 +285,7 @@ end)
 btnDecline:SetScript("OnClick", function()
     -- One-time decline, nothing is remembered. Permanent muting is the block
     -- list (Settings), reachable via the consent dialog when someone requests.
+    CH.ShareLog("declined", pendingGUID)
     ShowNextAccept()
 end)
 

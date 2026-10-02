@@ -1,6 +1,6 @@
 local ADDON, CH = ...
 
-CH.VERSION = "3.38.0"
+CH.VERSION = "3.39.0"
 
 -- How often the zone ticker samples your position, in seconds. Drives stair
 -- detection and the per-room time stats both, so they stay in step if it changes.
@@ -118,6 +118,10 @@ events:SetScript("OnEvent", function(_, event, arg1)
         -- Senders you've chosen to auto-accept shared layouts from, by character name.
         if ChamberlainDB.trusted == nil then
             ChamberlainDB.trusted = {}
+        end
+        -- The last sharing events for /rooms logs (3.39.0), see Sharing/ShareLog.lua.
+        if ChamberlainDB.shareLog == nil then
+            ChamberlainDB.shareLog = {}
         end
         if ChamberlainDB.settings == nil then
             ChamberlainDB.settings = { conflictMode = "ask", shareEnabled = true }
@@ -456,6 +460,9 @@ SlashCmdList["CH"] = function(msg)
         -- house at the one you're standing in, for when a house move changed its
         -- internal id and owner name (see UI/FixHouse.lua).
         CH.OpenFixHouse()
+    elseif cmd == "logs" then
+        -- also off the help list, since it's only for when someone asks for it
+        CH.OpenShareLog()
     elseif cmd == "debug" then
         CH.shareDebug = not CH.shareDebug
         CH.Print(CH.shareDebug and CH.L["CMD_DEBUG_ON"] or CH.L["CMD_DEBUG_OFF"])

@@ -5,11 +5,13 @@ room, a gold banner shows its name. The banner fades out when you leave. The
 addon takes its name from the manor officer who announced guests as they
 entered each room.
 
-The banner has 103 looks to pick from in Settings. Ten are drawn, one of them
+The banner has 145 looks to pick from in Settings. Ten are drawn, one of them
 like the game's own zone names. Eight are old public domain ornaments cut to
 fit the name, a nameplate and a rolled scroll among them, and nine are
-rainbows. The other 76 come from the game's own art, from the banners it puts
-over its scenarios and boss kills to a line for every class. Choose style
+rainbows. The other 118 come from the game's own art, from the banners it puts
+over its scenarios and boss kills to a line for every class. Medallions puts
+the ring from the renown toast over the name, with a renown faction's emblem,
+a class crest or a covenant sigil in it. Choose style
 opens a list with the groups down the side and a search box over them. The
 one in Settings is your personal banner, and only you see it. A house of
 yours starts on Gilded, and you change its look in the House panel, so

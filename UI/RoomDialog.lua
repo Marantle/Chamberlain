@@ -76,14 +76,13 @@ preview:SetHeight(38)
 local previewBanner = CH.MakeBanner(preview)
 previewBanner:SetPoint("CENTER")
 
--- Paint b at up to scale, smaller for a long name in a wide style so it stays
--- inside its frame. The frame has no width yet while the dialog is still
--- being built.
+-- Paint b at up to scale, smaller for a long name in a wide style or a tall
+-- style so it stays inside its frame.
 local function PaintPreview(b, scale)
     local style = pendingBannerStyle or CH.RoomBannerStyle(DialogGUID())
     CH.PaintBanner(b, editBox:GetText(), pendingColor, false, style)
-    local w = b:GetParent():GetWidth()
-    b:SetScale(w > 0 and math.min(scale, w / b:GetWidth()) or scale)
+    local f = b:GetParent()
+    CH.FitBanner(b, scale, f:GetHeight(), f:GetWidth())
 end
 
 local UpdateBannerTab -- set once the Banner tab exists
@@ -560,33 +559,15 @@ voiceBtn:SetScript("OnClick", function(self)
     end)
 end)
 
--- Description box: multi-line, capped, scrollable. Built on UIPanelScrollFrame
--- (not InputScrollFrameTemplate) so it gets the same slim gold scrollbar as the
--- rest of the addon. InputScrollFrameTemplate ships the newer MinimalScrollBar
--- that CH.SkinScrollBar can't style.
+-- Description box: multi-line, capped, scrollable.
 local DESC_MAX = 500
-local descScroll = CreateFrame("ScrollFrame", "ChamberlainDescScroll", paneYapper, "UIPanelScrollFrameTemplate")
+local descScroll, descBox = CH.MakeTextArea(paneYapper, "ChamberlainDescScroll", PANE_W - 24)
 descScroll:SetPoint("TOPLEFT", 2, yapperTop - 90)
 descScroll:SetPoint("BOTTOMRIGHT", -14, 42)
-CH.SkinScrollBar(descScroll)
-
-local descBg = descScroll:CreateTexture(nil, "BACKGROUND")
-descBg:SetPoint("TOPLEFT", -2, 2)
-descBg:SetPoint("BOTTOMRIGHT", 2, -2)
-descBg:SetColorTexture(0, 0, 0, 0.30)
-
-local descBox = CreateFrame("EditBox", nil, descScroll)
-descBox:SetMultiLine(true)
 descBox:SetMaxLetters(DESC_MAX)
-descBox:SetAutoFocus(false)
-descBox:SetFontObject("ChatFontNormal")
-descBox:SetWidth(PANE_W - 24)
-descBox:SetJustifyH("LEFT")
-descBox:SetTextInsets(4, 4, 4, 4)
 descBox:SetScript("OnEscapePressed", function(self)
     self:ClearFocus()
 end)
-descScroll:SetScrollChild(descBox)
 
 -- Click anywhere in the box to start editing
 descScroll:EnableMouse(true)

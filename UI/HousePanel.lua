@@ -121,11 +121,11 @@ sampleArea:SetPoint("BOTTOMRIGHT")
 sampleArea:SetHeight(80)
 local bannerSample = CH.MakeBanner(sampleArea)
 bannerSample:SetPoint("CENTER")
-bannerSample:SetScale(0.85)
 refreshers[#refreshers + 1] = function()
     local style = House().bannerStyle
     bannerBtn:SetText((CH.BannerPickText(style)))
     CH.PaintBanner(bannerSample, CH.L["SET_BANNER_SAMPLE"], nil, true, style or ChamberlainDB.settings.bannerStyle)
+    CH.FitBanner(bannerSample, 0.85, 80)
 end
 
 TextRow("HP_MOTTO", "HP_HINT_MOTTO", "motto")

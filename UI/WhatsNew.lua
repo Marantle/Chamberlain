@@ -32,6 +32,23 @@ end
 -- Refresh method.
 CH.WHATS_NEW = {
     {
+        v = "3.39.0",
+        notes = {
+            "42 new banner styles in the Medallions group. The ring from the renown toast sits over "
+                .. "the name, empty or with a renown faction's emblem, a class crest or a covenant sigil "
+                .. "in it.",
+            "Each set of icons is one row in the picker with a chip for every icon. Point at a chip "
+                .. "to see it on the banner.",
+            "A shared map whose dialog you closed with Escape no longer blocks later maps of that house "
+                .. "until a reload. Escape doesn't close that dialog anymore.",
+            "Sharing in a raid is quieter and a request for a map goes out ahead of everything else. The list of "
+                .. "maps in your group no longer keeps emptying and refilling.",
+        },
+        extra = function(parent)
+            return CH.MakeBannerSample(parent, 130, "medalvaldrakken")
+        end,
+    },
+    {
         v = "3.38.0",
         notes = {
             "Click the eye on the Chamberlain bar and hide the UI in your house. The banner, the "
