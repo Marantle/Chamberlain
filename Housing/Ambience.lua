@@ -132,6 +132,21 @@ CH.AMBIENCE = {
     { id = 539055, key = "AMB_DARKMOON_ISLAND", cat = "AMB_CAT_CROWDS" },
     { id = 839843, key = "AMB_ARENA_CROWD", cat = "AMB_CAT_CROWDS" },
     { id = 1010572, key = "AMB_CROWD_CELEBRATING", cat = "AMB_CAT_CROWDS" },
+    -- Sound kits from here on (3.40.0). The game repeats each one
+    -- by itself after a short random gap, picking one of its files every time.
+    -- files is how many it picks from, shown in the menu. Older clients don't
+    -- know these indexes and stay quiet.
+    { kit = 43822, files = 10, key = "AMB_KIT_GHOST_WOMAN", cat = "AMB_CAT_REPEATING" }, -- 124
+    { kit = 43823, files = 10, key = "AMB_KIT_GHOST_MAN", cat = "AMB_CAT_REPEATING" },
+    { kit = 40873, files = 10, key = "AMB_KIT_SPIRITS", cat = "AMB_CAT_REPEATING" },
+    { kit = 32756, files = 5, key = "AMB_KIT_THUNDER", cat = "AMB_CAT_REPEATING" },
+    { kit = 73287, files = 1, key = "AMB_KIT_BELL_TOLL", cat = "AMB_CAT_REPEATING" },
+    { kit = 241080, files = 5, key = "AMB_KIT_BELL_RINGING", cat = "AMB_CAT_REPEATING" },
+    { kit = 148036, files = 1, key = "AMB_KIT_DARKMOON_BELL", cat = "AMB_CAT_REPEATING" },
+    { kit = 77455, files = 11, key = "AMB_KIT_CHIMES", cat = "AMB_CAT_REPEATING" },
+    { kit = 77457, files = 7, key = "AMB_KIT_CHIME_RUNS", cat = "AMB_CAT_REPEATING" },
+    { kit = 280216, files = 1, key = "AMB_KIT_SMALL_ALARM", cat = "AMB_CAT_REPEATING" },
+    { kit = 325647, files = 4, key = "AMB_KIT_CAR_ALARM", cat = "AMB_CAT_REPEATING" }, -- 134
 }
 
 -- Menu order for the categories. Not wire data, free to change, and so is the
@@ -153,6 +168,7 @@ CH.AMBIENCE_CATS = {
     "AMB_CAT_PLAGUE",
     "AMB_CAT_BEYOND",
     "AMB_CAT_HAUNTED_OUT",
+    "AMB_CAT_REPEATING",
 }
 
 -- House and floor sounds live on the house entry, one table per kind, kind
@@ -329,12 +345,82 @@ CH.SOUND_CATS = {
     "SFX_CAT_FUN",
 }
 
--- file id to name key, the ambience loops along with the sounds
-local soundKeys = {}
+-- Sounds in CH.SOUNDS that the game also has as a sound kit holding that one
+-- file and nothing else, file id to kit id (3.40.0). A kit takes a volume of
+-- our choosing and a bare file doesn't, which is what lets an echo fade.
+-- These are the tapering echoes. Picked from their own group, a room's sound
+-- on entry plays as the kit. The room still saves and sends the file id with
+-- zone.tapering beside it, so an older client plays the plain file. Some of
+-- the kits wait a moment before the sound or shift its pitch a little.
+CH.TAPERING = {
+    [554078] = 191934, -- Lich King's laugh
+    [1124141] = 50463,
+    [567392] = 17852,
+    [1056870] = 144489,
+    [544832] = 1173,
+    [564856] = 14373,
+    [929455] = 120194,
+    [566254] = 173359,
+    [565564] = 270786,
+    [569086] = 226044,
+    [569222] = 356098,
+    [560229] = 3580,
+    [558137] = 6192,
+    [567431] = 1440,
+    [567439] = 878,
+    [567397] = 8959,
+    [2974001] = 138514, -- large alarm 1
+    [555503] = 112234,
+    [555499] = 5763,
+    [567436] = 97231,
+    [567399] = 97230,
+    [567458] = 97232,
+    [567488] = 4574,
+    [567505] = 9426,
+    [567446] = 9428,
+    [1030923] = 265765,
+    [1036067] = 233484,
+    [567094] = 126316,
+    [540523] = 257204, -- knocks
+    [540522] = 257206,
+    [2066499] = 136139,
+    [2066500] = 143936,
+    [2066498] = 172891,
+    [568154] = 242404,
+    [1514328] = 115443,
+    [3691975] = 156445,
+    [6684192] = 278769,
+    [1129273] = 128059, -- ship's bells
+    [1129274] = 243335,
+    [1838477] = 119140,
+}
+
+-- The kit a room's sound on entry plays as, nil for the plain file.
+function CH.SfxKit(zone)
+    return zone.tapering and CH.TAPERING[zone.sfx]
+end
+
+-- file id to name key, the ambience loops along with the sounds, and kit id
+-- to name key for the ambience that is a kit
+local soundKeys, kitKeys = {}, {}
 for _, list in ipairs({ CH.AMBIENCE, CH.SOUNDS }) do
     for _, sound in ipairs(list) do
-        soundKeys[sound.id] = sound.key
+        if sound.kit then
+            kitKeys[sound.kit] = sound.key
+        else
+            soundKeys[sound.id] = sound.key
+        end
     end
+end
+
+-- An ambience as the menu shows it. A kit says how many sounds it picks from.
+function CH.AmbienceName(index)
+    local sound = CH.AMBIENCE[index]
+    if sound.kit then
+        local key = sound.files == 1 and "AMB_KIT_ONE_X" or "AMB_KIT_X_SOUNDS"
+        return string.format(CH.L[key], CH.L[sound.key], sound.files)
+    end
+    return CH.L[sound.key]
 end
 
 -- Silence is a pick too, for a quiet room in a house with music or a house
@@ -372,6 +458,16 @@ CH.ECHO_MAX = 100
 
 function CH.IsEcho(n)
     return n == CH.WHOLE_HOUSE or (type(n) == "number" and n >= 1 and n <= CH.ECHO_MAX and n % 1 == 0)
+end
+
+-- A tapering echo's share of the volume, yards being the listener's distance
+-- from the room. Full at the room's wall, falling in a straight line to
+-- FADE_FLOOR at FADE_YARDS and staying there.
+local FADE_YARDS = 100
+local FADE_FLOOR = 0.1
+
+function CH.EchoVolume(yards)
+    return 1 - (1 - FADE_FLOOR) * math.min(yards, FADE_YARDS) / FADE_YARDS
 end
 
 function CH.EchoText(echo)
@@ -437,7 +533,9 @@ end
 -- room is the tone of the room you stand in, spot the bannerless room laid
 -- over it (a hearth, a fountain), sting a room's own sound file, preview the
 -- dialog's Test buton and a custom sound in the picker, echo a sting somebody
--- else set off elsewhere in the house. Each holds a file id.
+-- else set off elsewhere in the house. Each holds a file id, or a sound kit
+-- in kit (3.40.0) with the file it stands for, if any. volume is the echo's
+-- share of the channel's volume, which only a kit can take.
 local slots = {
     room = { channel = "Ambience" },
     spot = { channel = "Ambience" },
@@ -454,8 +552,20 @@ local slots = {
 local OVERLAP = 0.3
 local lengths = {}
 
+-- The game puts the channel's slider on top of volumeOverride (checked in
+-- game 2026-10-03), so it only carries the echo's share.
+local kitParams = {}
+
 local function Start(slot)
-    local willPlay, handle = PlaySoundFile(SHIPPED[slot.file] or slot.file, slot.channel)
+    local willPlay, handle
+    if slot.kit then
+        kitParams.soundKitID = slot.kit
+        kitParams.uiSoundSubType = slot.channel
+        kitParams.volumeOverride = slot.volume
+        willPlay, handle = C_Sound.PlaySoundWithOptions(kitParams)
+    else
+        willPlay, handle = PlaySoundFile(SHIPPED[slot.file] or slot.file, slot.channel)
+    end
     -- nil when the client refuses (sound off), so the ticker won't keep asking
     slot.handle = willPlay and handle or nil
     slot.started = GetTime()
@@ -475,7 +585,8 @@ local function Loop(slot)
         end
         return
     end
-    local len = lengths[slot.file]
+    -- A kit that repeats by itself never stops playing, so it never gets here.
+    local len = lengths[slot.lengthKey]
     if len then
         if played >= len - OVERLAP then
             StopSound(slot.handle, OVERLAP * 1000)
@@ -484,7 +595,7 @@ local function Loop(slot)
     elseif not C_Sound.IsPlaying(slot.handle) then
         -- the shortest ambience is 3 seconds, anything under 1 got cut off
         if played > 1 then
-            lengths[slot.file] = played
+            lengths[slot.lengthKey] = played
         end
         Start(slot)
     end
@@ -494,8 +605,9 @@ end
 -- the count over, once a counted sound has rung out (see CH.UpdateAmbience,
 -- walking back in while it still rings doesn't ring it twice). ringOut leaves a counted sound that is being replaced to end
 -- by itself, which a one-shot does anyway, where a loop has to be stopped.
-local function SetSlot(slot, file, plays, ringOut)
-    if slot.file == file then
+-- kit plays in the file's place, and an ambience kit has no file at all.
+local function SetSlot(slot, file, kit, plays, ringOut)
+    if slot.file == file and slot.kit == kit then
         if slot.handle then
             Loop(slot)
         end
@@ -507,17 +619,23 @@ local function SetSlot(slot, file, plays, ringOut)
         end
         slot.handle = nil
     end
-    slot.file = file
+    slot.file, slot.kit = file, kit
+    -- the same file can play as a kit too, and lengths keeps those appart
+    slot.lengthKey = kit and ("kit" .. kit) or file
     slot.left = plays and plays > 0 and plays or nil
-    if file then
+    if file or kit then
         Start(slot)
         WarnIfMuted(slot.channel)
     end
     CH.RefreshNowPlaying()
 end
 
-local function AmbienceFile(index)
-    return index and CH.AMBIENCE[index].id
+-- the file and the kit of an ambience, one of them nil
+local function AmbienceSound(index)
+    local sound = index and CH.AMBIENCE[index]
+    if sound then
+        return sound.id, sound.kit
+    end
 end
 
 -- Music goes through PlayMusic, which silences the game's own music, loops by
@@ -560,24 +678,32 @@ musicWatch:SetScript("OnEvent", function(_, _, cvar)
     end
 end)
 
--- What the bar's ticker shows. Hands back the track on the music slot and a
--- list of the other files heard. The list holds the room's ambience, the
+local function SlotName(slot)
+    if slot.kit and kitKeys[slot.kit] then
+        return CH.L[kitKeys[slot.kit]]
+    end
+    return slot.file and CH.SoundName(slot.file)
+end
+
+-- What the bar's ticker shows. Hands back the track on the music slot and the
+-- names of the other sounds heard. The list holds the room's ambience, the
 -- spot's over it and a room sound that loops. A sound being tried out stands
 -- in for the room's, which is quiet meanwhile. A sound on a count is over
 -- before anyone could read its name.
 function CH.NowPlaying()
     local sting = slots.sting
-    local files = {}
-    files[#files + 1] = slots.preview.file or slots.room.file
-    files[#files + 1] = slots.spot.file
-    files[#files + 1] = not sting.left and sting.file or nil
-    return music.playing, files
+    local preview = slots.preview
+    local names = {}
+    names[#names + 1] = SlotName((preview.file or preview.kit) and preview or slots.room)
+    names[#names + 1] = SlotName(slots.spot)
+    names[#names + 1] = not sting.left and SlotName(sting) or nil
+    return music.playing, names
 end
 
 -- Called from the zone ticker with the ambience index of the current room, of
 -- the bannerless room on top of it, the music id and a room's own sound file
--- with its play count, nil for none.
-function CH.UpdateAmbience(room, spot, musicID, sting, plays)
+-- with its play count and the kit it plays as, nil for none.
+function CH.UpdateAmbience(room, spot, musicID, sting, plays, stingKit)
     -- ambienceEnabled is the master mute, the three under it a kind each.
     local s = ChamberlainDB.settings
     local on = s.ambienceEnabled
@@ -594,23 +720,31 @@ function CH.UpdateAmbience(room, spot, musicID, sting, plays)
     local stingSlot = slots.sting
     local stingOn = on and s.soundRooms
     if not stingOn then
-        sting = nil
+        sting, stingKit = nil, nil
     elseif not sting and stingSlot.left and stingSlot.handle then
-        sting = stingSlot.file
+        sting, stingKit = stingSlot.file, stingSlot.kit
     end
     -- a sound being tried out is heard alone and the room's own come back after
-    if slots.preview.file then
+    local preview = slots.preview
+    if preview.file or preview.kit then
         room, spot = nil, nil
     end
-    SetSlot(slots.room, AmbienceFile(room))
-    SetSlot(slots.spot, AmbienceFile(spot))
-    SetSlot(stingSlot, sting, plays, stingOn)
+    local roomFile, roomKit = AmbienceSound(room)
+    local spotFile, spotKit = AmbienceSound(spot)
+    SetSlot(slots.room, roomFile, roomKit)
+    SetSlot(slots.spot, spotFile, spotKit)
+    SetSlot(stingSlot, sting, stingKit, plays, stingOn)
     -- keeps a running preview looping as well
-    SetSlot(slots.preview, slots.preview.file)
+    SetSlot(preview, preview.file, preview.kit)
     -- Same for an echo still playing out, and this is where the master mute
     -- cuts it short. Its own mutes are asked when it comes in (the ECHO handler
     -- in Sharing/Share.lua), since in the slot an echo and an arrival look alike.
-    SetSlot(slots.echo, on and slots.echo.file or nil)
+    local echo = slots.echo
+    if on then
+        SetSlot(echo, echo.file, echo.kit)
+    else
+        SetSlot(echo, nil)
+    end
     music.wanted = musicID
     ApplyMusic()
 end
@@ -618,9 +752,11 @@ end
 -- A room's sound set off by somebody else walking in, from the ECHO message
 -- (Sharing/Share.lua). Cleared first since the same bell rings again for the
 -- next visitor. A sound that loops for the one standing in it plays once here.
-function CH.PlayEcho(file, plays)
+-- A tapering one comes with its kit and the share of the volume it plays at.
+function CH.PlayEcho(file, plays, kit, volume)
     CH.StopEcho()
-    SetSlot(slots.echo, file, math.max(plays, 1))
+    slots.echo.volume = volume
+    SetSlot(slots.echo, file, kit, math.max(plays, 1))
 end
 
 -- Somebody at the front door (room 0 of the ECHO message). With the game's
@@ -656,15 +792,16 @@ function CH.PreviewMusic(id)
 end
 
 -- A sound file played for the owner to hear it, nil stops. Loops off the zone
--- ticker, so outside a house it plays once through.
-function CH.PreviewSound(file, channel)
+-- ticker, so outside a house it plays once through. kit plays in its place.
+function CH.PreviewSound(file, channel, kit)
     SetSlot(slots.preview, nil)
     -- on the channel it will play on in the room, so the volume is the same
     slots.preview.channel = channel or "Ambience"
-    SetSlot(slots.preview, file)
+    SetSlot(slots.preview, file, kit)
 end
 
 -- The room dialog's Test button.
 function CH.PreviewAmbience(index)
-    CH.PreviewSound(AmbienceFile(index))
+    local file, kit = AmbienceSound(index)
+    CH.PreviewSound(file, nil, kit)
 end

@@ -164,6 +164,11 @@ in short categories. A crowded tavern and a slow river are there, and so is
 Naxxramas.
 The sound fades in when you enter and fades out when you leave.
 
+The Repeating sounds group at the end of the menu is a bit different. Each pick
+is a set of game sounds, like ten ghost laughs. The game plays one of them,
+waits a few seconds and then plays another, for as long as you stay. The menu
+shows how many sounds are in each set.
+
 For a fireplace or a fountain, drop a small room on it, give it the sound and
 untick Banner. A room without a banner doesn't count as the room you are in.
 The hall around it keeps its banner and its own sound, and the fire plays on
@@ -202,6 +207,14 @@ the same window to a number of yards, or to Whole house. When somebody walks
 into that room, everybody in range hears its sound. Floors don't count for the
 range. Put a bell with Whole house on your entrance hall and you hear each
 guest arrive, even down in the cellar.
+
+The Tapering echoes group at the end of the sound list has 40 of the sounds a
+second time. Pick one from there and its echo gets quieter with distance. In
+the room and at its wall it plays at full volume, and at a tenth from 100 yards
+away. The game plays these
+copies its own way, so a few start a moment late or change pitch a little. That
+is why each one is also in the list as it was. A friend on an older version of
+Chamberlain hears the echo at full volume.
 
 The house can also have an arrival sound, the sound of your front door. Pick it
 with the Arrival button on the house map. It plays for everybody inside when

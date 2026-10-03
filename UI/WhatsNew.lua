@@ -32,6 +32,15 @@ end
 -- Refresh method.
 CH.WHATS_NEW = {
     {
+        v = "3.40.0",
+        notes = {
+            "Tapering echoes, a new group at the end of the entry sound list. An echo of one of "
+                .. "these sounds gets quieter with distance, down to a tenth from 100 yards away.",
+            "The Ambience menu has a new Repeating sounds group. Each one is a set of game sounds, like "
+                .. "ten ghost laughs, that the game plays one at a time with a short wait between them.",
+        },
+    },
+    {
         v = "3.39.0",
         notes = {
             "42 new banner styles in the Medallions group. The ring from the renown toast sits over "

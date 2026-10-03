@@ -345,14 +345,14 @@ playing:SetScript("OnHide", function()
 end)
 
 playing:SetScript("OnEnter", function(self)
-    local musicID, files = CH.NowPlaying()
+    local musicID, heard = CH.NowPlaying()
     GameTooltip:SetOwner(self, "ANCHOR_TOP")
     GameTooltip:SetText(CH.L["HUD_NOW_PLAYING"], unpack(CH.COLORS.tipGold))
     if musicID then
         GameTooltip:AddLine(CH.SoundName(musicID), 1, 1, 1)
     end
-    for _, file in ipairs(files) do
-        GameTooltip:AddLine(CH.SoundName(file), 0.8, 0.8, 0.8)
+    for _, name in ipairs(heard) do
+        GameTooltip:AddLine(name, 0.8, 0.8, 0.8)
     end
     GameTooltip:Show()
 end)
@@ -534,13 +534,13 @@ end
 local shown -- the text on the line, so only a real change fades in
 
 function CH.RefreshNowPlaying()
-    local musicID, files = CH.NowPlaying()
+    local musicID, heard = CH.NowPlaying()
     local pieces = {}
     if musicID then
         pieces[1] = "|cffFFD700" .. CH.SoundName(musicID, true) .. "|r"
     end
-    for _, file in ipairs(files) do
-        pieces[#pieces + 1] = CH.SoundName(file)
+    for _, name in ipairs(heard) do
+        pieces[#pieces + 1] = name
     end
     local text = table.concat(pieces, "   ")
     if text ~= shown then

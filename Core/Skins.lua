@@ -525,7 +525,7 @@ function CH.FillAmbienceMenu(desc, get, set)
         local sub = desc:CreateButton(label)
         for i, sound in ipairs(CH.AMBIENCE) do
             if sound.cat == cat then
-                sub:CreateRadio(CH.L[sound.key], function()
+                sub:CreateRadio(CH.AmbienceName(i), function()
                     return get() == i
                 end, function()
                     return PickAndPlay(set, i)

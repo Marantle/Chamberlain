@@ -28,6 +28,7 @@ local pendingMusic = nil -- music file id, nil = none
 local pendingSfx = nil -- file id of the sound on entry, nil = none
 local pendingSfxPlays = nil -- see SetPendingSfx
 local pendingEcho = nil -- how far the others hear the sound on entry, see CH.SendEcho
+local pendingTapering = nil -- the sound plays as its kit and its echo fades, see CH.TAPERING
 local pendingBannerStyle = nil -- the room's own banner style, nil for the house's
 
 -- Which floor the room sits on, and whether it doubles as a stair anchor.
@@ -729,11 +730,15 @@ end
 
 -- plays as in ReadRoomSounds (Sharing/Share.lua). The button shows a count as
 -- "x3" and an echo behind it.
-local function SetPendingSfx(id, plays, echo)
+local function SetPendingSfx(id, plays, echo, tapering)
     pendingSfx, pendingSfxPlays, pendingEcho = id, plays, id and echo
+    pendingTapering = id and tapering or nil
     local text = CH.L["RD_AMBIENCE_NONE"]
     if id then
         text = CH.SoundName(id, true)
+        if pendingTapering then
+            text = string.format(CH.L["MP_TAPERING_X"], text)
+        end
         if plays > 0 then
             text = text .. "  x" .. plays
         end
@@ -748,7 +753,7 @@ musicBtn:SetScript("OnClick", function()
     CH.OpenMusicPicker(pendingMusic, SetPendingMusic, DialogHouse())
 end)
 sfxBtn:SetScript("OnClick", function()
-    CH.OpenMusicPicker(pendingSfx, SetPendingSfx, DialogHouse(), true, pendingSfxPlays, pendingEcho)
+    CH.OpenMusicPicker(pendingSfx, SetPendingSfx, DialogHouse(), true, pendingSfxPlays, pendingEcho, pendingTapering)
 end)
 
 -- ── Banner tab ───────────────────────────────────────────────────────
@@ -946,7 +951,7 @@ local function FillSettings(zone)
     pendingAmbience = zone.ambience
     ambienceBtn:Refresh()
     SetPendingMusic(zone.music)
-    SetPendingSfx(zone.sfx, zone.sfxPlays, zone.echo)
+    SetPendingSfx(zone.sfx, zone.sfxPlays, zone.echo, zone.tapering)
     SetPendingVoice(zone.voice)
     UpdateHeadSelection()
     UpdateHeadIdHint()
@@ -970,6 +975,7 @@ local SAVED = {
     "sfx",
     "sfxPlays",
     "echo",
+    "tapering",
     "voice",
     "floor",
     "setFloor",
@@ -995,6 +1001,7 @@ local function Pending()
         sfx = pendingSfx,
         sfxPlays = pendingSfxPlays,
         echo = pendingEcho,
+        tapering = pendingTapering,
         voice = pendingVoice,
         floor = pendingFloor or 1,
         setFloor = pendingSetFloor,
@@ -1209,7 +1216,12 @@ ConfirmZone = function()
             -- pulls the whole map, where last in line it would have been
             -- stamped current without the sound.
             local changed = {}
-            if before.sfx ~= pendingSfx or before.sfxPlays ~= pendingSfxPlays or before.echo ~= pendingEcho then
+            if
+                before.sfx ~= pendingSfx
+                or before.sfxPlays ~= pendingSfxPlays
+                or before.echo ~= pendingEcho
+                or before.tapering ~= pendingTapering
+            then
                 changed[#changed + 1] = "sfx"
             end
             if before.ambience ~= pendingAmbience then
@@ -1221,6 +1233,7 @@ ConfirmZone = function()
             before.ambience, before.voice = pendingAmbience, pendingVoice
             before.music = pendingMusic
             before.sfx, before.sfxPlays, before.echo = pendingSfx, pendingSfxPlays, pendingEcho
+            before.tapering = pendingTapering
             if #changed > 0 and h.ownerGUID == ownerGUID and tCompare(before, renameTarget, 2) then
                 local target = "R" .. tIndexOf(h.zones, renameTarget)
                 for i, kind in ipairs(changed) do
@@ -1233,7 +1246,8 @@ ConfirmZone = function()
                         renameTarget[kind],
                         i > 1,
                         sfx and pendingSfxPlays or nil,
-                        sfx and pendingEcho or nil
+                        sfx and pendingEcho or nil,
+                        sfx and pendingTapering or nil
                     )
                     -- the next patch builds on this one
                     baseTs = h.updatedAt

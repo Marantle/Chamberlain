@@ -10,7 +10,9 @@ local _, CH = ...
 -- A room's sound on entry is picked here as well. Opened for sounds the list
 -- is the sound list under its headers and a typed number is offered as a sound
 -- by file id. Plays sets whether the pick loops or runs one to five times on
--- walking in, and Echo how far off the others in the house hear it.
+-- walking in, and Echo how far off the others in the house hear it. The
+-- sounds in CH.TAPERING show twice, as the file under their own header and as
+-- the kit under Tapering echoes, since the kit can sound a little different.
 
 local ROW_H = 18
 local MAX_ROWS = 200
@@ -31,6 +33,7 @@ win:EnableMouse(true) -- or clicks on the window would reach the catcher under i
 CH.SkinWindow(win, "MP_TITLE")
 
 local selected -- id of the clicked row, what the Use button hands back
+local tapering -- the clicked row is the kit copy of the sound, see CH.TAPERING
 local sounds -- true picking a sound on entry, "arrival" the house's arrival sound, music otherwise
 local plays -- 1 to 5, nil loops, sounds only
 local echo -- yards the others hear it from, CH.WHOLE_HOUSE or nil, sounds only
@@ -130,9 +133,9 @@ CH.Tip(btnNone, function()
 end)
 
 -- On the slot and channel the pick will play on in the room.
-local function Preview(id)
+local function Preview(id, taper)
     if sounds then
-        CH.PreviewSound(id, "SFX")
+        CH.PreviewSound(id, "SFX", taper and CH.TAPERING[id])
     else
         CH.PreviewMusic(id)
     end
@@ -162,19 +165,19 @@ local function Render()
                     plays = plays or 1
                     btnPlays:Refresh()
                 end
-                selected = self.id
-                Preview(selected)
+                selected, tapering = self.id, self.taper
+                Preview(selected, tapering)
                 Render()
             end)
             rows[i] = row
         end
-        row.id = track.id
+        row.id, row.taper = track.id, track.taper
         row.text:SetText(track.path)
         -- a row without an id is a section header
         row:EnableMouse(track.id ~= nil)
         if not track.id then
             row.text:SetTextColor(CH.RGBA(CH.COLORS.muted, 1))
-        elseif track.id == selected then
+        elseif track.id == selected and track.taper == tapering then
             row.text:SetTextColor(CH.RGBA(CH.COLORS.tipGold, 1))
         else
             row.text:SetTextColor(1, 1, 1)
@@ -203,7 +206,11 @@ end
 -- the hall is one click away for the next room.
 local function ListInUse()
     if selected and selected ~= CH.SILENCE then
-        results[#results + 1] = { id = selected, path = CH.SoundName(selected) }
+        local name = CH.SoundName(selected)
+        if tapering then
+            name = string.format(CH.L["MP_TAPERING_X"], name)
+        end
+        results[#results + 1] = { id = selected, taper = tapering, path = name }
     end
     local header
     for _, id in ipairs(CH.HousePicks(house, sounds and "sfx" or "music")) do
@@ -236,6 +243,27 @@ local function ListMusic(words)
     return #results - 1 -- less the Silence row
 end
 
+-- The kit copies, for a room's sound on entry only. The arrival sound has no
+-- echo to fade. With words typed only the names holding them are listed.
+local function ListTapering(words)
+    if sounds ~= true then
+        return
+    end
+    local searching = #words > 0
+    if not searching then
+        results[#results + 1] = { path = CH.L["MP_TAPERING"] }
+        results[#results + 1] = { path = "   " .. CH.L["MP_TAPERING_NOTE1"] }
+        results[#results + 1] = { path = "   " .. CH.L["MP_TAPERING_NOTE2"] }
+    end
+    for _, sound in ipairs(CH.SOUNDS) do
+        local name = CH.L[sound.key]
+        if CH.TAPERING[sound.id] and Matches(name:lower(), words) then
+            local path = searching and string.format(CH.L["MP_TAPERING_X"], name) or "   " .. name
+            results[#results + 1] = { id = sound.id, taper = true, path = path }
+        end
+    end
+end
+
 -- Sounds has the listed ones under their headers, or those whose name holds the
 -- typed words. A number is offered as a file of its own.
 local function ListSounds(words, text)
@@ -249,6 +277,7 @@ local function ListSounds(words, text)
                 end
             end
         end
+        ListTapering(words)
         return
     end
     local typedID = tonumber(text)
@@ -260,6 +289,7 @@ local function ListSounds(words, text)
             results[#results + 1] = { id = sound.id, path = CH.L[sound.key] }
         end
     end
+    ListTapering(words)
     return #results
 end
 
@@ -304,13 +334,13 @@ catcher:SetScript("OnHide", function()
 end)
 btnCancel:SetScript("OnClick", Close)
 
--- Hands back done(id), and for a sound done(id, plays, echo) with plays as in
--- ReadRoomSounds (Sharing/Share.lua).
+-- Hands back done(id), and for a sound done(id, plays, echo, tapering) with
+-- plays as in ReadRoomSounds (Sharing/Share.lua).
 local function Pick(id)
     local done = onPick
     Close()
     if sounds and id then
-        done(id, plays or 0, echo)
+        done(id, plays or 0, echo, tapering)
     else
         done(id)
     end
@@ -325,10 +355,12 @@ end)
 -- current is the id set right now or nil. done gets the new pick, nil for
 -- none, and closing any other way calls nothing. h is the house entry the pick
 -- is for. forSounds opens it for a room's sound on entry, currentPlays is its
--- count and currentEcho its echo. forSounds "arrival" is the same list for the
--- house's arrival sound, which has neither, so their controls stay away.
-function CH.OpenMusicPicker(current, done, h, forSounds, currentPlays, currentEcho)
+-- count, currentEcho its echo and currentTapering whether it's the kit copy.
+-- forSounds "arrival" is the same list for the house's arrival sound, which
+-- has none of the three, so their controls stay away.
+function CH.OpenMusicPicker(current, done, h, forSounds, currentPlays, currentEcho, currentTapering)
     selected = current
+    tapering = currentTapering
     onPick = done
     house = h
     sounds = forSounds

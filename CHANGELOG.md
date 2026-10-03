@@ -1,5 +1,22 @@
 # Changelog
 
+## 3.40.0
+- A new group at the end of the entry sound list, Tapering echoes. It has 40
+  of the game sounds from the list a second time. When one of them is a room's
+  echo, it gets quieter the farther away you are. In the room and at its wall
+  it plays at full volume, and at a tenth from 100 yards away.
+- Each sound is in the list twice, because the game plays the tapering copy
+  its own way. A few of them start a moment late or change pitch a little.
+- A friend on an older version hears a tapering echo at full volume, the same
+  as before.
+- Repeating sounds is a new group at the end of the Ambience menu. Each pick is
+  a set of game sounds, like ten ghost laughs or a run of chimes. The game
+  plays one sound from the set, waits a few seconds and plays another, for as
+  long as you are in the room. The menu shows how many sounds each set has.
+  These follow your Ambience volume.
+- A friend on an older version hears no ambience in a room that has a
+  repeating sound.
+
 ## 3.39.0
 - 42 new banner styles in a Medallions group. They use the ring from the
   toast the game shows when you reach a new renown level, at its full size so

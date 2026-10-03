@@ -303,15 +303,18 @@ local lastSentNotice = 0
 -- plays rides behind a room's sound and its echo behind that (3.13.0). See
 -- ReadRoomSounds. The reader splits on runs of |, so an empty field in the
 -- middle would pull the echo into the plays seat. A sound always has a count,
--- and without a sound both are left off.
-function CH.SendSoundPatch(houseGUID, kind, baseTs, target, value, quiet, plays, echo)
+-- and without a sound both are left off. tapering rides behind the echo as a
+-- 1 (3.40.0), and for it a room without an echo sends 0, which every version
+-- reads as none.
+function CH.SendSoundPatch(houseGUID, kind, baseTs, target, value, quiet, plays, echo, tapering)
     if not ChamberlainDB.myHouses[houseGUID] or not CanSend() then
         return
     end
     local h = ChamberlainDB.houses[houseGUID]
+    tapering = plays and tapering
     Send(
         string.format(
-            "%s|%s|%d|%d|%s|%s|%s|%s",
+            "%s|%s|%d|%d|%s|%s|%s|%s|%s",
             PATCH_TYPE[kind],
             houseGUID,
             baseTs or 0,
@@ -319,7 +322,8 @@ function CH.SendSoundPatch(houseGUID, kind, baseTs, target, value, quiet, plays,
             target,
             value or 0,
             plays or "",
-            plays and echo or ""
+            plays and (echo or tapering and 0) or "",
+            tapering and 1 or ""
         )
     )
     -- The map's ambience menu stays open for comparing and every click in it is
@@ -1009,6 +1013,7 @@ local function DeserializeLayout(b64)
                 sfx = sfx,
                 sfxPlays = sfxPlays,
                 echo = sfx and CH.IsEcho(z.ec) and z.ec or nil,
+                tapering = sfx and z.tp == true or nil,
                 -- past the end of the list the house's style shows instead
                 bannerStyle = CH.BANNER_IDS[z.bs],
                 -- Multi-floor (2.4.0): defaults to floor 1 so pre-floors blobs
@@ -1106,6 +1111,7 @@ function CH.ExportLayout(houseGUID)
             sx = z.sfx, -- sound on entry, any game file id (3.12.0)
             sn = z.sfxPlays, -- times it plays on walking in, 0 loops
             ec = z.echo, -- yards the others hear it from, CH.WHOLE_HOUSE for all (3.13.0)
+            tp = z.tapering, -- sx plays as its kit and the echo fades (3.40.0), see CH.TAPERING
             bs = CH.BANNER_ID[z.bannerStyle], -- the room's banner style over the house's (3.25.0)
             fl = z.floor, -- which floor the room is on (2.4.0; appended, old clients ignore)
             sf = z.setFloor, -- absolute stair anchor: stepping on sets this floor
@@ -1464,6 +1470,7 @@ function CH.HandleMessage(prefix, payload, channel, fullSender)
                 zone.sfx = CH.IsSoundID(value) and value or nil
                 zone.sfxPlays = zone.sfx and (ReadPlays(plays) or 0)
                 zone.echo = CH.IsEcho(echo) and echo or nil
+                zone.tapering = zone.sfx and parts[9] == "1" or nil
             else
                 local music, sfx, sfxPlays = ReadRoomSounds(value, plays)
                 zone.music = music
@@ -1475,7 +1482,7 @@ function CH.HandleMessage(prefix, payload, channel, fullSender)
                 kind = sfx and "sfx" or kind
             end
             if not zone.sfx then
-                zone.echo = nil
+                zone.echo, zone.tapering = nil, nil
             end
             stored = zone[kind]
             -- a secret room's name is not for the visitor's chat either
@@ -1545,11 +1552,18 @@ function CH.HandleMessage(prefix, payload, channel, fullSender)
             return
         end
         local x, y, mapID = CH.GetWorldPos()
-        if not zone or zone.echo == CH.WHOLE_HOUSE or (x and CH.DistanceToZone(zone, x, y, mapID) <= zone.echo) then
+        local yards = zone and x and CH.DistanceToZone(zone, x, y, mapID)
+        if not zone or zone.echo == CH.WHOLE_HOUSE or (yards and yards <= zone.echo) then
             echoHeard[sender .. n], roomHeard[n] = GetTime(), GetTime()
             Debug("ECHO heard:", zone and zone.name or "arrival", "from", sender)
             if zone then
-                CH.PlayEcho(file, zone.sfxPlays)
+                -- a whole house echo heard with no position plays at full
+                local kit = CH.SfxKit(zone)
+                local volume = kit and yards and CH.EchoVolume(yards)
+                -- the game puts the Effects and Master sliders on top of it
+                local heard = (volume or 1) * GetCVar("Sound_SFXVolume") * GetCVar("Sound_MasterVolume")
+                Debug("ECHO yards", yards, "kit", kit, "volume", volume, "heard at", heard)
+                CH.PlayEcho(file, zone.sfxPlays, kit, volume)
             else
                 CH.PlayArrival(file, sender)
             end

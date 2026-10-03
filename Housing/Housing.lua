@@ -810,7 +810,8 @@ function CH.CheckZones()
         spot and spot.ambience,
         CH.ResolveSound(h, "music", musicZone),
         sfxZone and sfxZone.sfx,
-        sfxZone and sfxZone.sfxPlays
+        sfxZone and sfxZone.sfxPlays,
+        sfxZone and CH.SfxKit(sfxZone)
     )
     -- The others in the house hear it too when the room has an echo. Dragging
     -- a room over yourself in the floor plan isn't walking in.
