@@ -142,7 +142,7 @@ selChip:SetPoint("LEFT", 7, 0)
 
 -- A copy of the picked room, half its size right and down on the map so it
 -- shows which is which. The copy keeps everything but the game room, which
--- only one room can hold, and the time spent in it.
+-- only one room can hold, its tour stop and the time spent in it.
 local dupBtn = IconButton("icon-copy", "TB_TT_DUPLICATE", 26, function()
     local z, guid = CH.tbSelZone, CH.tbSelGuid
     local h = z and guid and ChamberlainDB.houses[guid]
@@ -151,6 +151,7 @@ local dupBtn = IconButton("icon-copy", "TB_TT_DUPLICATE", 26, function()
     end
     local copy = CopyTable(z)
     copy.gameRoom = nil
+    copy.tourStop = nil
     copy.name = CH.FreeName(h, string.format(CH.L["TB_COPY_NAME_X"], z.name))
     -- right and down on the map is lower X and Y, as the map's X runs mirrored
     local dx, dy = (z.maxX - z.minX) * 0.5, (z.maxY - z.minY) * 0.5

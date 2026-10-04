@@ -10,6 +10,7 @@ consentDialog:SetFrameStrata("FULLSCREEN_DIALOG")
 consentDialog:SetPoint("TOP", UIParent, "TOP", 0, -220)
 CH.SkinWindow(consentDialog, "SUI_TITLE_LAYOUT_REQUEST", true)
 consentDialog:Hide()
+CH.consentDialog = consentDialog -- for Showcase, like the two below
 -- Not in UISpecialFrames, so Escape can't close it. A close there sent no
 -- answer and left the asker waiting.
 
@@ -89,6 +90,7 @@ acceptDialog:SetFrameStrata("FULLSCREEN_DIALOG")
 acceptDialog:SetPoint("TOP", UIParent, "TOP", 0, -220)
 CH.SkinWindow(acceptDialog, "SUI_TITLE_SHARED_LAYOUT", true)
 acceptDialog:Hide()
+CH.acceptDialog = acceptDialog
 -- Not in UISpecialFrames either. Escape used to drop the offer on screen and
 -- leave the rest of the queue waiting behind a dialog nobody could see.
 
@@ -390,6 +392,7 @@ exportDialog:SetPoint("CENTER")
 CH.SkinWindow(exportDialog, "SUI_TITLE_LAYOUT_STRING", true)
 exportDialog:Hide()
 table.insert(UISpecialFrames, "ChamberlainExportDialog")
+CH.exportDialog = exportDialog
 
 local exportHint = exportDialog:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 exportHint:SetPoint("TOP", 0, -30)

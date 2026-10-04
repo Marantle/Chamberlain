@@ -1,6 +1,6 @@
 local ADDON, CH = ...
 
-CH.VERSION = "3.40.0"
+CH.VERSION = "3.41.0"
 
 -- How often the zone ticker samples your position, in seconds. Drives stair
 -- detection and the per-room time stats both, so they stay in step if it changes.
@@ -189,8 +189,8 @@ events:SetScript("OnEvent", function(_, event, arg1)
             ChamberlainDB.settings.echoRoomWait = 0
         end
         -- Personal text-to-speech defaults (local only, voiceFemale/voiceMale stay
-        -- nil until the player picks them). When enabled, these read rooms shared
-        -- to you that have no voice of their own. See CH.ResolveZoneVoice.
+        -- nil until the player picks them). When enabled, these read rooms with
+        -- no voice of their own, in any house. See CH.ResolveZoneVoice.
         if ChamberlainDB.settings.voiceDefaultsEnabled == nil then
             ChamberlainDB.settings.voiceDefaultsEnabled = false
         end
@@ -266,6 +266,14 @@ events:SetScript("OnEvent", function(_, event, arg1)
         -- minimap rooms up through Hide UI in a house. Off to start with. (3.38.0)
         if ChamberlainDB.settings.keepOnScreen == nil then
             ChamberlainDB.settings.keepOnScreen = false
+        end
+        -- Showcase, the eye's name since 3.41.0, picks which of them stay.
+        -- All of them to start with, as before, but the bar, the House panel
+        -- and the sharing windows.
+        for _, e in ipairs(CH.SHOWCASE) do
+            if ChamberlainDB.settings[e.key] == nil then
+                ChamberlainDB.settings[e.key] = not e.off
+            end
         end
         -- Draw stair anchors as boxes on the floor plan, on by default. Its "Show
         -- stairs" checkbox turns them into icons alone.
@@ -392,9 +400,15 @@ events:SetScript("OnEvent", function(_, event, arg1)
             -- and the house plaque above the banner, clear of the first room's name
             ChamberlainDB.plaqueY = math.floor(UIParent:GetHeight() * 0.36)
         end
+        if ChamberlainDB.tourY == nil then
+            -- the tour card off to the right of the banner, level with it
+            ChamberlainDB.tourX = math.floor(UIParent:GetWidth() * 0.32)
+            ChamberlainDB.tourY = math.floor(UIParent:GetHeight() * 0.25)
+        end
         CH.ApplyBannerPos()
         CH.ApplyTalkingHeadPos()
         CH.ApplyPlaquePos()
+        CH.ApplyTourPos()
         C_Timer.NewTicker(CH.ZONE_TICK, CH.CheckZones)
         -- registered this late so no answer runs CheckHousingState before the
         -- login setup above
@@ -434,7 +448,10 @@ SlashCmdList["CH"] = function(msg)
         ChamberlainDB.thY = math.floor(UIParent:GetHeight() * 0.12)
         ChamberlainDB.plaqueX = 0
         ChamberlainDB.plaqueY = math.floor(UIParent:GetHeight() * 0.36)
+        ChamberlainDB.tourX = math.floor(UIParent:GetWidth() * 0.32)
+        ChamberlainDB.tourY = math.floor(UIParent:GetHeight() * 0.25)
         CH.ApplyHUDPos()
+        CH.ApplyTourPos()
         CH.ResetMapPos()
         CH.ApplyBannerPos()
         CH.ApplyPlaquePos()
@@ -453,6 +470,10 @@ SlashCmdList["CH"] = function(msg)
         CH.OpenFloorPlan()
     elseif cmd == "archive" then
         CH.OpenArchive()
+    elseif cmd == "tour" then
+        CH.ToggleTour()
+    elseif cmd == "automap" then
+        CH.OpenAutoMap()
     elseif cmd == "whatsnew" or cmd == "changes" then
         CH.OpenWhatsNew()
     elseif cmd == "fixer" then
@@ -475,6 +496,8 @@ SlashCmdList["CH"] = function(msg)
         print(CH.L["CMD_HELP_MANAGE"])
         print(CH.L["CMD_HELP_FLOOR"])
         print(CH.L["CMD_HELP_ARCHIVE"])
+        print(CH.L["CMD_HELP_TOUR"])
+        print(CH.L["CMD_HELP_AUTOMAP"])
         print(CH.L["CMD_HELP_SETTINGS"])
         print(CH.L["CMD_HELP_RESET"])
         print(CH.L["CMD_HELP_HUD"])

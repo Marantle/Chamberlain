@@ -46,8 +46,15 @@ local function Follow(room)
     if CH.ZoneContains(z, x, y) then
         return
     end
+    -- a moved entrance has no door to go on, only the grid
     local first = watch.spots[1]
-    if CH.FitToOpenDoor(h, z, first[1], first[2], watch.spots) then
+    local moved
+    if watch.grid then
+        moved = CH.FitOnGrid(z, watch.spots)
+    else
+        moved = CH.FitToOpenDoor(h, z, first[1], first[2], watch.spots)
+    end
+    if moved then
         Mark(z)
         CH.TouchHouse(CH.currentHouseGUID)
     end
@@ -56,37 +63,6 @@ end
 local function IsStairwell(z)
     local def = z.shape and CH.SHAPES[z.shape]
     return def and def.art ~= nil
-end
-
--- The game's lowest and highest floor in our numbering, where the floor with
--- its base room is 1. Only a house of your own answers.
-local function GameFloors()
-    local layout = C_HousingLayout
-    local lo, hi = layout.GetLowestOccupiedFloorIndex(), layout.GetHighestOccupiedFloorIndex()
-    local base = layout.GetBaseRoomFloor()
-    if lo and hi and base then
-        return lo - base + 1, hi - base + 1
-    end
-end
-
--- Whether a stairwell just placed is the top end of its flight, which says
--- where its other end goes. The ground floor is always the foot. A stairwell
--- already mapped under it, or the game's top floor, makes it the top, and
--- anywhere else it's taken for the foot. Its door is the same at both ends,
--- so this can wait until it's on its door.
-local function AtTop(h, z)
-    local floor = z.floor or 1
-    if floor <= 1 then
-        return false
-    end
-    local cx, cy = CH.ZoneCentre(z)
-    for _, o in ipairs(h.zones) do
-        if (o.floor or 1) == floor - 1 and IsStairwell(o) and CH.ZoneContains(o, cx, cy) then
-            return true
-        end
-    end
-    local _, last = GameFloors()
-    return last ~= nil and floor >= last
 end
 
 local function RoomAt(h, floor, x, y)
@@ -130,18 +106,22 @@ local function AddLoft(h, z, box)
     table.insert(h.zones, loft)
 end
 
--- The same stairwell on the floor its steps lead to. On the ground floor that
--- is always the one above, added to the map if need be, since the steps can
--- only go up from there. Higher up it goes where the game has a floor.
+-- The same stairwell on the floors its steps may lead to. On the ground floor
+-- that is the one above, added to the map if need be, since the steps can
+-- only go up from there. Higher up a stairwell can be either end of its
+-- flight and nothing tells which, so it goes on the floor below and the one
+-- above both, and the wrong one is deleted by hand. Before 3.41.0 a guess
+-- picked one end. The one above only goes on a floor the map
+-- already has, so the top floor adds no new one. The game's own floor count
+-- was asked before that, and out of the layout editor it answers 99, 0, 0.
+-- A floor that has a room there is left alone, so a stairwell already mapped
+-- there stays one.
 local function OtherEnd(h, z)
-    if z.floor <= 1 then
-        CopyStairwell(h, z, 2)
-        return
+    if z.floor > 1 then
+        CopyStairwell(h, z, z.floor - 1)
     end
-    local first, last = GameFloors()
-    local other = z.floor + (AtTop(h, z) and -1 or 1)
-    if first and other >= math.max(first, 1) and other <= last then
-        CopyStairwell(h, z, other)
+    if z.floor <= 1 or z.floor < (h.floorCount or 1) then
+        CopyStairwell(h, z, z.floor + 1)
     end
 end
 
@@ -157,6 +137,13 @@ function CH.AddStairwellNextTo(z, step)
     else
         CH.TouchHouse(CH.currentHouseGUID)
     end
+end
+
+local home = {} -- the entrance where the game first builds it
+
+-- The catalog record in a game room's id, Housing-2-<record>-<slot>, or nil.
+function CH.RoomRecord(room)
+    return room and tonumber(room:match("^Housing%-%d+%-(%d+)%-"))
 end
 
 -- Drops the room and returns nothing, or returns the chat line that says why
@@ -189,13 +176,24 @@ local function Drop(auto)
         end
     end
 
-    -- The Entry's spot is known exactly, so it goes on any map, auto or not,
-    -- unless a room on the ground floor already covers that spot.
-    local record = tonumber(room:match("^Housing%-%d+%-(%d+)%-"))
+    -- The Entry's own spot is known exactly, so standing in it the entrance
+    -- goes there on any map, auto or not, unless a room on this floor already
+    -- covers it. Standing anywhere else the owner moved it, and it goes on the
+    -- grid where you stand, followed like any other drop. Either way on the
+    -- floor you're on, since it can be moved to another.
+    local record = CH.RoomRecord(room)
     if record == CH.ENTRY_ROOM then
+        local w, hh = CH.ShapeSize("closet", 0)
+        CH.BoxAbout(home, CH.ENTRANCE_X, CH.ENTRANCE_Y, w, hh)
+        if not CH.ZoneContains(home, x, y) then
+            local z = CH.AddEntrance(room, x, y)
+            watch = { zone = z, room = room, spots = { { x, y } }, grid = true }
+            Mark(z)
+            return "TB_ENTRANCE_MOVED"
+        end
         for _, z in ipairs(h.zones) do
             local here = CH.ZoneContains(z, CH.ENTRANCE_X, CH.ENTRANCE_Y)
-            if CH.IsRoom(z) and (z.floor or 1) == 1 and z.mapID == mapID and here then
+            if CH.IsRoom(z) and (z.floor or 1) == floor and z.mapID == mapID and here then
                 return "TB_SMART_TAKEN_X", z.name
             end
         end
@@ -240,6 +238,7 @@ local function Drop(auto)
         watch = { zone = z, room = room, spots = spots }
         Mark(z)
     end
+    CH.AutoMapPlaced(z)
 end
 
 function CH.SmartDrop()
@@ -286,6 +285,13 @@ function CH.SmartDropCheck(room)
         tryRoom, tryX, tryY = room, x, y
     end
     local key, arg = Drop(true)
+    -- no open door in reach most often means a room before this one went
+    -- down turned the wrong way, so the guide says how to put it right
+    if key == "TB_SMART_NO_FIT_X" then
+        CH.AutoMapStuck()
+    elseif key == "TB_SMART_UNKNOWN_X" then
+        CH.AutoMapStuck("AM_HINT_UNKNOWN_X", arg)
+    end
     if RETRY[key] then
         return
     elseif key and not QUIET[key] then
@@ -305,4 +311,19 @@ function CH.StopAutoMap()
     CH.autoMap = false
     doneRoom, tryRoom, watch = nil, nil, nil
     wipe(told)
+    CH.RefreshAutoMapWelcome()
+end
+
+-- The map's button and the welcome window both turn it on and off here, so
+-- each shows what the other did.
+function CH.SetAutoMap(on)
+    if on then
+        CH.autoMap = true
+        CH.RefreshAutoMapWelcome()
+    else
+        CH.StopAutoMap()
+    end
+    if CH.FP.autoBtn:IsShown() then
+        CH.SetButtonActive(CH.FP.autoBtn, CH.autoMap)
+    end
 end

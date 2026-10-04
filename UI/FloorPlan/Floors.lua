@@ -318,10 +318,12 @@ function FP.RefreshFloorControls(h)
     FP.snapBtn:SetShown(tools)
     FP.autoBtn:SetShown(tools)
 
-    -- a side panel holds the map where it is until it closes
+    -- a side panel holds the map where it is until it closes, but one that
+    -- picks rooms off the map (the Tour panel) still pages through the floors
     local free = FP.panel == nil
+    local browse = free or FP.panel.onTile ~= nil
     for _, b in ipairs(row) do
-        b:SetEnabled(free)
+        b:SetEnabled(browse and (free or (b ~= addFloorBtn and b ~= removeFloorBtn)))
     end
     for _, b in ipairs({ moveBtn, ambienceBtn, musicBtn, arrivalBtn, FP.snapBtn, FP.autoBtn }) do
         b:SetEnabled(free)

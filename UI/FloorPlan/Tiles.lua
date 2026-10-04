@@ -192,6 +192,36 @@ function FP.PaintTile(border, fill, zone, i, selected, stairBoxes)
     return marker, boxed, r, g, b
 end
 
+-- The next stop of a tour is washed in gold and breathes, so it's found at a
+-- glance on both maps, the small minimap above all. The fill fades in and out
+-- over the gold border under it. Called after PaintTile, whose fill it
+-- takes over. An animation, so nothing runs per frame of ours, and it's only
+-- made for a tile that once was the next stop.
+function FP.PulseTile(t, on)
+    if on then
+        t.fill:SetColorTexture(Wash(1, 0.82, 0.10, 0.55))
+    end
+    if on and not t.pulse then
+        t.pulse = t.fill:CreateAnimationGroup()
+        t.pulse:SetLooping("BOUNCE")
+        local fade = t.pulse:CreateAnimation("Alpha")
+        fade:SetFromAlpha(1)
+        fade:SetToAlpha(0.35)
+        fade:SetDuration(0.7)
+        fade:SetSmoothing("IN_OUT")
+    end
+    if not t.pulse then
+        return
+    end
+    if on then
+        if not t.pulse:IsPlaying() then
+            t.pulse:Play()
+        end
+    else
+        t.pulse:Stop()
+    end
+end
+
 -- The stairs or sound icon for a tile t, made on owner the first time and
 -- centred on at. t keeps the icon and the svg it holds.
 function FP.SetTileIcon(t, owner, at, marker)
@@ -295,29 +325,40 @@ function FP.MakeRoomSample(parent, zone, size)
     return f
 end
 
+local tourRanks -- the stop numbers this build writes, see FP.TourRanks
+
 -- Paint a house map tile for its zone and set its label. Returns the room
 -- colour so the caller can keep it for tooltips. The name is pale so it reads
 -- on any colour. f.iconOnly says the tile is an icon and nothing more.
 local function StyleTile(f, zone, i, selected, stairBoxes)
     FP.SetTileShape(f, zone)
+    -- the next stop of a tour is ringed like a pick, thicker and breathing
+    local nextStop = CH.IsTourNext(zone)
+    selected = selected or nextStop
     -- A selected tile gets a 2px gold ring. The fill sits 2px in so the border
     -- texture shows through. The pool reuses frames, so the inset goes back to
     -- 1px otherwise.
-    local inset = selected and 2 or 1
+    local inset = nextStop and 3 or selected and 2 or 1
     f.fill:ClearAllPoints()
     f.fill:SetPoint("TOPLEFT", f, "TOPLEFT", inset, -inset)
     f.fill:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -inset, inset)
     local marker, boxed, r, g, b = FP.PaintTile(f.border, f.fill, zone, i, selected, stairBoxes)
+    FP.PulseTile(f, nextStop)
     f.iconOnly = marker ~= nil and not boxed
     FP.SetTileIcon(f, f, f, marker)
     local h = FP.CurrentHouse()
     FP.SetTileStairs(f, f, zone, h and h.zones or {}, r, g, b)
 
     -- a marker's name is in its tooltip
-    f.label:SetText(marker and "" or zone.name)
+    local stop = tourRanks and tourRanks[zone]
+    f.label:SetText(marker and "" or stop and string.format(CH.L["TOUR_STOP_NAME_X"], stop, zone.name) or zone.name)
     f.label:SetTextColor(0.95, 0.92, 0.85, 1)
-    -- the room a side panel works on stands out from the rest
+    -- the room a side panel works on stands out from the rest, and so do the
+    -- stops a tour still has to show
     local a = FP.editZone and FP.editZone ~= zone and 0.4 or 1
+    if CH.TourSeen(FP.HouseGUID(), zone) then
+        a = 0.5
+    end
     f:SetAlpha(a)
     f.label:SetAlpha(a)
     return r, g, b
@@ -422,7 +463,7 @@ local function ShowZoneTooltip(owner, name, dim, timeSpent, r, g, b)
         GameTooltip:AddLine(string.format(CH.L["FP_TIME_HERE_X"], CH.FormatDuration(timeSpent)), 0.7, 0.7, 0.7)
     end
     if FP.panel then
-        GameTooltip:AddLine(CH.L["FP_EDITING_TIP"], 0.5, 0.5, 0.5, true)
+        GameTooltip:AddLine(CH.L[FP.panel.tip or "FP_EDITING_TIP"], 0.5, 0.5, 0.5, true)
     end
     GameTooltip:Show()
 end
@@ -479,6 +520,16 @@ local function GetZoneFrame(i)
     -- second click on the room just picked opens it in the editor.
     f:SetScript("OnMouseDown", function(self)
         if FP.panel then
+            -- the Tour panel takes the room under the cursor and any other
+            -- panel holds
+            if FP.panel.onTile then
+                local house = FP.CurrentHouse()
+                for _, idx in ipairs(ZonesAtCursor()) do
+                    if FP.panel.onTile(house.zones[idx]) then
+                        break
+                    end
+                end
+            end
             return
         end
         if not FP.CanEdit() then
@@ -833,6 +884,7 @@ function FP.Build()
 
     local selectedIdx = FP.selectedIdx
     local stairBoxes = ChamberlainDB.settings.showStairsOnMap
+    tourRanks = FP.TourRanks(h)
     local zones = h.zones
     local low, high = FP.Level("tiles"), FP.Level("tilesMax")
 

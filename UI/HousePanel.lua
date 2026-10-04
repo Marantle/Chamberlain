@@ -21,6 +21,7 @@ CH.MakeDraggable(win)
 CH.SkinWindow(win, "HP_TITLE", true)
 win:Hide()
 table.insert(UISpecialFrames, "ChamberlainHouse")
+CH.housePanel = win -- for Showcase
 
 local closeBtn = CH.MakeGlyphButton(win, "x")
 closeBtn:SetPoint("TOPRIGHT", -4, -4)
@@ -175,6 +176,20 @@ silenceBtn:SetScript("OnClick", function()
 end)
 refreshers[#refreshers + 1] = function()
     silenceBtn:SetShown(CH.GetHouseSound(guid, "music") == nil)
+end
+
+-- The tour is set in the house map, which only edits the house you stand in.
+local tourRow = Row("HP_TOUR", "HP_HINT_TOUR")
+local tourBtn = Control(tourRow)
+tourBtn:SetScript("OnClick", function()
+    win:Hide()
+    CH.OpenTourPanel()
+end)
+local tourStops = {}
+refreshers[#refreshers + 1] = function()
+    local n = #CH.TourStops(House(), tourStops)
+    tourBtn:SetText(n > 0 and string.format(CH.L["HP_TOUR_X"], n) or CH.L["HP_TOUR_SET_UP"])
+    tourBtn:SetEnabled(guid == CH.currentHouseGUID and CH.isOwnHouse)
 end
 
 -- without a height the body has no rect and nothing hung off it gets drawn

@@ -63,12 +63,15 @@ local function NavButton(key, icon, w)
     return b
 end
 
-local btnBuild = NavButton("HUD_BUILD", "icon-build", 70)
 local btnMap = NavButton("HUD_MAP", "icon-map", 64)
 local btnHouse = NavButton("HUD_HOUSE_BUTTON", "icon-seal", 72)
 local btnArchive = NavButton("HUD_ARCHIVE", "icon-map", 76)
 local btnSharing = NavButton("HUD_SHARING", "icon-share", 80)
-local rowButtons = { btnBuild, btnMap, btnHouse, btnArchive, btnSharing }
+local btnTour = NavButton("HUD_TOUR", "icon-book", 64)
+local rowButtons = { btnMap, btnHouse, btnArchive, btnSharing, btnTour }
+
+-- A tour of one room is no tour, so your own Tour button waits for two.
+local TOUR_MIN_ROOMS = 2
 
 local function MakeHeaderIcon(texture)
     local b = CreateFrame("Button", nil, hud)
@@ -106,9 +109,6 @@ btnNotes:SetScript("OnHide", function()
     blink:Stop()
 end)
 
-btnBuild:SetScript("OnClick", function()
-    CH.ToggleToolbox()
-end)
 btnSharing:SetScript("OnClick", function()
     CH.ToggleRoomManager()
 end)
@@ -125,8 +125,10 @@ function CH.SetSharingDot(on)
     sharingDot:SetShown(on)
 end
 
+-- Map and Build were one button each until 3.41.0. The map opens with the
+-- build rail out, and on a map you can't edit the house card is there instead.
 btnMap:SetScript("OnClick", function()
-    CH.ToggleFloorPlan()
+    CH.ToggleToolbox()
 end)
 btnArchive:SetScript("OnClick", function()
     CH.ToggleArchive()
@@ -134,11 +136,20 @@ end)
 btnHouse:SetScript("OnClick", function()
     CH.ToggleHousePanel()
 end)
+-- In your own house it sets the tour up, anywhere else it takes it. A tour
+-- running in your own house, from Try it, stops first.
+btnTour:SetScript("OnClick", function()
+    if CH.isOwnHouse and not CH.TouringHere(CH.currentHouseGUID) then
+        CH.OpenTourPanel()
+        return
+    end
+    CH.ToggleTour()
+end)
 btnSettings:SetScript("OnClick", function()
     CH.ToggleSettings()
 end)
 
--- The eye, see Keep on screen at the end of the file.
+-- The eye turns Showcase on and off, see the end of the file.
 local btnKeep = CH.MakeGlyphButton(hud, nil, "icon-eye-off")
 btnKeep:SetSize(16, 16)
 btnKeep:SetPoint("RIGHT", btnSettings, "LEFT", -4, 0)
@@ -151,6 +162,7 @@ btnKeep:SetScript("OnClick", function()
     ChamberlainDB.settings.keepOnScreen = not ChamberlainDB.settings.keepOnScreen
     PaintKeep()
     CH.RefreshKeepOnScreen()
+    CH.RefreshSettingsTab()
 end)
 
 local function GoldKey(key)
@@ -360,11 +372,16 @@ playing:SetScript("OnLeave", function()
     GameTooltip:Hide()
 end)
 
-CH.Tip(btnBuild, "HUD_TT_BUILD")
 CH.Tip(btnMap, "HUD_TT_MAP")
 CH.Tip(btnHouse, "HUD_HOUSE")
 CH.Tip(btnArchive, "HUD_TT_ARCHIVE")
 CH.Tip(btnSharing, "HUD_TT_SHARING")
+CH.Tip(btnTour, function()
+    if CH.TouringHere(CH.currentHouseGUID) then
+        return "HUD_TT_TOUR_STOP"
+    end
+    return CH.isOwnHouse and "HUD_TT_TOUR_OWN" or "HUD_TT_TOUR"
+end)
 CH.Tip(btnNotes, "HUD_TT_NOTES")
 CH.Tip(btnSettings, "HUD_TT_SETTINGS")
 CH.Tip(btnSound, "HUD_TT_SOUND")
@@ -579,9 +596,9 @@ function CH.RefreshHUDMode()
     if CH.isOwnHouse then
         -- House waits for the game to say which house this is, up to a few
         -- seconds after a reload, since the panel files everything under it
-        buttons = { btnBuild, btnMap }
+        buttons = { btnMap }
         if guid then
-            buttons[3] = btnHouse
+            buttons[2] = btnHouse
         end
         buttons[#buttons + 1] = btnSharing
         if CH.ArchiveWaiting(guid) then
@@ -591,6 +608,15 @@ function CH.RefreshHUDMode()
         buttons = { btnMap, btnSharing }
     else
         buttons = { btnSharing }
+    end
+    -- Tour sits before Sharing. The owner gets it once the map has enough
+    -- rooms to make a tour of, a visitor once there is a tour to take. Lit
+    -- while one runs, and a click ends it.
+    local touring = CH.TouringHere(guid)
+    local ownTour = CH.isOwnHouse and h and CH.RoomCount(h.zones) >= TOUR_MIN_ROOMS
+    if touring or ownTour or CH.CanStartTour(guid) then
+        table.insert(buttons, tIndexOf(buttons, btnSharing), btnTour)
+        CH.SetButtonActive(btnTour, touring)
     end
     -- The header's icons run from the gear leftward, the eye always next to
     -- it. The speaker joins in a house with sounds and the note while update
@@ -642,17 +668,43 @@ function CH.ToggleHud()
 end
 
 -- ─────────────────────────────────────────────────────────────────────
--- Keep on screen  (our frames stay up when the player hides the UI)
+-- Showcase  (our frames stay up when the player hides the UI)
 -- ─────────────────────────────────────────────────────────────────────
 -- Hide UI hides UIParent and everything on it. With the eye on, inside a
 -- house, our frames move to a holder on WorldFrame until the UI comes back.
--- Of the minimap only our rooms go, and only while Rooms on the minimap is
--- on, so the game's own minimap stays hidden with the rest.
+-- The game's minimap goes along with our rooms as one switch (3.41.0), its
+-- ring, zoom buttons and wheel with it, since they're its children and it's
+-- no protected frame. Our rooms stay one level under it as they are on
+-- screen, and the deep zoom steps keep working off its wheel. It was called
+-- keep on screen until it got a name and its own Settings page in 3.41.0,
+-- where each frame has a switch.
 
 local holder = CreateFrame("Frame", nil, WorldFrame)
 holder:SetAllPoints()
 
-local kept -- frame -> what it had before the move, nil while nothing is kept
+-- The frame on CH and the setting that keeps it, on to start with unless
+-- off says so. frames is for one switch over a few, like the sharing
+-- windows. The minimap rooms load after this file, so the frames are looked
+-- up when it runs.
+CH.SHOWCASE = {
+    { frame = "banner", key = "showcaseBanner", label = "SET_SHOWCASE_BANNER" },
+    { frame = "plaque", key = "showcasePlaque", label = "SET_SHOWCASE_PLAQUE" },
+    { frame = "talkingHead", key = "showcaseTalkingHead", label = "SET_SHOWCASE_TALKING_HEAD" },
+    { frame = "tourCard", key = "showcaseTourCard", label = "SET_SHOWCASE_TOUR_CARD" },
+    { frames = { "minimapRooms", "gameMinimap" }, key = "showcaseMinimap", label = "SET_SHOWCASE_MINIMAP" },
+    { frame = "hud", key = "showcaseBar", label = "SET_SHOWCASE_BAR", off = true },
+    { frame = "floorPlan", key = "showcaseMap", label = "SET_SHOWCASE_MAP" },
+    { frame = "autoMapGuide", key = "showcaseAutoMap", label = "SET_SHOWCASE_AUTO_MAP" },
+    { frame = "housePanel", key = "showcaseHousePanel", label = "SET_SHOWCASE_HOUSE_PANEL", off = true },
+    {
+        frames = { "roomManager", "consentDialog", "acceptDialog", "exportDialog" },
+        key = "showcaseSharing",
+        label = "SET_SHOWCASE_SHARING",
+        off = true,
+    },
+}
+
+local kept = {} -- frame -> what it had before the move
 
 -- WorldFrame doesn't take the UI scale, so each frame's own scale makes up
 -- the difference. SetParent hands over the holder's strata and level, so
@@ -673,25 +725,23 @@ local function Return(f, was)
     f:SetFrameLevel(was[4])
 end
 
--- Leaving the house with the UI hidden puts everything back under UIParent.
+-- Leaving the house with the UI hidden puts everything back under UIParent,
+-- and a switch flipped in Settings moves just that one frame.
 function CH.RefreshKeepOnScreen()
-    local want = ChamberlainDB.settings.keepOnScreen and C_Housing.IsInsideHouse() and not UIParent:IsShown()
-    if want == (kept ~= nil) then
-        return
-    end
-    if want then
-        kept = {}
-        -- the minimap rooms load after this file, so the list is made here
-        for _, f in ipairs({ CH.banner, CH.talkingHead, CH.plaque, CH.minimapRooms }) do
-            Keep(f)
+    local s = ChamberlainDB.settings
+    local on = s.keepOnScreen and C_Housing.IsInsideHouse() and not UIParent:IsShown()
+    for _, e in ipairs(CH.SHOWCASE) do
+        local want = on and s[e.key]
+        for _, name in ipairs(e.frames or { e.frame }) do
+            local f = CH[name]
+            if want and not kept[f] then
+                Keep(f)
+            elseif not want and kept[f] then
+                Return(f, kept[f])
+                kept[f] = nil
+            end
         end
-    else
-        for f, was in pairs(kept) do
-            Return(f, was)
-        end
-        kept = nil
     end
-    CH.KeepMinimapRooms(want)
 end
 
 UIParent:HookScript("OnHide", CH.RefreshKeepOnScreen)

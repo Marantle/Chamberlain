@@ -38,10 +38,13 @@ you, and the arrows under it push and pull one wall at a time. The other shapes
 keep their shape and grow or shrink as a whole. You can also drag the grips of
 the room on the house map.
 
-A house with no map yet starts easy. The empty house map has an Add the
-entrance button, and it puts the entrance closet exactly where the game has
+A house with no map yet starts easy. The empty house map has an Add default
+entrance button, and it puts the entrance exactly where the game first builds
 it, the spot you stand in when you walk in. Every other room can snap on from
-there. With Snap on, a room you drop from the toolbox goes straight onto the
+there. If you moved your entrance, stand in the middle of it and use Smart
+drop or Auto map instead. It goes on the grid where you stand, and walking
+from one of its doors to the other turns it to fit if it guessed wrong.
+With Snap on, a room you drop from the toolbox goes straight onto the
 nearest open door, turned whichever way puts it closest to you. A door more
 than 50 yards away is too far, and the room lands where you stand instead.
 Rotate turns a room around the door it's joined at. On the map a selected L, T, closet or
@@ -78,6 +81,13 @@ Smart drop. Line that first room up exactly on the game's walls with Snap on
 before you start, since every room after joins onto it. Auto map turns off
 when you leave the house.
 
+The first time you walk into a house of yours with an empty map, the Lord
+Chamberlain says hello in the middle of the screen. Stand in the middle of
+your entrance and click Start auto map in that window. It stays up while
+Auto map runs, and closing it stops Auto map. Map on the bar, then Auto map,
+starts it again and brings the window back, and so does /rooms automap. With
+your entrance on the map already, stand in any room to start.
+
 With Snap on, which it is unless you turn it off in the map's top left corner,
 rooms fit together at their doors, the way the game joins them. The green grips show where a room's doors
 are. Drag a room near another one and its door jumps onto the door there. An L
@@ -88,8 +98,8 @@ with no door near it snaps onto those lines, so even the first room of a floor
 lines up.
 
 The Build toolbox and the house map are one window, with the tools down its
-left side. Build on the bar opens the map with the tools and Map opens the map
-alone. Build in the map's corner shows or hides the tools.
+left side. Map on the bar opens it with the tools out. Build in the map's
+corner shows or hides the tools.
 
 The lock next to the map's close button keeps your layout safe from a stray
 drag. When it's locked, the map shows your house the way it shows a friend's,
@@ -155,6 +165,26 @@ on four tabs, Room, Yapper, Sound and Banner, under a preview of the banner.
 
 A room marked Secret stays off the house maps and room lists of your visitors.
 Its banner still fires when they walk in.
+
+## Tours
+
+Give your visitors a walk through the house. Once your map has two rooms, Tour
+on the bar (or Tour in the House panel) opens a Tour panel on the house map in
+place of the build tools. Click rooms on
+the map to add them, on any floor, or use the plus in the list. Put them in
+the order you like with the arrows. Click a stop to
+change its yapper right there, the face, the speaker and the words. These are
+the room's own, so the room editor shows the same. Write a welcome for the
+start and a goodbye for the end, then Save. Try it walks the tour yourself.
+
+A visitor with your map gets Take the tour on the plaque and a Tour button on
+the Chamberlain bar. The welcome plays first. The stops go in your order, and
+only the next one plays its yapper when they walk in. A stop they reach early
+shows its banner and waits for its turn. A card counts the rooms seen, and its
+arrow turns with them to point at the next stop, with upstairs or downstairs
+when it's on another floor. The next stop turns gold and pulses on the house
+map and on the minimap. When they've seen every stop the card
+shows your goodbye. Secret rooms can't be stops.
 
 ## Ambience and music
 
@@ -310,6 +340,8 @@ backup that you made.
   older version sees your other rooms and skips these.
 - A room's own banner style needs version 3.25.0 on both sides. A group member
   on an older version sees the house's style in that room.
+- Tours need version 3.41.0 on both sides. A group member on an older version
+  gets the map without the tour.
 
 ## Features
 
@@ -323,6 +355,8 @@ backup that you made.
 - Lock the map so nothing moves by accident. Room sounds still change.
 - A gold banner shows the name of the room when you enter and fades when you
   leave.
+- A tour of your house for visitors, with stops in your order, a welcome, a
+  goodbye and an arrow to the next room.
 - Background sound for a room, a floor or the house, from more than 100 of the
   game's ambience loops. A small room without a banner puts a fire inside the
   great hall.
@@ -339,8 +373,9 @@ backup that you made.
 - A house map that draws your rooms to scale and shows where you and your group
   are. Zoom it and move it with the mouse.
 - Rooms on the minimap indoors, in place of the game's still house picture.
-- The eye on the Chamberlain bar keeps the banner, the plaque, the talking head
-  and your rooms on the minimap on screen when you hide the UI in a house.
+- Showcase, the eye on the Chamberlain bar, keeps Chamberlain on screen when
+  you hide the UI in a house. Its page in Settings has a switch for each part
+  that can stay, from the room banner to your rooms on the minimap.
   Everything else goes, the game's minimap too.
 - Edit rooms on the house map. You can move, resize, rename and recolor them.
   Edit room, or a double click on a room, opens the room editor down the

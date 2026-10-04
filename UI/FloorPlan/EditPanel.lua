@@ -429,13 +429,12 @@ autoBtn:SetPoint("LEFT", snapBtn, "RIGHT", 4, 0)
 autoBtn:SetFrameLevel(FP.Level("buttons"))
 autoBtn:Hide()
 CH.Tip(autoBtn, "FP_TT_AUTO_MAP")
-autoBtn:SetScript("OnClick", function(self)
+autoBtn:SetScript("OnClick", function()
     if CH.autoMap then
-        CH.StopAutoMap()
+        CH.SetAutoMap(false)
     else
-        CH.autoMap = true
+        CH.OpenAutoMap(true)
     end
-    CH.SetButtonActive(self, CH.autoMap)
 end)
 autoBtn:SetScript("OnShow", function(self)
     CH.SetButtonActive(self, CH.autoMap)

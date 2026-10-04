@@ -278,7 +278,8 @@ end
 -- the house only and new in 3.13.0), 0 on the wire for none. A client that
 -- doesn't know a type skips it and pulls the map. Banner is the house's style
 -- as its CH.BANNER_IDS number (3.20.0). Motto and plaqueName carry the owner's
--- texts (3.23.0, CH.HOUSE_TEXT), with any | taken out at both ends.
+-- texts (3.23.0, CH.HOUSE_TEXT), with any | taken out at both ends. The tour's
+-- welcome and goodbye came as two more in 3.41.0.
 local PATCH_TYPE = {
     ambience = "AMB",
     music = "MUS",
@@ -287,16 +288,27 @@ local PATCH_TYPE = {
     banner = "BAN",
     motto = "MOT",
     plaqueName = "PNM",
+    tourWelcome = "TWL",
+    tourBye = "TBY",
 }
 local PATCH_KIND = {}
 for kind, msg in pairs(PATCH_TYPE) do
     PATCH_KIND[msg] = kind
 end
 -- where each kind may land: a Room, a Floor, the House
-local PATCH_TARGETS =
-    { ambience = "RFH", music = "RFH", sfx = "R", arrival = "H", banner = "H", motto = "H", plaqueName = "H" }
+local PATCH_TARGETS = {
+    ambience = "RFH",
+    music = "RFH",
+    sfx = "R",
+    arrival = "H",
+    banner = "H",
+    motto = "H",
+    plaqueName = "H",
+    tourWelcome = "H",
+    tourBye = "H",
+}
 -- the ones that change nothing you hear, so no chat line on arrival
-local PATCH_SILENT = { banner = true, motto = true, plaqueName = true }
+local PATCH_SILENT = { banner = true, motto = true, plaqueName = true, tourWelcome = true, tourBye = true }
 local lastSentNotice = 0
 
 -- quiet skips the chat line, for the later patches of a save that sends a few.
@@ -686,6 +698,8 @@ function CH.ApplyLayout(houseGUID, data, senderName)
         existing.bannerStyle = data.bannerStyle
         existing.motto = data.motto
         existing.plaqueName = data.plaqueName
+        existing.tourWelcome = data.tourWelcome
+        existing.tourBye = data.tourBye
     else
         ChamberlainDB.houses[houseGUID] = {
             owner = data.owner,
@@ -699,6 +713,8 @@ function CH.ApplyLayout(houseGUID, data, senderName)
             bannerStyle = data.bannerStyle,
             motto = data.motto,
             plaqueName = data.plaqueName,
+            tourWelcome = data.tourWelcome,
+            tourBye = data.tourBye,
             zones = data.zones,
         }
     end
@@ -1005,7 +1021,8 @@ local function DeserializeLayout(b64)
                 headDisplay = type(z.hd) == "number" and z.hd or nil,
                 speaker = type(z.sp) == "string" and string.sub(z.sp, 1, 40) or nil,
                 useOwnerHead = z.oh == true or nil,
-                rpText = type(z.t) == "string" and string.sub(z.t, 1, 500) or nil,
+                rpText = type(z.t) == "string" and string.sub(z.t, 1, CH.DESC_MAX) or nil,
+                tourStop = CH.IsTourStop(z.to) and z.to or nil,
                 secret = z.se == true or nil,
                 noBanner = z.nb == true or nil,
                 ambience = KNOWN.ambience(z.am) and z.am or nil,
@@ -1046,6 +1063,8 @@ local function DeserializeLayout(b64)
         houseName = CH.CleanText(payload.hn, CH.HOUSE_TEXT.plaqueName),
         motto = CH.CleanText(payload.mo, CH.HOUSE_TEXT.motto),
         plaqueName = CH.CleanText(payload.pn, CH.HOUSE_TEXT.plaqueName),
+        tourWelcome = CH.CleanText(payload.tw, CH.HOUSE_TEXT.tourWelcome),
+        tourBye = CH.CleanText(payload.tb, CH.HOUSE_TEXT.tourBye),
         madeWith = type(payload.cv) == "string" and string.sub(payload.cv, 1, 16) or nil,
         zones = zones,
     }
@@ -1067,6 +1086,8 @@ function CH.ExportLayout(houseGUID)
         hn = h.houseName, -- the name the game gave the house (3.23.0)
         mo = h.motto, -- the owner's motto on the plaque (3.23.0)
         pn = h.plaqueName, -- the owner's own name for the house, over hn (3.23.0)
+        tw = h.tourWelcome, -- the tour's first and last words (3.41.0)
+        tb = h.tourBye,
         cv = CH.VERSION, -- so an older reader can say it may miss things (3.28.0)
         zones = {},
     }
@@ -1096,6 +1117,7 @@ function CH.ExportLayout(houseGUID)
             c = z.color,
             sh = z.shape, -- room shape (3.0.0), nil for a rectangle, see WriteBox
             t = z.rpText, -- room description
+            to = z.tourStop, -- its place on the owner's tour (3.41.0)
             hi = z.headID, -- talking-head index
             hd = z.headDisplay, -- custom head display ID (overrides hi)
             sp = z.speaker, -- custom speaker name (overrides head name)

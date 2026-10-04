@@ -81,16 +81,14 @@ function CH.ShortVoiceName(name)
     return s ~= "" and s or name
 end
 
--- Decide which voice reads a zone's description.
---  * Own house: the per-room pick wins (zone.voice, or nil for silent).
---  * Visiting or a shared layout: the room carries no local voice, so fall back to
---    your personal default for the head's gender when defaults are on.
+-- Decide which voice reads a zone's description. The room's own pick wins
+-- (zone.voice, set in your own house only, since it never leaves this client).
+-- A room without one falls back to your personal default for the head's
+-- gender when defaults are on, in any house. Before 3.41.0 a room of your own
+-- with no voice stayed silent whatever the defaults said.
 -- genderOverride lets the caller pass a gender (e.g. the owner's UnitSex when the
 -- room shows their own character); otherwise the head's gender is used.
-function CH.ResolveZoneVoice(zone, isOwnHouse, genderOverride)
-    if isOwnHouse then
-        return zone.voice
-    end
+function CH.ResolveZoneVoice(zone, genderOverride)
     if zone.voice then
         return zone.voice
     end

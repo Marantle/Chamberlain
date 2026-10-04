@@ -17,6 +17,7 @@ CH.MakeDraggable(roomMgr)
 CH.SkinWindow(roomMgr, "RM_WINDOW_TITLE")
 roomMgr:Hide()
 table.insert(UISpecialFrames, "ChamberlainRoomManager")
+CH.roomManager = roomMgr -- for Showcase
 
 -- Settings have their own window in UI/Settings.lua.
 

@@ -284,6 +284,51 @@ function CH.SnapToGrid(z)
     z.minY, z.maxY = z.minY + dy, z.maxY + dy
 end
 
+-- The first and last grid line a span of size can start on and still hold
+-- the spot at.
+local function Starts(at, size, origin)
+    local first = origin + math.ceil((at - size - origin) / CH.GRID) * CH.GRID
+    local last = origin + math.floor((at - origin) / CH.GRID) * CH.GRID
+    return first, last
+end
+
+-- A moved entrance, which no addon can see, put on the grid where you walked.
+-- The entrance is two grid squares long and one wide, so standing in its
+-- middle one of your x and y sits on a grid line and the other halfway
+-- between two. That picks the turn from the first spot alone, and the place
+-- nearest it wins. Anywhere else in the room the guess can be wrong, and the
+-- spots walked after rule out the places that miss one. True once it moved
+-- the zone.
+function CH.FitOnGrid(zone, spots)
+    local fx, fy = spots[1][1], spots[1][2]
+    local best, bestD, bestRot
+    test.shape, test.rot = zone.shape, nil
+    for rot = 0, 1 do
+        local w, h = CH.ShapeSize(zone.shape, rot)
+        local x0, x1 = Starts(fx, w, CH.GRID_X)
+        local y0, y1 = Starts(fy, h, CH.GRID_Y)
+        for x = x0, x1, CH.GRID do
+            for y = y0, y1, CH.GRID do
+                test.minX, test.maxX, test.minY, test.maxY = x, x + w, y, y + h
+                local d = (x + w * 0.5 - fx) ^ 2 + (y + h * 0.5 - fy) ^ 2
+                if (not bestD or d < bestD) and HoldsAll(test, spots) then
+                    best, bestD, bestRot = { x, x + w, y, y + h }, d, rot
+                end
+            end
+        end
+    end
+    if not best then
+        return false
+    end
+    local rot = bestRot > 0 and bestRot or nil
+    if zone.minX == best[1] and zone.minY == best[3] and zone.rot == rot then
+        return false
+    end
+    zone.minX, zone.maxX, zone.minY, zone.maxY = best[1], best[2], best[3], best[4]
+    zone.rot = rot
+    return true
+end
+
 -- A door of another room that the zone's own doors sit on, or nil when it
 -- meets none. Joined at more than one, the southmost holds it.
 function CH.JoinedDoor(h, zone)
@@ -514,12 +559,15 @@ function CH.CheckHousingState()
         CH.ForgetEchoes()
         CH.SetHudRoom(nil)
         CH.HidePlaque()
+        CH.StopTour()
         CH.RefreshKeepOnScreen()
         currentZone = nil
+        CH.currentRoom = nil
         echoZone = nil
         currentAnchor = nil
         CH.ForgetGameRoom()
         CH.StopAutoMap()
+        CH.HideWelcomeHome()
         CH.activeFloor = 1
         wasInside = false
         promptedGUID = nil
@@ -665,6 +713,7 @@ function CH.OnHouseInfo(info)
             h.realm = GetRealmName()
             h.houseName = info.houseName
         end
+        CH.MaybeWelcomeHome(guid)
     end
 
     -- Let the party know what we have, and check if a party member has a
@@ -838,12 +887,13 @@ function CH.CheckZones()
     local foundName = found and found.name or nil
     if foundName ~= currentZone then
         currentZone = foundName
+        CH.currentRoom = found
         CH.SetHudRoom(found)
         if found then
             -- Entering a room shows the gold banner with its name. If the room
             -- has a description, the banner's Read button opens the talking-head
-            -- yapper on demand, we never pop it automatically. Close any yapper
-            -- left over from the previous room.
+            -- yapper on demand. Only a tour stop pops it by itself. Close any
+            -- yapper left over from the previous room.
             CH.HideTalkingHead()
             if ChamberlainDB.settings.bannerEnabled then
                 CH.EnterBannerRoom(found)
@@ -852,12 +902,14 @@ function CH.CheckZones()
                 CH.SetBannerRoom(nil)
                 CH.HideBanner(0)
             end
+            CH.TourEnter(found)
         else
             CH.HideTalkingHead()
             CH.SetBannerRoom(nil)
             CH.HideBanner(0.8)
         end
     end
+    CH.TourTick(h, x, y, mapID)
 end
 
 -- Called when the "Show room banners" setting is flipped. Drop any banner that's

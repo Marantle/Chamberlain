@@ -281,11 +281,22 @@ SwitchRow(pageMap, "RM_TOGGLE_MINIMAP_SQUARE", "SET_HINT_SQUARE", "minimapSquare
 SwitchRow(pageMap, "RM_TOGGLE_STAIRS_BOTH", "SET_HINT_STAIRS_BOTH", "stairsBothFloors", CH.RebuildFloorPlan)
 SwitchRow(pageMap, "RM_TOGGLE_SLIM_BAR", "SET_HINT_SLIM_BAR", "hudStrip", CH.RefreshHUDMode)
 
+-- ── Showcase ─────────────────────────────────────────────────────────
+-- The eye on the bar is the same switch, so the bar repaints it.
+local pageShowcase = Page("SET_PAGE_SHOWCASE")
+SwitchRow(pageShowcase, "SET_SHOWCASE", "SET_HINT_SHOWCASE", "keepOnScreen", function()
+    CH.RefreshKeepOnScreen()
+    CH.RefreshHUDMode()
+end)
+for _, e in ipairs(CH.SHOWCASE) do
+    SwitchRow(pageShowcase, e.label, nil, e.key, CH.RefreshKeepOnScreen, true)
+end
+
 -- ── Voices ───────────────────────────────────────────────────────────
 local pageVoices = Page("RM_SECTION_ROOM_NARRATION", "SET_PAGE_VOICES")
 
--- When on, your personal voices read rooms shared to you that carry no voice
--- (your own rooms always use the per-room voice you set in the room dialog).
+-- When on, your personal voices read any room that has no voice of its own.
+-- A voice set in the room dialog wins. Neither ever leaves this client.
 SwitchRow(pageVoices, "RM_TOGGLE_USE_DEFAULT_VOICES", "SET_HINT_DEFAULT_VOICES", "voiceDefaultsEnabled")
 
 -- One default voice with its dropdown and a Test button that reads a line in it.

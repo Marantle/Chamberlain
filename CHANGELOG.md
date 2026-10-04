@@ -1,5 +1,100 @@
 # Changelog
 
+## 3.41.0
+- Click Tour on the bar or in the House panel to open a Tour panel on the
+  house map. The bar's Tour button shows once your map has two rooms. Add
+  rooms as stops, put them in order and write a welcome and a goodbye for
+  the house.
+- With the Tour panel open, click a room on the house map to add it as the
+  last stop, or click a stop to pick it. The floor tabs still work, so you can
+  add rooms from every floor.
+- A click on a stop shows its yapper in the panel, the head, a custom head
+  ID, the speaker and the words. An empty speaker shows the head's name in
+  grey, the name the yapper uses. These are the room's own, so a change there
+  shows in the room editor too.
+- Try it saves the tour and starts it for you.
+- A visitor with your map gets Take the tour on the plaque, a Tour button on the
+  bar and /rooms tour. The welcome plays first. The stops go in your order and
+  only the next one plays its yapper. A later stop walked into early shows its
+  banner as usual and waits for its turn.
+- A card counts the rooms seen and has an arrow that turns with you toward the
+  next stop. It says how many yards away it is, and upstairs or downstairs when
+  it's on another floor. At the end it shows the goodbye.
+- Back and forward arrows on the tour card. Back makes the last stop you saw
+  the next one again, so walking in plays it again. Forward skips the next
+  stop.
+- On the house map the stops have their number before the name, the next one
+  turns gold and pulses, and the seen ones fade. The next one pulses gold on
+  the minimap too.
+- The eye on the bar has a name, Showcase, and a page of its own in Settings.
+  The page turns Showcase on and off, and has a switch for each part that
+  stays on screen when you hide the UI. The parts it kept before start on, so
+  nothing changes for them until you turn one off.
+- The tour card stays on screen with the rest.
+- Showcase can keep the Chamberlain bar, the house map, the Auto map guide,
+  the House panel and the sharing windows up too, so you can map and share
+  your house with the UI hidden. The map, the House panel and the Rooms
+  window still close with Hide UI like they do with Escape, so open them
+  again from the bar. The bar, the House panel and the sharing windows are
+  off to start with, the others on. Tooltips, menus and the color picker
+  belong to the game's UI and stay hidden with it.
+- Showcase keeps the game's own minimap with your rooms on it, its ring, its
+  zoom buttons and the mouse wheel zoom included, and Chamberlain's extra
+  zoom steps past the closest. It used to keep your rooms alone with
+  Chamberlain's own dots. One Minimap switch on the Showcase page covers it.
+- Walking into your own house when its map has no rooms brings up a welcome
+  from the Lord Chamberlain. Stand in the middle of your entrance and click
+  Start auto map there. The window stays up while Auto map runs, with a
+  button to stop it. After an L or T room it says to walk around it if it's
+  turned wrong, and after a stairwell it says how to carry on mapping on the
+  next floor. When a room has no door near it to join, it says a room
+  mapped before may be turned wrong and how to rotate it on the map. A room
+  whose size Chamberlain doesn't know yet gets named, with a word to place it
+  by hand from the build tools. Closing the window stops Auto map too. It
+  shows once a visit, and not while the map is locked.
+- The same guide comes back whenever you start Auto map on the house map, or
+  with /rooms automap. With your entrance on the map already, it says to
+  stand in any room instead.
+- A moved entrance goes on the map where it is. Smart drop and Auto map used
+  to put it where the game first builds it, wherever you'd moved it. Now
+  standing anywhere else in it, it goes on the grid where you stand. Standing
+  in its middle gets its turn right away, and walking from one door to the
+  other fixes a wrong guess. It goes on the floor you're on, so an entrance
+  moved upstairs lands upstairs.
+- A map with one small room, like the entrance alone, no longer zooms in until
+  the room fills the window. The map shows at least 72 yards across.
+- A stairwell Smart drop or Auto map puts on an upper floor gets a copy on
+  the floor below and on the floor above, since it can't tell which way its
+  steps go. Delete the one you don't need. It used to guess one of them,
+  mostly up, which was wrong when you mapped your way down. The copy above
+  only goes on a floor your map already has, so add the floor with + first
+  if it's new. A floor that already has a room in that spot is left alone,
+  and on the ground floor only the copy above goes in, as before.
+- The empty map's Add the entrance button is called Add default entrance now,
+  since it puts the entrance where the game first builds it.
+- Build and Map on the bar are one button now, Map. It opens the house map
+  with the build tools out. Build in the map's corner still hides them.
+- The head grid in the room editor and the Tour panel shows the custom heads
+  your house uses before the regular ones, the room's own first. Click one
+  to use it, or click a regular head to go back. Two rows show at a time,
+  and the mouse wheel scrolls the rest.
+- A custom head in the grid is named after the speaker of the first room
+  that uses it. Its tooltip shows that name, and picking it fills in the
+  Speaker box, which you can change. Each room keeps its own speaker.
+- Use default voices in Settings, under Voices, now reads any room with no
+  voice of its own, in your own house too. Before, it only read rooms in
+  other people's houses. A voice set for a room in the room editor still
+  wins. It's off to start with, and your voices never leave your computer.
+  The room editor's voice menu calls the no-voice choice Default now, since
+  it isn't always silent.
+- On a tour, the welcome, the goodbye and every stop are read aloud that
+  way. The goodbye plays once the last stop has finished talking.
+- Long text in a yapper can be dragged up and down with the mouse. Let go
+  and it scrolls on from there. The rest of the box still moves the yapper.
+- A duplicated room doesn't copy the original's place on the tour.
+- Stored maps in the archive keep the welcome and the goodbye.
+- A friend on an older version gets the map without the tour.
+
 ## 3.40.0
 - A new group at the end of the entry sound list, Tapering echoes. It has 40
   of the game sounds from the list a second time. When one of them is a room's

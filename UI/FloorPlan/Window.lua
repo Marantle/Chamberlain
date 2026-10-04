@@ -164,20 +164,27 @@ fpEmpty:SetTextColor(0.5, 0.5, 0.5, 1)
 fpEmpty:Hide()
 FP.empty = fpEmpty
 
--- Every house has its entrance closet in the same spot on the ground floor,
+-- Every house starts with its entrance in the same spot on the ground floor,
 -- where the game drops an owner walking in, doors north and south as it lies
--- unturned. So an empty map of your house can start from it, and Smart drop
+-- unturned. It's a room of its own in the game, the size of a closet, so it's
+-- drawn as one. An empty map of your house can start from it, and Smart drop
 -- in the game's Entry puts it there on any map, linked to gameRoom. It never
--- snaps since the spot is already exact.
-function CH.AddEntrance(gameRoom)
+-- snaps since the spot is already exact. The owner can move it though, so
+-- Smart drop standing outside that spot passes where you stand as x and y and
+-- the entrance goes on the grid there, see CH.FitOnGrid. It can be moved up or
+-- down a floor as well, so it goes on the floor the map is on like any other
+-- drop.
+function CH.AddEntrance(gameRoom, x, y)
     if not CH.currentHouseGUID then
         CH.Print(CH.L["RD_HOUSE_NOT_IDENTIFIED"])
         return
     end
     local _, _, mapID = CH.GetWorldPos()
     local h = CH.CurrentHouse()
-    local z = CH.NewZone(h, CH.ENTRANCE_X, CH.ENTRANCE_Y, mapID, "closet", CH.L["HOUSE_ENTRANCE"])
-    z.floor = 1
+    local z = CH.NewZone(h, x or CH.ENTRANCE_X, y or CH.ENTRANCE_Y, mapID, "closet", CH.L["HOUSE_ENTRANCE"])
+    if x then
+        CH.FitOnGrid(z, { { x, y } })
+    end
     z.gameRoom = gameRoom
     table.insert(h.zones, z)
     CH.TouchHouse(CH.currentHouseGUID)
@@ -185,7 +192,7 @@ function CH.AddEntrance(gameRoom)
     return z
 end
 
-local fpEntranceBtn = CH.MakeButton(canvas, "FP_ADD_ENTRANCE", 130, 22)
+local fpEntranceBtn = CH.MakeButton(canvas, "FP_ADD_ENTRANCE", 150, 22)
 fpEntranceBtn:SetPoint("TOP", fpEmpty, "BOTTOM", 0, -12)
 fpEntranceBtn:SetScript("OnClick", function()
     CH.AddEntrance()
@@ -414,7 +421,11 @@ fp:SetScript("OnShow", function()
     end
     FP.Build()
 end)
-fp:SetScript("OnHide", function()
+fp:SetScript("OnHide", function(self)
+    -- Hide UI closes nothing, see CH.OnlyParentHid
+    if CH.OnlyParentHid(self) then
+        return
+    end
     if ChamberlainDB and ChamberlainDB.settings then
         ChamberlainDB.settings.floorPlanOpen = false
     end

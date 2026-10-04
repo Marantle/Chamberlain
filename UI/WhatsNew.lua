@@ -32,6 +32,34 @@ end
 -- Refresh method.
 CH.WHATS_NEW = {
     {
+        v = "3.41.0",
+        lead = {
+            icon = "icon-book",
+            title = "Tours",
+            text = "Walk your visitors through your house. Click Tour on the bar in your house, then add "
+                .. "rooms as stops by clicking them on the map, on any floor. Put them in order and write "
+                .. "a welcome and a goodbye. A click on a stop edits its yapper right there.\n\nA visitor "
+                .. "with your map clicks Take the tour on the plaque or Tour on the bar. They walk the stops "
+                .. "in your order and each one plays its yapper as they walk in. A card counts the rooms "
+                .. "seen, and its arrow turns with them toward the next stop, which glows gold on the map "
+                .. "and the minimap.\n\nWith Use default voices on in Settings, under Voices, the welcome, "
+                .. "every stop and the goodbye are read aloud. The arrows on the card go back a stop or "
+                .. "skip one.",
+        },
+        notes = {
+            "The head grid shows the custom heads your house uses first, named after their speakers.",
+            "A house of yours with no rooms on its map gets a guide that starts Auto map from the "
+                .. "entrance. Open it again any time with /rooms automap.",
+            "A moved entrance goes on the map where it is, on the floor you're on.",
+            "A stairwell mapped on an upper floor goes on the floors below and above. Delete the one you "
+                .. "don't need.",
+            "Use default voices now reads your own rooms too, when a room has no voice of its own. "
+                .. "Turn it off in Settings, under Voices, if you'd rather they stay quiet.",
+            "Build and Map on the bar are one button now. Map opens the house map with the build tools out.",
+            "The eye on the bar is Showcase now. A new Settings page picks what stays on screen when you hide the UI.",
+        },
+    },
+    {
         v = "3.40.0",
         notes = {
             "Tapering echoes, a new group at the end of the entry sound list. An echo of one of "

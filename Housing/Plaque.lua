@@ -15,9 +15,10 @@ local PLAQUE_SECONDS = 7
 local MIN_W, MAX_TEXT = 320, 440
 local PAD = 36
 
--- The owner's two lines of text and how many letters the panel takes for
--- each. The key is the field on the house and the patch kind both.
-CH.HOUSE_TEXT = { plaqueName = 40, motto = 80 }
+-- The owner's lines of text and how many letters the panel takes for each.
+-- The key is the field on the house and the patch kind both. The tour's two
+-- (3.41.0) are set in the Tour panel.
+CH.HOUSE_TEXT = { plaqueName = 40, motto = 80, tourWelcome = 200, tourBye = 200 }
 -- A text goes out as a patch only while it fits a message beside the house key.
 local PATCH_BYTES = 180
 
@@ -110,6 +111,11 @@ motto:SetSpacing(2)
 local facts = plaque:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 facts:SetTextColor(CH.RGBA(CH.COLORS.dim, 1))
 
+-- Under the rest when the owner left a tour (Housing/Tour.lua).
+local tourBtn = CH.MakeButton(plaque, "TOUR_TAKE", 130, 24)
+CH.SetButtonActive(tourBtn, true)
+tourBtn:Hide()
+
 -- The lines top down with the gap under each. The line under the name is
 -- the entry with no font string.
 local ROWS = {
@@ -151,6 +157,11 @@ local function Layout()
             fs:Hide()
         end
     end
+    if tourBtn:IsShown() then
+        tourBtn:ClearAllPoints()
+        tourBtn:SetPoint("TOP", plaque, "TOP", 0, -(y + 8))
+        y = y + 8 + tourBtn:GetHeight()
+    end
     local h = y + 24
     plaque:SetSize(w, h)
     -- BannerLine hangs off the middle, so its height is from there
@@ -160,6 +171,11 @@ end
 local fadeTimer
 
 local function Fade()
+    -- someone reaching for the tour button keeps it up
+    if plaque:IsMouseOver() then
+        fadeTimer = C_Timer.NewTimer(1, Fade)
+        return
+    end
     fadeTimer = nil
     UIFrameFadeOut(plaque, 1, plaque:GetAlpha(), 0)
     C_Timer.After(1, function()
@@ -199,6 +215,11 @@ function CH.ShowPlaque(guid, preview)
     else
         facts:SetText(string.format(CH.L["PL_ROOMS_X"], rooms))
     end
+    tourBtn:SetShown(here and not preview and CH.CanStartTour(guid))
+    tourBtn:SetScript("OnClick", function()
+        CH.HidePlaque()
+        CH.StartTour(guid)
+    end)
     Layout()
 
     if fadeTimer then

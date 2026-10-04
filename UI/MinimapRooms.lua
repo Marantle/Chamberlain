@@ -27,6 +27,8 @@ overlay:SetFrameStrata(Minimap:GetFrameStrata())
 overlay:SetClipsChildren(true)
 overlay:Hide()
 CH.minimapRooms = overlay
+-- for Showcase, which keeps frames by their name on CH
+CH.gameMinimap = Minimap
 
 local bg = overlay:CreateTexture(nil, "BACKGROUND")
 bg:SetAllPoints()
@@ -162,7 +164,9 @@ local function Rebuild()
             depth[n] = math.min(d, MAX_DEPTH)
             SetDepth(t, depth[n])
             FP.SetTileShape(t, zone)
-            local marker, _, r, g, b = FP.PaintTile(t.border, t.fill, zone, i, false, false)
+            local nextStop = CH.IsTourNext(zone)
+            local marker, _, r, g, b = FP.PaintTile(t.border, t.fill, zone, i, nextStop, false)
+            FP.PulseTile(t, nextStop)
             t.marker = marker
             FP.SetTileIcon(t, overlay, t.border, marker)
             FP.SetTileStairs(t, overlay, zone, zones, r, g, b)
@@ -186,10 +190,6 @@ end
 local DEEP = { 0.7, 0.5, 0.35 }
 local deep = 0
 
--- True while the eye keeps us up with the UI hidden. The game's minimap and
--- its dots are hidden with the rest then, so we draw our own on every step.
-local kept = false
-
 -- Going over covers the inner edge of the ring as well, since MinimapBackdrop
 -- is only one level up from the minimap. A level tie with the minimap loses to
 -- the game's dots and a second ring frame covers the buttons, both tried.
@@ -199,7 +199,7 @@ local function SetDeep(d)
     overlay:SetFrameLevel(Minimap:GetFrameLevel() + (over and 2 or -1))
     local level = overlay:GetFrameLevel() + 2
     me:SetFrameLevel(level)
-    me:SetShown(over or kept)
+    me:SetShown(over)
     for _, bf in ipairs(blips) do
         bf:SetFrameLevel(level)
         bf:Hide()
@@ -251,7 +251,7 @@ overlay:SetScript("OnUpdate", function()
         end
     end
 
-    if deep == 0 and not kept then
+    if deep == 0 then
         return
     end
     FP.PointFacing(me)
@@ -348,31 +348,6 @@ Minimap:HookScript("OnMouseWheel", function(_, d)
         SetDeep(deep + 1)
     end
 end)
-
--- With the UI hidden the minimap can't hear the wheel, so we take it and walk
--- the game's zoom levels and then our deep steps, one notch at a time. The
--- game's own buttons get the clicks, since they keep their enabled state in
--- step with the zoom and a wrong one would throw off the deep steps above.
-overlay:SetScript("OnMouseWheel", function(_, d)
-    if d > 0 then
-        if Minimap.ZoomIn:IsEnabled() then
-            Minimap.ZoomIn:Click()
-        elseif deep < #DEEP then
-            SetDeep(deep + 1)
-        end
-    elseif deep > 0 then
-        SetDeep(deep - 1)
-    else
-        Minimap.ZoomOut:Click()
-    end
-end)
-
--- Called from CH.RefreshKeepOnScreen after the overlay has moved.
-function CH.KeepMinimapRooms(on)
-    kept = on
-    overlay:EnableMouseWheel(on)
-    SetDeep(deep)
-end
 
 -- The Settings toggles call this. Going through Blizzard's own update brings the
 -- picture back when the setting turns off, and the hook above ends in Apply.

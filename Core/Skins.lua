@@ -592,6 +592,250 @@ function CH.MakeTextArea(parent, name, w)
     return scroll, box
 end
 
+-- A text area for a few lines of the player's own words. A click anywhere in
+-- it starts typing, the caret stays in view and a grey hint shows while it's
+-- empty. Hands back the scroll frame, the box and the hint's refresh, for
+-- after a SetText.
+function CH.MakeNoteArea(parent, name, w, hintKey, maxLetters)
+    local scroll, box = CH.MakeTextArea(parent, name, w)
+    box:SetMaxLetters(maxLetters)
+    box:SetScript("OnEscapePressed", function(self)
+        self:ClearFocus()
+    end)
+    scroll:EnableMouse(true)
+    scroll:SetScript("OnMouseDown", function()
+        box:SetFocus()
+    end)
+    -- the box grows past the bottom edge while you type
+    box:SetScript("OnCursorChanged", function(_, _, cy, _, ch)
+        local top, bottom = -cy, -cy + ch
+        local off, h = scroll:GetVerticalScroll(), scroll:GetHeight()
+        if top < off then
+            scroll:SetVerticalScroll(top)
+        elseif bottom > off + h then
+            scroll:SetVerticalScroll(bottom - h)
+        end
+    end)
+    local hint = scroll:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    hint:SetPoint("TOPLEFT", 6, -6)
+    hint:SetPoint("TOPRIGHT", -6, -6)
+    hint:SetJustifyH("LEFT")
+    hint:SetWordWrap(true)
+    hint:SetText(CH.L[hintKey])
+    local function update()
+        hint:SetShown(box:GetText() == "" and not box:HasFocus())
+    end
+    box:HookScript("OnEditFocusGained", update)
+    box:HookScript("OnEditFocusLost", update)
+    box:HookScript("OnTextChanged", update)
+    return scroll, box, update
+end
+
+-- Grey placeholder text in an edit box while it's empty and unfocused. text()
+-- gives the words, looked up again on every change.
+function CH.AddPlaceholder(box, text)
+    local hint = box:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    hint:SetPoint("LEFT", box, "LEFT", 6, 0)
+    hint:SetPoint("RIGHT", box, "RIGHT", -6, 0)
+    hint:SetJustifyH("LEFT")
+    hint:SetWordWrap(false)
+    local function update()
+        hint:SetText(text())
+        hint:SetShown(box:GetText() == "" and not box:HasFocus())
+    end
+    box:HookScript("OnEditFocusGained", update)
+    box:HookScript("OnEditFocusLost", update)
+    box:HookScript("OnTextChanged", update)
+    return update
+end
+
+-- An edit box's text trimmed, or nil when there's nothing but blanks.
+function CH.BoxText(box)
+    local s = box:GetText():match("^%s*(.-)%s*$")
+    return s ~= "" and s or nil
+end
+
+function CH.MakeBox(parent, w, maxLetters)
+    local box = CreateFrame("EditBox", nil, parent, "InputBoxTemplate")
+    box:SetSize(w, 20)
+    box:SetAutoFocus(false)
+    box:SetMaxLetters(maxLetters)
+    box:SetScript("OnEscapePressed", function(self)
+        self:ClearFocus()
+    end)
+    return box
+end
+
+-- The heads a room can pick as small 3D heads, two rows of them and the mouse
+-- wheel for the rest. The custom heads the house uses come first (3.41.0),
+-- the room's own leading, then the CH.HEADS cast. onPick(i) gets the cast
+-- index, or nil and the display id for a custom one. Fill sets the models
+-- again, which every open needs since a model let go while hidden comes back
+-- blank. picker.height is how far down the rows reach.
+local HEAD, HEADS_PER_ROW, HEAD_ROWS = 34, 9, 2
+local STEP = HEAD + 5
+
+-- Every custom head id in zones, current first and each once, then extra
+-- (ids not saved yet) if given. Into out.
+local function CustomHeads(out, current, zones, extra)
+    wipe(out)
+    local seen = {}
+    local function add(id)
+        if id and not seen[id] then
+            seen[id] = true
+            out[#out + 1] = id
+        end
+    end
+    add(current)
+    for _, id in ipairs(extra or {}) do
+        add(id)
+    end
+    for _, z in ipairs(zones or {}) do
+        add(z.headDisplay)
+    end
+    return out
+end
+
+function CH.MakeHeadPicker(parent, onPick)
+    local picker = CreateFrame("Frame", nil, parent)
+    picker:SetPoint("TOPLEFT")
+    picker.height = HEAD_ROWS * STEP
+    picker:SetSize(HEADS_PER_ROW * STEP, picker.height)
+    local buttons, items, customs = {}, {}, {}
+    local top = 0 -- the first row shown
+    local pickedID, pickedDisplay
+
+    local function Paint(b)
+        local it = b.item
+        local on = it.index and it.index == pickedID and not pickedDisplay or it.custom and it.display == pickedDisplay
+        if on then
+            b:SetBackdropBorderColor(0.95, 0.80, 0.25, 1)
+        else
+            b:SetBackdropBorderColor(0.40, 0.35, 0.20, 0.7)
+        end
+    end
+
+    local function GetButton(n)
+        local b = buttons[n]
+        if b then
+            return b
+        end
+        b = CreateFrame("Button", nil, picker, "BackdropTemplate")
+        b:SetSize(HEAD, HEAD)
+        b:SetBackdrop(CH.BACKDROP_THIN)
+        b:SetBackdropColor(0, 0, 0, 0.6)
+        b.model = CreateFrame("PlayerModel", nil, b)
+        b.model:SetPoint("TOPLEFT", 2, -2)
+        b.model:SetPoint("BOTTOMRIGHT", -2, 2)
+        b.model:SetScript("OnModelLoaded", function(self)
+            self:SetPortraitZoom(1)
+        end)
+        b:SetScript("OnClick", function(self)
+            onPick(self.item.index, self.item.custom and self.item.display)
+        end)
+        b:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_TOP")
+            GameTooltip:SetText(self.item.name, 1, 0.85, 0.25)
+            GameTooltip:Show()
+        end)
+        b:SetScript("OnLeave", function()
+            GameTooltip:Hide()
+        end)
+        buttons[n] = b
+        return b
+    end
+
+    -- Show the rows from top down, models set again on the ones that come
+    -- into view.
+    local function Layout()
+        for n, it in ipairs(items) do
+            local b = GetButton(n)
+            b.item = it
+            local row = math.floor((n - 1) / HEADS_PER_ROW) - top
+            if row >= 0 and row < HEAD_ROWS then
+                b:ClearAllPoints()
+                b:SetPoint("TOPLEFT", ((n - 1) % HEADS_PER_ROW) * STEP, -row * STEP)
+                b:Show()
+                b.model:SetDisplayInfo(it.display)
+                b.model:SetPortraitZoom(1)
+                Paint(b)
+            else
+                b:Hide()
+            end
+        end
+        for n = #items + 1, #buttons do
+            buttons[n]:Hide()
+        end
+    end
+
+    -- A slim bar in the gap right of the last column, there only while the
+    -- heads run past two rows. It holds the row shown on top, and the wheel
+    -- and a drag both move it.
+    local bar = CH.MakeSlider(picker, 6, 0, 1, 1)
+    bar:SetOrientation("VERTICAL")
+    bar:SetSize(6, picker.height)
+    bar:GetThumbTexture():SetSize(6, 18)
+    bar:SetPoint("TOPLEFT", (HEADS_PER_ROW - 1) * STEP + HEAD + 3, 0)
+    bar:SetScript("OnValueChanged", function(_, v)
+        v = math.floor(v + 0.5)
+        if v ~= top then
+            top = v
+            Layout()
+        end
+    end)
+
+    -- How far the bar reaches for the heads there are now.
+    local function FitBar()
+        local last = math.max(0, math.ceil(#items / HEADS_PER_ROW) - HEAD_ROWS)
+        bar:SetMinMaxValues(0, last)
+        bar:SetValue(top)
+        bar:SetShown(last > 0)
+    end
+
+    picker:EnableMouseWheel(true)
+    picker:SetScript("OnMouseWheel", function(_, d)
+        bar:SetValue(top - d)
+    end)
+
+    -- current is the room's own custom head, zones the house's rooms and
+    -- extra any custom ids typed but not saved yet.
+    function picker.Fill(_, current, zones, extra)
+        wipe(items)
+        for _, id in ipairs(CustomHeads(customs, current, zones, extra)) do
+            local named = CH.CustomHeadName(zones, id)
+            local name = named and string.format(CH.L["RD_CUSTOM_HEAD_NAMED_X"], named, id)
+                or string.format(CH.L["RD_CUSTOM_HEAD_X"], id)
+            items[#items + 1] = { custom = true, display = id, name = name }
+        end
+        for i, head in ipairs(CH.HEADS) do
+            items[#items + 1] = { index = i, display = head.display, name = head.name }
+        end
+        top = 0
+        FitBar()
+        Layout()
+    end
+
+    -- The pick is the custom head display when set, the cast head i if not.
+    function picker.Select(_, i, display)
+        pickedID, pickedDisplay = i, display
+        for _, b in ipairs(buttons) do
+            if b:IsShown() then
+                Paint(b)
+            end
+        end
+    end
+
+    return picker
+end
+
+-- OnHide runs when a parent hides as well, UIParent going with Hide UI above
+-- all, and Showcase may then carry the frame on. Its own shown flag stays on
+-- in that case, so a handler that tidies up after a real close asks this
+-- first and leaves the frame be.
+function CH.OnlyParentHid(f)
+    return f:IsShown()
+end
+
 -- Make a frame block clicks (so they don't fall through to the world) and be
 -- draggable by its body. Position is not saved.
 function CH.MakeDraggable(f)

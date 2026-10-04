@@ -36,6 +36,9 @@ end
 
 CH.MEDIA = "Interface\\AddOns\\Chamberlain\\Media\\"
 
+-- The most a room's yapper text holds, in the editors and off the wire.
+CH.DESC_MAX = 500
+
 -- The rooms the game builds, measured in a house in September 2026, wall to
 -- wall. Two rooms the game joins share a wall, so at these sizes their boxes
 -- touch and the doorway between them is in one room or the other, never in

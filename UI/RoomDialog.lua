@@ -206,34 +206,7 @@ local function MakeCheck(parent, labelKey, hintKey, titleKey, leadKey, ...)
     return check
 end
 
--- Grey placeholder text in an edit box while it's empty and unfocused. text()
--- gives the words, looked up again on every change.
-local function AddPlaceholder(box, text)
-    local hint = box:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    hint:SetPoint("LEFT", box, "LEFT", 6, 0)
-    hint:SetPoint("RIGHT", box, "RIGHT", -6, 0)
-    hint:SetJustifyH("LEFT")
-    hint:SetWordWrap(false)
-    local function update()
-        hint:SetText(text())
-        hint:SetShown(box:GetText() == "" and not box:HasFocus())
-    end
-    box:HookScript("OnEditFocusGained", update)
-    box:HookScript("OnEditFocusLost", update)
-    box:HookScript("OnTextChanged", update)
-    return update
-end
-
-local function MakeBox(parent, w, maxLetters)
-    local box = CreateFrame("EditBox", nil, parent, "InputBoxTemplate")
-    box:SetSize(w, 20)
-    box:SetAutoFocus(false)
-    box:SetMaxLetters(maxLetters)
-    box:SetScript("OnEscapePressed", function(self)
-        self:ClearFocus()
-    end)
-    return box
-end
+local AddPlaceholder, MakeBox = CH.AddPlaceholder, CH.MakeBox
 
 -- ── Room tab ─────────────────────────────────────────────────────────
 
@@ -427,61 +400,34 @@ secretCheck:SetPoint("TOPLEFT", bannerCheck, "BOTTOMLEFT", 0, -30)
 
 -- ── Yapper tab ───────────────────────────────────────────────────────
 
--- Head picker: a row of small 3D heads. Clicking one sets the room's headID.
--- The model is rendered locally from CH.HEADS, so only the index is stored.
-local headButtons = {}
+-- Head picker: small 3D heads. Clicking one sets the room's headID, or for
+-- one of the house's custom heads the custom ID box. The model is rendered
+-- locally from CH.HEADS, so only the index is stored.
 local UpdateSpeakerHint -- set once the speaker box exists
+local headPicker, headIdBox, GetHeadDisplay, UpdateHeadIdHint, speakerBox
 local function UpdateHeadSelection()
-    for i, b in ipairs(headButtons) do
-        if i == (pendingHeadID or 1) then
-            b:SetBackdropBorderColor(0.95, 0.80, 0.25, 1)
-        else
-            b:SetBackdropBorderColor(0.40, 0.35, 0.20, 0.7)
-        end
-    end
+    headPicker:Select(pendingHeadID or 1, GetHeadDisplay())
     UpdateSpeakerHint()
 end
-
-local HEAD = 34
-local HEADS_PER_ROW = 9
-local function BuildHeadPicker()
-    for i, head in ipairs(CH.HEADS) do
-        local b = headButtons[i]
-        if not b then
-            b = CreateFrame("Button", nil, paneYapper, "BackdropTemplate")
-            b:SetSize(HEAD, HEAD)
-            b:SetBackdrop(CH.BACKDROP_THIN)
-            b:SetBackdropColor(0, 0, 0, 0.6)
-            local col, row = (i - 1) % HEADS_PER_ROW, math.floor((i - 1) / HEADS_PER_ROW)
-            b:SetPoint("TOPLEFT", col * (HEAD + 5), -row * (HEAD + 5))
-            b.model = CreateFrame("PlayerModel", nil, b)
-            b.model:SetPoint("TOPLEFT", 2, -2)
-            b.model:SetPoint("BOTTOMRIGHT", -2, 2)
-            b.model:SetScript("OnModelLoaded", function(self)
-                self:SetPortraitZoom(1)
-            end)
-            b:SetScript("OnClick", function()
-                pendingHeadID = i
-                UpdateHeadSelection()
-            end)
-            b:SetScript("OnEnter", function(self)
-                GameTooltip:SetOwner(self, "ANCHOR_TOP")
-                GameTooltip:SetText(head.name, 1, 0.85, 0.25)
-                GameTooltip:Show()
-            end)
-            b:SetScript("OnLeave", function()
-                GameTooltip:Hide()
-            end)
-            headButtons[i] = b
+headPicker = CH.MakeHeadPicker(paneYapper, function(i, display)
+    if display then
+        headIdBox:SetText(tostring(display))
+        -- the head's name from the house comes with it
+        local h = DialogHouse()
+        local name = h and CH.CustomHeadName(h.zones, display)
+        if name then
+            speakerBox:SetText(name)
         end
-        b.model:SetDisplayInfo(head.display)
-        b.model:SetPortraitZoom(1)
-        b:Show()
+    else
+        pendingHeadID = i
+        headIdBox:SetText("")
     end
-end
+    UpdateHeadIdHint()
+    UpdateHeadSelection()
+end)
 
 -- Everything under the heads starts below however many rows they take.
-local yapperTop = -math.ceil(#CH.HEADS / HEADS_PER_ROW) * (HEAD + 5) - 2
+local yapperTop = -headPicker.height - 2
 
 -- "Use my head when I'm home": flags the room to show the house owner's own
 -- character (when the owner is present) instead of a curated head. The tooltip
@@ -503,13 +449,12 @@ ownerCheck:SetPoint("TOPLEFT", -3, yapperTop)
 -- set, it overides the picked head's name, useful with a custom display ID,
 -- which has no name we can look up.
 Label(paneYapper, "RD_SPEAKER", yapperTop - 34, "RD_SPEAKER_TT_TITLE", "RD_SPEAKER_TT1", "RD_SPEAKER_TT2")
-local speakerBox = MakeBox(paneYapper, PANE_W - LABEL_W - 4, 40)
+speakerBox = MakeBox(paneYapper, PANE_W - LABEL_W - 4, 40)
 speakerBox:SetPoint("TOPLEFT", LABEL_W + 4, yapperTop - 30)
 
 -- Trimmed speaker name, or nil when empty.
 local function GetSpeaker()
-    local s = speakerBox:GetText():match("^%s*(.-)%s*$")
-    return s ~= "" and s or nil
+    return CH.BoxText(speakerBox)
 end
 
 -- The placeholder is the picked head's name, the fallback the yapper uses.
@@ -561,68 +506,44 @@ voiceBtn:SetScript("OnClick", function(self)
 end)
 
 -- Description box: multi-line, capped, scrollable.
-local DESC_MAX = 500
-local descScroll, descBox = CH.MakeTextArea(paneYapper, "ChamberlainDescScroll", PANE_W - 24)
+local descScroll, descBox, UpdateDescHint =
+    CH.MakeNoteArea(paneYapper, "ChamberlainDescScroll", PANE_W - 24, "RD_DESC_HINT", CH.DESC_MAX)
 descScroll:SetPoint("TOPLEFT", 2, yapperTop - 90)
 descScroll:SetPoint("BOTTOMRIGHT", -14, 42)
-descBox:SetMaxLetters(DESC_MAX)
-descBox:SetScript("OnEscapePressed", function(self)
-    self:ClearFocus()
-end)
-
--- Click anywhere in the box to start editing
-descScroll:EnableMouse(true)
-descScroll:SetScript("OnMouseDown", function()
-    descBox:SetFocus()
-end)
-
--- Keep the caret in view while typing past the bottom edge
-descBox:SetScript("OnCursorChanged", function(_, _, cy, _, ch)
-    local top, bottom = -cy, -cy + ch
-    local off, h = descScroll:GetVerticalScroll(), descScroll:GetHeight()
-    if top < off then
-        descScroll:SetVerticalScroll(top)
-    elseif bottom > off + h then
-        descScroll:SetVerticalScroll(bottom - h)
-    end
-end)
-
--- Placeholder, shown while the box is empty and unfocused
-local descHint = descScroll:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-descHint:SetPoint("TOPLEFT", 6, -6)
-descHint:SetPoint("TOPRIGHT", -6, -6)
-descHint:SetJustifyH("LEFT")
-descHint:SetWordWrap(true)
-descHint:SetText(CH.L["RD_DESC_HINT"])
-local function UpdateDescHint()
-    descHint:SetShown(descBox:GetText() == "" and not descBox:HasFocus())
-end
-descBox:HookScript("OnEditFocusGained", UpdateDescHint)
-descBox:HookScript("OnEditFocusLost", UpdateDescHint)
-descBox:HookScript("OnTextChanged", UpdateDescHint)
 
 -- Trimmed description text, or nil when the box is empty.
 local function GetDescText()
-    local t = descBox:GetText():match("^%s*(.-)%s*$")
-    return t ~= "" and t or nil
+    return CH.BoxText(descBox)
 end
 
 -- Quick custom display-ID box (testing): if filled, it overrides the picked
 -- head. Most never need it, so it sits last.
 local idRow = -(PANE_H - 30) -- the bottom row, under the description box
 Label(paneYapper, "RD_CUSTOM_ID", idRow - 4, "RD_CUSTOM_ID_TT_TITLE", "RD_CUSTOM_ID_TT1", "RD_CUSTOM_ID_TT2")
-local headIdBox = MakeBox(paneYapper, 140, 8)
+headIdBox = MakeBox(paneYapper, 140, 8)
 headIdBox:SetPoint("TOPLEFT", LABEL_W + 4, idRow)
 headIdBox:SetNumeric(true)
-local UpdateHeadIdHint = AddPlaceholder(headIdBox, function()
+UpdateHeadIdHint = AddPlaceholder(headIdBox, function()
     return CH.L["RD_CUSTOM_ID_HINT"]
 end)
 
 -- Custom display ID from the box, or nil when empty/zero.
-local function GetHeadDisplay()
+function GetHeadDisplay()
     local n = tonumber(headIdBox:GetText())
     return (n and n > 0) and n or nil
 end
+
+-- A typed id joins the head grid as the room's own once you're done with it.
+headIdBox:HookScript("OnEditFocusLost", function()
+    local h = DialogHouse()
+    headPicker:Fill(GetHeadDisplay(), h and h.zones)
+    UpdateHeadSelection()
+end)
+headIdBox:HookScript("OnTextChanged", function(_, typed)
+    if typed then
+        UpdateHeadSelection()
+    end
+end)
 
 -- Test toggles play/stop: it reads the description with the picked voice, and
 -- flips to "Stop test" while audio is playing so it can be cut short.
@@ -1019,7 +940,11 @@ local function Changed()
 end
 
 -- Whichever way the editor closes, the tests stop and the boxes let go.
-dialog:SetScript("OnHide", function()
+-- Hide UI with the map kept on screen closes nothing.
+dialog:SetScript("OnHide", function(self)
+    if CH.OnlyParentHid(self) then
+        return
+    end
     editBox:ClearFocus()
     descBox:ClearFocus()
     headIdBox:ClearFocus()
@@ -1121,7 +1046,8 @@ function CH.OpenRenameDialog(zone, houseGUID)
     SetPendingGameRoom(zone.gameRoom)
     editBox:SetText(zone.name)
     RefreshSwatches()
-    BuildHeadPicker()
+    local h = DialogHouse()
+    headPicker:Fill(zone.headDisplay, h and h.zones)
     FillSettings(zone)
     RefreshShapeButtons()
     RefreshFloorRow()

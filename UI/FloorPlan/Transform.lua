@@ -47,6 +47,19 @@ function FP.CanvasToWorld(px, py)
     return x, y
 end
 
+-- The fewest yards the fit frames across, so a map of one small room, the
+-- entrance alone above all, isn't blown up to fill the window. The rooms
+-- sit in the middle of it. Twelve grid squares.
+local MIN_SPAN = 72
+
+local function Widen(lo, hi)
+    if hi - lo >= MIN_SPAN then
+        return lo, hi
+    end
+    local mid = (lo + hi) * 0.5
+    return mid - MIN_SPAN * 0.5, mid + MIN_SPAN * 0.5
+end
+
 -- House-wide fit: the bounding box across EVERY floor's visible zones, mapped onto
 -- the canvas. Framing the whole house (not just the viewed floor) means all floors
 -- render at one shared scale and origin, so switching to a floor that holds nothing
@@ -92,6 +105,8 @@ local function ComputeFit()
         trScale = nil
         return
     end
+    minX, maxX = Widen(minX, maxX)
+    minY, maxY = Widen(minY, maxY)
     local worldW = math.max(1, maxX - minX)
     local worldH = math.max(1, maxY - minY)
     trScale = math.min((cw - PADDING * 2) / worldW, (ch - PADDING * 2) / worldH)

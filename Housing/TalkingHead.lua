@@ -159,8 +159,23 @@ CH.ApplyTalkingHeadPos = CH.MakeMovablePersistent(th, "thX", "thY")
 -- when the text is taller than the viewport. Short text sits static at the top.
 local scrollDY, scrollBH
 
+-- The text can be held with the mouse and dragged up or down. Let go and it
+-- scrolls on from there. While held it follows the cursor instead of the
+-- clock, in the same OnUpdate. grabY and grabDY are where the drag began.
+local grabY, grabDY
+
+local function CursorY()
+    local _, y = GetCursorPosition()
+    return y / viewport:GetEffectiveScale()
+end
+
 local function ScrollUpdate(_, elapsed)
-    scrollDY = scrollDY + (ChamberlainDB.scrollSpeed or DEFAULT_SPEED) * elapsed
+    if grabY then
+        -- up to just short of the end, a drag never closes the yapper
+        scrollDY = math.max(-VIEWPORT_H, math.min(scrollBH - 1, grabDY + CursorY() - grabY))
+    else
+        scrollDY = scrollDY + (ChamberlainDB.scrollSpeed or DEFAULT_SPEED) * elapsed
+    end
     if scrollDY > scrollBH then
         -- The last line has scrolled off the top, so close the yapper
         -- and bring the banner back instead of looping.
@@ -170,9 +185,25 @@ local function ScrollUpdate(_, elapsed)
     th.body:SetPoint("TOPLEFT", viewport, "TOPLEFT", 0, scrollDY)
 end
 
+-- The text takes the mouse only while it scrolls. Short text leaves it to
+-- the box, which drags the whole yapper around.
+viewport:SetScript("OnMouseDown", function(_, button)
+    if button == "LeftButton" then
+        grabY, grabDY = CursorY(), scrollDY
+    end
+end)
+viewport:SetScript("OnMouseUp", function()
+    grabY = nil
+end)
+viewport:SetScript("OnHide", function()
+    grabY = nil
+end)
+
 local function SetupScroll()
     scrollBH = th.body:GetStringHeight()
     th.body:ClearAllPoints()
+    grabY = nil
+    viewport:EnableMouse(scrollBH > VIEWPORT_H)
     if scrollBH > VIEWPORT_H then
         scrollDY = -VIEWPORT_H -- start just below the viewport, scroll up
         th.body:SetPoint("TOPLEFT", viewport, "TOPLEFT", 0, scrollDY)
@@ -263,16 +294,25 @@ local function ResolveOwnerUnit()
     return nil
 end
 
+-- A custom head has no name of its own, so the head grid calls it by the
+-- speaker of the first room in zones that wears it with one (3.41.0). Each
+-- room keeps its own speaker and nothing is renamed. nil for none.
+function CH.CustomHeadName(zones, display)
+    for _, z in ipairs(zones or {}) do
+        if z.headDisplay == display and z.speaker then
+            return z.speaker
+        end
+    end
+end
+
 -- Room open in the yapper, so a late owner ping can swap in the live model.
 local shownZone
 
-function CH.ShowTalkingHead(zone)
-    warming = false -- a real open takes over from any warmup
-    shownZone = zone
-    model:SetSize(MODEL_SIZE, MODEL_SIZE) -- restore size if the warmup shrank it
+-- Put zone's face on the model and start it talking. Hands back the owner's
+-- name and gender when it's the owner's own character. quiet skips asking the
+-- owner to announce, for a face that's only put back.
+local function PutHead(zone, quiet)
     local head = CH.HEADS[zone.headID or 1] or CH.HEADS[1]
-    th:Show() -- the model needs the frame shown to load
-
     -- Optionally show the house owner's own character instead of a curated head,
     -- when the room is flagged (zone.useOwnerHead) and the owner is reachable
     -- (you, or a visible group member). Otherwise fall back to curated / custom ID.
@@ -284,7 +324,7 @@ function CH.ShowTalkingHead(zone)
             ownerName = name
             local sex = UnitSex(unit) -- 2 = male, 3 = female, 1 = unknown
             ownerGender = (sex == 3 and "female") or (sex == 2 and "male") or nil
-        elseif not CH.isOwnHouse and CH.RequestOwnerPresence then
+        elseif not quiet and not CH.isOwnHouse and CH.RequestOwnerPresence then
             CH.RequestOwnerPresence(CH.currentHouseGUID) -- ask the owner to announce
         end
     end
@@ -296,17 +336,34 @@ function CH.ShowTalkingHead(zone)
     end
     ReframeHead() -- frame now and re-apply across the next frames (cold-load fix)
     StartYap()
+    return ownerName, ownerGender, head
+end
+
+-- Hide UI hides the model for a moment before Showcase carries the box on,
+-- and a model hidden comes back blank, so the open room's face goes back on.
+-- A real open sets shownZone only after its Show, so this skips it.
+model:SetScript("OnShow", function()
+    if shownZone and not warming then
+        PutHead(shownZone, true)
+    end
+end)
+
+function CH.ShowTalkingHead(zone)
+    warming = false -- a real open takes over from any warmup
+    model:SetSize(MODEL_SIZE, MODEL_SIZE) -- restore size if the warmup shrank it
+    th:Show() -- the model needs the frame shown to load
+    shownZone = zone
+    local ownerName, ownerGender, head = PutHead(zone)
 
     th.name:SetText(zone.speaker or ownerName or (head and head.name) or "")
     th.body:SetText(zone.rpText or "")
     SetupScroll() -- best-effort now...
     C_Timer.After(0, SetupScroll) -- ...and again once the text has wrapped
 
-    -- Read the description aloud. In your own house this uses the room's own voice
-    -- pick, or nothing if none. In a house you're visiting the room carries no
-    -- voice, so it falls back to your personal default for the head's gender when
-    -- enabled. See CH.ResolveZoneVoice.
-    CH.Speak(zone.rpText, CH.ResolveZoneVoice(zone, CH.isOwnHouse, ownerGender))
+    -- Read the description aloud, in the room's own voice pick or else your
+    -- personal default for the head's gender when enabled. See
+    -- CH.ResolveZoneVoice.
+    CH.Speak(zone.rpText, CH.ResolveZoneVoice(zone, ownerGender))
 
     UIFrameFadeIn(th, 0.5, th:GetAlpha(), 1)
 end
