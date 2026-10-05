@@ -22,6 +22,9 @@ local renameTarget = nil -- the zone in the editor
 local renameHouseGUID = nil -- house the renamed zone belongs to (nil = current)
 local pendingColor = nil -- color for the room being named; nil = default gold
 local pendingHeadID = nil -- talking-head index for the room; nil/1 = default
+-- What the card shows, see CH.StoryMode. The decor is kept while another
+-- mode is tried, and CH.StoryFields says what gets saved.
+local pendingStory = { mode = "head" }
 local pendingVoice = nil -- TTS voice NAME for the room; nil = silent. Local-only.
 local pendingAmbience = nil -- index into CH.AMBIENCE, nil = none
 local pendingMusic = nil -- music file id, nil = none
@@ -398,7 +401,13 @@ local secretCheck =
     MakeCheck(paneRoom, "RD_SECRET", "RD_SECRET_TT1", "RD_SECRET_TT_TITLE", "RD_SECRET_TT1", "RD_SECRET_TT2")
 secretCheck:SetPoint("TOPLEFT", bannerCheck, "BOTTOMLEFT", 0, -30)
 
--- ── Yapper tab ───────────────────────────────────────────────────────
+-- ── Story tab ────────────────────────────────────────────────────────
+
+-- The switch on top picks the card's face. The head's own controls sit on
+-- a layer of their own so the switch can hide them together.
+local SWITCH_H = CH.STORY_SWITCH_H
+local headOnly = CreateFrame("Frame", nil, paneYapper)
+headOnly:SetAllPoints()
 
 -- Head picker: small 3D heads. Clicking one sets the room's headID, or for
 -- one of the house's custom heads the custom ID box. The model is rendered
@@ -409,7 +418,7 @@ local function UpdateHeadSelection()
     headPicker:Select(pendingHeadID or 1, GetHeadDisplay())
     UpdateSpeakerHint()
 end
-headPicker = CH.MakeHeadPicker(paneYapper, function(i, display)
+headPicker = CH.MakeHeadPicker(headOnly, function(i, display)
     if display then
         headIdBox:SetText(tostring(display))
         -- the head's name from the house comes with it
@@ -425,9 +434,25 @@ headPicker = CH.MakeHeadPicker(paneYapper, function(i, display)
     UpdateHeadIdHint()
     UpdateHeadSelection()
 end)
+headPicker:SetPoint("TOPLEFT", 0, -SWITCH_H)
+
+-- The Show switch and the decor slot come from UI/DecorPicker.lua.
+local face = CH.MakeStoryFace(paneYapper, headOnly, headPicker.height, DialogGUID, function()
+    UpdateSpeakerHint()
+end)
+face.switch:SetPoint("TOPLEFT", LABEL_W, 0)
+Label(paneYapper, "SY_SHOW", -5, "SY_SHOW_TT_TITLE", "SY_SHOW_TT1", "SY_SHOW_TT2")
+
+-- A model let go while hidden comes back blank, so the heads are set again
+-- each time the head layer shows.
+headOnly:SetScript("OnShow", function()
+    local h = DialogHouse()
+    headPicker:Fill(GetHeadDisplay(), h and h.zones)
+    UpdateHeadSelection()
+end)
 
 -- Everything under the heads starts below however many rows they take.
-local yapperTop = -headPicker.height - 2
+local yapperTop = -SWITCH_H - headPicker.height - 2
 
 -- "Use my head when I'm home": flags the room to show the house owner's own
 -- character (when the owner is present) instead of a curated head. The tooltip
@@ -435,7 +460,7 @@ local yapperTop = -headPicker.height - 2
 -- tick it on (not your account), and visitors need to be grouped with you and
 -- nearby to see it.
 local ownerCheck = MakeCheck(
-    paneYapper,
+    headOnly,
     "RD_USE_MY_HEAD",
     nil,
     "RD_USE_MY_HEAD",
@@ -457,10 +482,11 @@ local function GetSpeaker()
     return CH.BoxText(speakerBox)
 end
 
--- The placeholder is the picked head's name, the fallback the yapper uses.
+-- The placeholder is the name the card falls back to, the head's or the
+-- decor's.
 UpdateSpeakerHint = AddPlaceholder(speakerBox, function()
-    local head = CH.HEADS[pendingHeadID or 1]
-    return head and head.name or ""
+    local decor, noPortrait = CH.StoryFields(pendingStory)
+    return CH.StoryName({ headID = pendingHeadID, decor = decor, noPortrait = noPortrait }) or ""
 end)
 
 -- Voice picker: which OS text-to-speech voice reads this room's description in the
@@ -519,8 +545,8 @@ end
 -- Quick custom display-ID box (testing): if filled, it overrides the picked
 -- head. Most never need it, so it sits last.
 local idRow = -(PANE_H - 30) -- the bottom row, under the description box
-Label(paneYapper, "RD_CUSTOM_ID", idRow - 4, "RD_CUSTOM_ID_TT_TITLE", "RD_CUSTOM_ID_TT1", "RD_CUSTOM_ID_TT2")
-headIdBox = MakeBox(paneYapper, 140, 8)
+Label(headOnly, "RD_CUSTOM_ID", idRow - 4, "RD_CUSTOM_ID_TT_TITLE", "RD_CUSTOM_ID_TT1", "RD_CUSTOM_ID_TT2")
+headIdBox = MakeBox(headOnly, 140, 8)
 headIdBox:SetPoint("TOPLEFT", LABEL_W + 4, idRow)
 headIdBox:SetNumeric(true)
 UpdateHeadIdHint = AddPlaceholder(headIdBox, function()
@@ -861,6 +887,8 @@ end
 -- and stay, so Copy from can use this too.
 local function FillSettings(zone)
     pendingHeadID = zone.headID or 1
+    pendingStory = { mode = CH.StoryMode(zone), decor = zone.decor }
+    face:Load(pendingStory)
     pendingBannerStyle = zone.bannerStyle
     descBox:SetText(zone.rpText or "")
     headIdBox:SetText(zone.headDisplay and tostring(zone.headDisplay) or "")
@@ -887,6 +915,8 @@ local SAVED = {
     "headDisplay",
     "speaker",
     "useOwnerHead",
+    "decor",
+    "noPortrait",
     "rpText",
     "secret",
     "noBanner",
@@ -905,6 +935,7 @@ local SAVED = {
 }
 
 local function Pending()
+    local decor, noPortrait = CH.StoryFields(pendingStory)
     return {
         name = editBox:GetText():match("^%s*(.-)%s*$"),
         shape = pendingShape,
@@ -913,6 +944,8 @@ local function Pending()
         headDisplay = GetHeadDisplay(),
         speaker = GetSpeaker(),
         useOwnerHead = ownerCheck:GetChecked() or nil,
+        decor = decor,
+        noPortrait = noPortrait,
         rpText = GetDescText(),
         secret = secretCheck:GetChecked() or nil,
         noBanner = not bannerCheck:GetChecked() or nil,

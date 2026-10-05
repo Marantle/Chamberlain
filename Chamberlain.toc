@@ -3,7 +3,7 @@
 ## Notes: Names your housing rooms and announces them as you walk around your house.
 ## Category-enUS: Housing
 ## Category: Housing
-## Version: 3.41.1
+## Version: 3.42.0
 ## Author: Rothirr
 ## IconTexture: 133100
 ## X-Curse-Project-ID: 1573197
@@ -57,6 +57,7 @@ UI\FloorPlan\EditPanel.lua
 UI\FloorPlan\Dots.lua
 UI\FloorPlan\HouseCard.lua
 UI\Toolbox.lua
+UI\DecorPicker.lua
 UI\RoomDialog.lua
 UI\FixHouse.lua
 UI\Archive.lua

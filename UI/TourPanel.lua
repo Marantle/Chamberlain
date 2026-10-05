@@ -225,8 +225,14 @@ editor:SetPoint("BOTTOMRIGHT", -PAD, 44)
 
 local headPicker, UpdateSpeakerHint, UpdateIdHint, idBox, speakerBox
 
+-- The face switch on top, the head's controls on a layer of their own under
+-- it, as in the room editor.
+local SWITCH_H = CH.STORY_SWITCH_H
+local headOnly = CreateFrame("Frame", nil, editor)
+headOnly:SetAllPoints()
+
 -- A cast head clears the custom id, a custom head of the house fills it in.
-headPicker = CH.MakeHeadPicker(editor, function(i, display)
+headPicker = CH.MakeHeadPicker(headOnly, function(i, display)
     local y = yaps[picked]
     if display then
         y.headDisplay = display
@@ -244,6 +250,7 @@ headPicker = CH.MakeHeadPicker(editor, function(i, display)
     UpdateSpeakerHint()
     UpdateIdHint()
 end)
+headPicker:SetPoint("TOPLEFT", 0, -SWITCH_H)
 
 -- The house's custom heads, the ones typed on other stops and not saved yet
 -- among them, the picked stop's own first.
@@ -257,11 +264,25 @@ local function FillHeads()
     headPicker:Fill(y.headDisplay, House().zones, unsaved)
     headPicker:Select(y.headID, y.headDisplay)
 end
+-- set again on show, as in the room editor
+headOnly:SetScript("OnShow", function()
+    if picked then
+        FillHeads()
+    end
+end)
+
+-- A stop's mode and decor sit on its yap while it's edited.
+local face = CH.MakeStoryFace(editor, headOnly, headPicker.height, function()
+    return guid
+end, function()
+    UpdateSpeakerHint()
+end)
+face.switch:SetPoint("TOPLEFT")
 
 -- A label and its box on the row under the heads, at x.
-local ROW_Y = -headPicker.height - 2
-local function FieldLabel(key, x)
-    local label = editor:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+local ROW_Y = -SWITCH_H - headPicker.height - 2
+local function FieldLabel(parent, key, x)
+    local label = parent:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     label:SetPoint("TOPLEFT", x, ROW_Y - 4)
     label:SetTextColor(CH.RGBA(CH.COLORS.muted, 1))
     label:SetText(CH.L[key])
@@ -269,21 +290,24 @@ local function FieldLabel(key, x)
 end
 
 -- The speaker and the custom head id, as in the room editor. An empty
--- speaker shows the picked head's name in grey, the name the yapper uses.
-local speakerLabel = FieldLabel("RD_SPEAKER", 0)
+-- speaker shows the name the card falls back to in grey.
+local speakerLabel = FieldLabel(editor, "RD_SPEAKER", 0)
 speakerBox = CH.MakeBox(editor, 150, 40)
 speakerBox:SetPoint("LEFT", speakerLabel, "RIGHT", 6, 0)
 speakerBox:SetScript("OnEnterPressed", speakerBox.ClearFocus)
 UpdateSpeakerHint = CH.AddPlaceholder(speakerBox, function()
     local y = picked and yaps[picked]
-    local head = CH.HEADS[y and y.headID or 1]
-    return head and head.name or ""
+    if not y then
+        return ""
+    end
+    local decor, noPortrait = CH.StoryFields(y)
+    return CH.StoryName({ headID = y.headID, decor = decor, noPortrait = noPortrait }) or ""
 end)
 
-local idLabel = FieldLabel("RD_CUSTOM_ID", 0)
+local idLabel = FieldLabel(headOnly, "RD_CUSTOM_ID", 0)
 idLabel:ClearAllPoints()
 idLabel:SetPoint("LEFT", speakerBox, "RIGHT", 12, 0)
-idBox = CH.MakeBox(editor, 70, 8)
+idBox = CH.MakeBox(headOnly, 70, 8)
 idBox:SetPoint("LEFT", idLabel, "RIGHT", 6, 0)
 idBox:SetNumeric(true)
 idBox:SetScript("OnEnterPressed", idBox.ClearFocus)
@@ -330,8 +354,10 @@ textBox:HookScript("OnEditFocusLost", function()
 end)
 
 function ShowEditor()
-    editor:SetShown(picked ~= nil)
+    -- Find decor works for the stop it was opened on
+    CH.HideDecorPicker()
     if not picked then
+        editor:Hide()
         edTitle:SetText(CH.L["TR_PICK_HINT"])
         return
     end
@@ -342,10 +368,15 @@ function ShowEditor()
             headDisplay = picked.headDisplay,
             speaker = picked.speaker,
             rpText = picked.rpText,
+            mode = CH.StoryMode(picked),
+            decor = picked.decor,
         }
         yaps[picked] = y
     end
+    -- shown once the yap exists, since the heads fill themselves on show
+    editor:Show()
     edTitle:SetText(string.format(CH.L["TR_YAPPER_X"], picked.name))
+    face:Load(y)
     FillHeads()
     speakerBox:SetText(y.speaker or "")
     idBox:SetText(y.headDisplay and tostring(y.headDisplay) or "")
@@ -409,7 +440,8 @@ local YAP = { "headDisplay", "speaker", "rpText" }
 
 -- Whether the yapper y edited here differs from room z.
 local function YapDiffers(z, y)
-    if y.headID ~= (z.headID or 1) then
+    local decor, noPortrait = CH.StoryFields(y)
+    if y.headID ~= (z.headID or 1) or decor ~= z.decor or noPortrait ~= z.noPortrait then
         return true
     end
     for _, k in ipairs(YAP) do
@@ -451,6 +483,7 @@ local function Save()
     for z, y in pairs(yaps) do
         if YapDiffers(z, y) then
             z.headID = y.headID
+            z.decor, z.noPortrait = CH.StoryFields(y)
             for _, k in ipairs(YAP) do
                 z[k] = y[k]
             end

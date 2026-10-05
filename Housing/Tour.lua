@@ -341,10 +341,10 @@ end)
 
 -- ── Starting, stopping and the ticker ───────────────────────────────
 
--- The yapper for zone with text in place of its own words. It reads them
--- aloud the way it reads any room, see CH.ResolveZoneVoice.
+-- The yapper for zone with text in place of its own words, under the
+-- room's banner. It reads them aloud the way it reads any room, see
+-- CH.ResolveZoneVoice.
 local function Speak(zone, text)
-    CH.HideBanner(0.3)
     CH.ShowTalkingHead(setmetatable({ rpText = text }, { __index = zone }))
 end
 

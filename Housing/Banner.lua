@@ -1597,7 +1597,10 @@ function CH.ShowBanner(dur)
     if timeout > 0 then
         bannerTimer = C_Timer.NewTimer(timeout, function()
             bannerTimer = nil
-            CH.HideBanner(0.8)
+            -- the yapper hangs under it, and closing that starts the wait again
+            if not CH.talkingHead:IsShown() then
+                CH.HideBanner(0.8)
+            end
         end)
     end
 end

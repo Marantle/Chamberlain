@@ -32,6 +32,22 @@ end
 -- Refresh method.
 CH.WHATS_NEW = {
     {
+        v = "3.42.0",
+        lead = {
+            icon = "icon-book",
+            title = "Story",
+            text = "The Yapper tab is now Story, and a room's card can show more than a head. Pick Decor "
+                .. "and Find decor lists the housing catalog over the map, so a lamp or a chest "
+                .. "can speak for the room. Its name is the speaker until you type another. Text only "
+                .. "shows the words with no picture.\n\nThe card itself is new too. It drops down from "
+                .. "under the banner when you click Read, and the banner stays up over it. The lock on "
+                .. "the card lets it loose if you'd rather drag it somewhere of its own.",
+        },
+        notes = {
+            "Tour stops can show a decor or their words alone as well.",
+        },
+    },
+    {
         v = "3.41.1",
         notes = {
             "The rooms on the minimap work around the annoying interferences of minimap addons that move "

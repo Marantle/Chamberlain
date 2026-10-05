@@ -48,6 +48,8 @@ read_globals = {
     "tIndexOf",
     "tAppendAll",
     "CreateColor",
+    "CAMERA_TRANSITION_TYPE_IMMEDIATE",
+    "CAMERA_MODIFICATION_TYPE_DISCARD",
     "GameTooltip",
     "GameFontNormal",
     "GameFontNormalSmall",

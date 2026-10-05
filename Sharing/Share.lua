@@ -1021,6 +1021,8 @@ local function DeserializeLayout(b64)
                 headDisplay = type(z.hd) == "number" and z.hd or nil,
                 speaker = type(z.sp) == "string" and string.sub(z.sp, 1, 40) or nil,
                 useOwnerHead = z.oh == true or nil,
+                decor = type(z.dr) == "number" and z.dr > 0 and z.dr % 1 == 0 and z.dr or nil,
+                noPortrait = z.np == true or nil,
                 rpText = type(z.t) == "string" and string.sub(z.t, 1, CH.DESC_MAX) or nil,
                 tourStop = CH.IsTourStop(z.to) and z.to or nil,
                 secret = z.se == true or nil,
@@ -1122,6 +1124,10 @@ function CH.ExportLayout(houseGUID)
             hd = z.headDisplay, -- custom head display ID (overrides hi)
             sp = z.speaker, -- custom speaker name (overrides head name)
             oh = z.useOwnerHead, -- show the house owner's character when present
+            -- A decor's catalog record in place of the head, or the words with
+            -- no face at all (3.42.0). Older clients show the head in hi/hd.
+            dr = z.decor,
+            np = z.noPortrait,
             se = z.secret, -- hidden from visitors' floor plan and room list, banner still fires
             nb = z.noBanner, -- no banner on entry (3.8.0, older clients still show one)
             am = z.ambience, -- index into CH.AMBIENCE (3.8.0)

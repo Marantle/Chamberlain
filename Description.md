@@ -158,10 +158,12 @@ remove it in the editor and Chamberlain forgets it, with a line in chat.
 ## Room name, description and talking head
 
 A room has more than a name. You can set a color for the banner and the map
-tile. You can write a description and pick a face that reads it in a talking
-head box. Your computer can speak the description in a voice you pick. The
-voice stays on your computer and goes to nobody. The room editor keeps these
-on four tabs, Room, Yapper, Sound and Banner, under a preview of the banner.
+tile. You can write a description for its card, which drops down under the
+banner when you click Read. The card shows a talking head beside the words, or a
+piece of decor you find in the housing catalog, or the words alone. Your
+computer can speak the description in a voice you pick. The voice stays on
+your computer and goes to nobody. The room editor keeps these on four tabs,
+Room, Story, Sound and Banner, under a preview of the banner.
 
 A room marked Secret stays off the house maps and room lists of your visitors.
 Its banner still fires when they walk in.
@@ -173,13 +175,13 @@ on the bar (or Tour in the House panel) opens a Tour panel on the house map in
 place of the build tools. Click rooms on
 the map to add them, on any floor, or use the plus in the list. Put them in
 the order you like with the arrows. Click a stop to
-change its yapper right there, the face, the speaker and the words. These are
+change its story right there, the head or decor, the speaker and the words. These are
 the room's own, so the room editor shows the same. Write a welcome for the
 start and a goodbye for the end, then Save. Try it walks the tour yourself.
 
 A visitor with your map gets Take the tour on the plaque and a Tour button on
 the Chamberlain bar. The welcome plays first. The stops go in your order, and
-only the next one plays its yapper when they walk in. A stop they reach early
+only the next one plays its story when they walk in. A stop they reach early
 shows its banner and waits for its turn. A card counts the rooms seen, and its
 arrow turns with them to point at the next stop, with upstairs or downstairs
 when it's on another floor. The next stop turns gold and pulses on the house
@@ -382,8 +384,9 @@ backup that you made.
   map's left side, and the map holds still until you save or cancel. Delete a
   room by mistake and Undo delete on the Build toolbox brings it back. The
   copy button next to the selected room makes a copy of it.
-- A talking head "Yapper" reads the description of a room like an NPC. Your
-  computer can speak it with its TTS (text to speech) voices.
+- A room's card can show a talking head that reads the description like an
+  NPC, or a piece of decor from the catalog beside it. Your computer can speak
+  it with its TTS (text to speech) voices.
 - Secret rooms stay off the maps of your visitors but still announce
   themselves.
 - More than one floor, with each room tied to a floor.

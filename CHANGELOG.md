@@ -1,5 +1,28 @@
 # Changelog
 
+## 3.42.0
+- The Yapper tab in the room editor is now called Story. A Show switch on top
+  picks what the room's card shows beside its words. That's a talking head, a
+  piece of decor or the text only.
+- Decor shows a piece from the housing catalog, standing still.
+  Find decor opens a list over the house map where you can search the catalog
+  by name and pick a category. It can also narrow the list to what you've
+  collected, what you've placed in your houses or what this house's story
+  cards already show (History).
+- With Decor picked, the speaker name is the decor's name until you type your
+  own. With Text only there's no name unless you type one.
+- The card has a new look and opens under the banner as one piece with it.
+  Read on the banner drops a dark strip with gold lines down from it, and a
+  second click closes it. The banner names the room and the strip names the
+  speaker, with the head or the decor on the left. Text only centres the
+  words. The banner no longer goes away while you read.
+- The lock at the top of the card detaches it from the banner, right where it
+  hangs, and then you can drag it anywhere. A second click hangs it under
+  the banner again. Only you see where it hangs, and it's kept between sessions.
+- The Tour panel has the same switch and Find decor, so a stop can show a
+  decor or its words alone too.
+- Players on an older Chamberlain still see the room's head with the words.
+
 ## 3.41.1
 - Rooms on the minimap work with minimap addons that move the minimap and
   draw their own copy of the house picture. Before, that copy stayed over the
