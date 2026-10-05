@@ -20,7 +20,8 @@ local FP = CH.FP
 
 -- A sibling one level down so the minimap draws over it, until SetDeep says
 -- otherwise. Its own size is used for the scale since another addon may have
--- scaled the Minimap frame.
+-- scaled the Minimap frame. Apply keeps it on the minimap's parent, which a
+-- minimap addon can change after we load.
 local overlay = CreateFrame("Frame", nil, Minimap:GetParent())
 overlay:SetAllPoints(Minimap)
 overlay:SetFrameStrata(Minimap:GetFrameStrata())
@@ -305,14 +306,28 @@ local function Apply()
     end
     -- A house we hold no rooms for keeps the game's picture when we're alone,
     -- or it would be an empty circle. In a group the circle still has the
-    -- others on it.
-    local h = CH.currentHouseGUID and ChamberlainDB.houses[CH.currentHouseGUID]
+    -- others on it. A house not known yet counts as one with rooms (see below).
+    local guid = CH.currentHouseGUID
+    local h = guid and ChamberlainDB.houses[guid]
     local on = ChamberlainDB.settings.minimapRooms == true
         and Minimap:IsShown()
         and C_Housing.IsInsideHouse()
-        and (IsInGroup() or h ~= nil and h.zones ~= nil and #h.zones > 0)
+        and (IsInGroup() or not guid or h ~= nil and h.zones ~= nil and #h.zones > 0)
     if on then
+        -- Hiding the picture isn't enough. A minimap addon can draw its own
+        -- copy whenever it finds the house atlas on this texture, and it only
+        -- looks half a second after a zone change. After a reload the house
+        -- takes seconds to be known, so the atlas goes before that. A house
+        -- with no rooms gets it back from the game's own update.
         MinimapBackdrop.StaticOverlayTexture:Hide()
+        MinimapBackdrop.StaticOverlayTexture:SetAtlas(nil)
+        -- the same addon can move the minimap off its old parent and fade
+        -- that out, and the rooms would go with it
+        if overlay:GetParent() ~= Minimap:GetParent() then
+            overlay:SetParent(Minimap:GetParent())
+        end
+        overlay:SetFrameStrata(Minimap:GetFrameStrata())
+        SetDeep(deep)
         ApplyShape()
         FP.minimapDirty = true
     elseif deep > 0 then
@@ -326,26 +341,47 @@ hooksecurefunc(Minimap, "UpdateStaticOverlayTexture", Apply)
 -- Not a child of the minimap any more, so it has to follow it by hand.
 Minimap:HookScript("OnShow", Apply)
 Minimap:HookScript("OnHide", Apply)
+hooksecurefunc(Minimap, "SetParent", Apply)
 
 -- The wheel and both zoom buttons go through Minimap:SetZoom. At the game's
 -- closest the zoom in button is disabled, so a wheel up there never reaches
 -- SetZoom, and that is the turn that takes us a step deeper. Any zoom out on
 -- a deep step is put back to the closest and costs one deep step instead.
+-- The hook is on the button's Click because some addons swap the wheel script
+-- out. Others zoom with SetZoom alone and ask for the closest again.
 local zoomedAt, holding
+local wasClosest = Minimap:GetZoom() == Minimap:GetZoomLevels() - 1
 
+local function Deeper()
+    if deep < #DEEP and overlay:IsShown() then
+        SetDeep(deep + 1)
+    end
+end
+
+-- The zoom is read back from the minimap, since addons pass it as a string
+-- too (a layout saver sends "5") and the game takes that.
 hooksecurefunc(Minimap, "SetZoom", function()
     zoomedAt = GetTime()
-    if deep > 0 and not holding then
-        holding = true
-        Minimap:SetZoom(Minimap:GetZoomLevels() - 1)
-        holding = false
-        SetDeep(deep - 1)
+    if holding then
+        return
     end
+    local closest = Minimap:GetZoomLevels() - 1
+    if Minimap:GetZoom() < closest then
+        if deep > 0 then
+            holding = true
+            Minimap:SetZoom(closest)
+            holding = false
+            SetDeep(deep - 1)
+        end
+    elseif wasClosest then
+        Deeper()
+    end
+    wasClosest = Minimap:GetZoom() == closest
 end)
 
-Minimap:HookScript("OnMouseWheel", function(_, d)
-    if d > 0 and zoomedAt ~= GetTime() and deep < #DEEP and overlay:IsShown() then
-        SetDeep(deep + 1)
+hooksecurefunc(Minimap.ZoomIn, "Click", function()
+    if zoomedAt ~= GetTime() then
+        Deeper()
     end
 end)
 

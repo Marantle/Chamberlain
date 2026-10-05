@@ -32,6 +32,15 @@ end
 -- Refresh method.
 CH.WHATS_NEW = {
     {
+        v = "3.41.1",
+        notes = {
+            "The rooms on the minimap work around the annoying interferences of minimap addons that move "
+                .. "the minimap around and put their own house picture over it. Your rooms showed as an "
+                .. "empty see-through circle under those, or not at all.",
+            "The extra close zoom steps work with those addons too.",
+        },
+    },
+    {
         v = "3.41.0",
         lead = {
             icon = "icon-book",

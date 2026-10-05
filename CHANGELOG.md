@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.41.1
+- Rooms on the minimap work with minimap addons that move the minimap and
+  draw their own copy of the house picture. Before, that copy stayed over the
+  minimap and the rooms didn't show.
+- The extra close zoom steps on the minimap work with minimap addons that
+  change how the mouse wheel zooms.
+
 ## 3.41.0
 - Click Tour on the bar or in the House panel to open a Tour panel on the
   house map. The bar's Tour button shows once your map has two rooms. Add
