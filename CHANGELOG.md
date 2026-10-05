@@ -1,5 +1,40 @@
 # Changelog
 
+## 3.43.0
+- The room editor has a new Lock tab where you give a room a code of 4 to 8
+  digits. Visitors see "Locked by Arcane Ward" on the banner, and
+  its button opens the lock instead of the story.
+- The Arcane Ward is a ring of magic circles with ten glyph stones under it,
+  one glyph per digit. Glyphs fly into the ring as you press them, and a click
+  on one sends it back. The right code spins the circles apart and the
+  area's real name, banner style and story show. A wrong code makes the ward
+  bite back. Each glyph clicks into place with a rune sound, and the open and
+  the wrong code have sounds of their own from the game.
+- The glyphs are made of straight bars, so the clue can be laid out in the
+  house with beams or planks. The Lock tab shows your code as its glyphs while
+  you type it.
+- In a shared map the hidden name, banner style and story are scrambled, so
+  searching the shared map won't find them. The code never leaves the owner.
+  A visitor who solved an area keeps it open through new maps, unless the
+  owner changes the code.
+- The Try the lock button on the Lock tab opens the lock as your visitors get it, with
+  the code you typed, so you can check it works. Nothing is saved.
+- Showcase keeps the lock on screen when you hide the UI, with its own switch
+  in Settings. It's on to start with.
+- Players on an older Chamberlain see a locked area as a room called Locked.
+- The Square room button now drops one grid square right where you stand,
+  without snapping. Dragging it snaps as before, and Quick resize still has
+  the game's sizes.
+- A new Tour guide button at the top of the Tour panel picks who speaks the welcome and
+  the goodbye, with the same Head, Decor and Text only switch as a room's
+  story. It starts on your own character, as before. Visitors on an older
+  Chamberlain keep seeing your character.
+- The goodbye now opens under the banner like the welcome, as well as on the
+  tour card.
+- Secret rooms can be tour stops. They stay off your visitors' map, so the
+  card's arrow is how they find them. Visitors on an older Chamberlain skip
+  those stops.
+
 ## 3.42.0
 - The Yapper tab in the room editor is now called Story. A Show switch on top
   picks what the room's card shows beside its words. That's a talking head, a

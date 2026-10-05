@@ -52,6 +52,13 @@ CH.Tip(welcomeBox, "TR_TT_WELCOME")
 local byeBox = TextBox("TR_BYE", "tourBye", -62)
 CH.Tip(byeBox, "TR_TT_BYE")
 
+-- Who speaks those two (3.43.0), edited in the stops' editor below as if
+-- it were one more stop, with no words of its own.
+local GUIDE = {}
+local guideBtn = CH.MakeButton(f, "TR_GUIDE", 90, 20)
+guideBtn:SetPoint("TOPRIGHT", -PAD, -8)
+CH.Tip(guideBtn, "TR_TT_GUIDE")
+
 -- ── The stops and the rooms to add ───────────────────────────────────
 
 local listRule = CH.MakeRule(f)
@@ -68,12 +75,17 @@ local ShowEditor -- the picked stop's yapper into the boxes
 
 local function Pick(z)
     picked = z
-    FP.editZone = z
-    -- a stop picked in the list may be on another floor
-    CH.fpViewedFloor = z.floor or 1
+    FP.editZone = z ~= GUIDE and z or nil
+    if z ~= GUIDE then
+        -- a stop picked in the list may be on another floor
+        CH.fpViewedFloor = z.floor or 1
+    end
     ShowEditor()
     Render()
 end
+guideBtn:SetScript("OnClick", function()
+    Pick(GUIDE)
+end)
 
 local function Move(z, by)
     local i = tIndexOf(order, z)
@@ -327,6 +339,18 @@ local textScroll, textBox, UpdateTextHint =
 textScroll:SetPoint("TOPLEFT", 2, ROW_Y - 28)
 textScroll:SetPoint("BOTTOMRIGHT", -16, 2)
 
+-- The guide has no words box. Its head can be the owner's own character
+-- instead, as a room's can, and that's how a tour starts out.
+local ownerCheck = CreateFrame("CheckButton", nil, headOnly, "UICheckButtonTemplate")
+ownerCheck:SetSize(24, 24)
+ownerCheck:SetPoint("TOPLEFT", -3, ROW_Y - 26)
+local ownerLabel = headOnly:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+ownerLabel:SetPoint("LEFT", ownerCheck, "RIGHT", 2, 0)
+ownerLabel:SetText(CH.L["RD_USE_MY_HEAD"])
+ownerCheck:SetScript("OnClick", function(self)
+    yaps[GUIDE].useOwnerHead = self:GetChecked() or nil
+end)
+
 local Trimmed = CH.BoxText
 
 -- Typing only, a SetText on a pick leaves the edits alone.
@@ -361,21 +385,28 @@ function ShowEditor()
         edTitle:SetText(CH.L["TR_PICK_HINT"])
         return
     end
+    local guide = picked == GUIDE
     local y = yaps[picked]
     if not y then
+        local from = guide and CH.TourGuide(House()) or picked
         y = {
-            headID = picked.headID or 1,
-            headDisplay = picked.headDisplay,
-            speaker = picked.speaker,
-            rpText = picked.rpText,
-            mode = CH.StoryMode(picked),
-            decor = picked.decor,
+            headID = from.headID or 1,
+            headDisplay = from.headDisplay,
+            speaker = from.speaker,
+            useOwnerHead = from.useOwnerHead,
+            rpText = from.rpText,
+            mode = CH.StoryMode(from),
+            decor = from.decor,
         }
         yaps[picked] = y
     end
     -- shown once the yap exists, since the heads fill themselves on show
     editor:Show()
-    edTitle:SetText(string.format(CH.L["TR_YAPPER_X"], picked.name))
+    edTitle:SetText(guide and CH.L["TR_GUIDE_TITLE"] or string.format(CH.L["TR_YAPPER_X"], picked.name))
+    textScroll:SetShown(not guide)
+    ownerCheck:SetShown(guide)
+    ownerLabel:SetShown(guide)
+    ownerCheck:SetChecked(y.useOwnerHead)
     face:Load(y)
     FillHeads()
     speakerBox:SetText(y.speaker or "")
@@ -435,8 +466,14 @@ function FP.TourRanks(h)
     end
 end
 
--- The yapper fields the panel edits, the room editor's own names.
-local YAP = { "headDisplay", "speaker", "rpText" }
+-- The yapper fields the panel edits, the room editor's own names. Only the
+-- guide's tick can change useOwnerHead here.
+local YAP = { "headDisplay", "speaker", "rpText", "useOwnerHead" }
+
+-- What a yap in the panel was opened from, the room or the house's guide.
+local function Source(z)
+    return z == GUIDE and CH.TourGuide(House()) or z
+end
 
 -- Whether the yapper y edited here differs from room z.
 local function YapDiffers(z, y)
@@ -463,7 +500,7 @@ local function Changed()
         end
     end
     for z, y in pairs(yaps) do
-        if YapDiffers(z, y) then
+        if YapDiffers(Source(z), y) then
             return true
         end
     end
@@ -481,7 +518,12 @@ local function Save()
         end
     end
     for z, y in pairs(yaps) do
-        if YapDiffers(z, y) then
+        if YapDiffers(Source(z), y) then
+            -- the default guide is shared, so a changed one gets its own table
+            if z == GUIDE then
+                z = {}
+                h.tourGuide = z
+            end
             z.headID = y.headID
             z.decor, z.noPortrait = CH.StoryFields(y)
             for _, k in ipairs(YAP) do
@@ -538,7 +580,7 @@ function panel.check()
             table.remove(order, i)
         end
     end
-    if picked and not tIndexOf(h.zones, picked) then
+    if picked and picked ~= GUIDE and not tIndexOf(h.zones, picked) then
         picked = nil
         FP.editZone = nil
     end

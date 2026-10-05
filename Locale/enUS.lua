@@ -186,6 +186,7 @@ L["SET_SHOWCASE_MINIMAP"] = "Minimap, with your rooms and its zoom"
 L["SET_SHOWCASE_BAR"] = "Chamberlain bar"
 L["SET_SHOWCASE_MAP"] = "House map, with the build tools"
 L["SET_SHOWCASE_AUTO_MAP"] = "Auto map guide"
+L["SET_SHOWCASE_LOCK"] = "Lock of a locked area"
 L["SET_SHOWCASE_HOUSE_PANEL"] = "House panel"
 L["SET_SHOWCASE_SHARING"] = "Sharing windows"
 L["SET_PAGE_MAP"] = "Map and bar"
@@ -413,6 +414,16 @@ L["HOUSE_UNLINKED_MOVED_X"] = "Forgot game room %s for %s because it moved to an
 -- ── Room banner (Housing/Banner.lua) ─────────────────────────────────
 L["BANNER_READ"] = "Read"
 
+-- ── Locked areas (Housing/Lock.lua, UI/LockWindow.lua) ───────────────
+L["LOCK_AREA"] = "Locked area"
+L["LOCK_BANNER_X"] = "Locked by %s"
+L["LOCK_STYLE_ARCANE"] = "Arcane Ward"
+L["LOCK_UNLOCK"] = "Unlock"
+L["LOCK_CLEAR"] = "Clear"
+L["LOCK_ENTER_CODE"] = "Put the glyphs in the ring, then click Unlock."
+L["LOCK_RELOCKED_X"] = "Locked %d areas in this house again."
+L["LOCK_RELOCK_NONE"] = "Stand in a house you have a map of first."
+
 -- ── Talking head (Housing/TalkingHead.lua) ───────────────────────────
 L["TH_SCROLL_FASTER"] = "Scroll faster"
 L["TH_SCROLL_SLOWER"] = "Scroll slower"
@@ -491,6 +502,21 @@ L["RD_TAB_ROOM"] = "Room"
 L["RD_TAB_YAPPER"] = "Story"
 L["RD_TAB_SOUND"] = "Sound"
 L["RD_TAB_BANNER"] = "Banner"
+L["RD_TAB_LOCK"] = "Lock"
+L["RD_LOCK_ON"] = "Lock this area with a code"
+L["RD_LOCK_ON_HINT"] = "Visitors see a lock on the banner until they enter the code."
+L["RD_LOCK_TT_TITLE"] = "Locked area"
+L["RD_LOCK_TT1"] =
+    "The name, the banner style and the story stay hidden until a visitor solves the lock. Sounds still play."
+L["RD_LOCK_TT2"] = "The code never goes into the map you share. You always see your own areas open."
+L["RD_LOCK_CODE"] = "Code"
+L["RD_LOCK_CODE_HINT"] = "4 to 8 digits. Each digit is a glyph on the lock."
+L["RD_LOCK_BAD_CODE"] = "The code needs 4 to 8 digits."
+L["RD_LOCK_GLYPHS"] = "Glyphs"
+L["RD_LOCK_GLYPHS_HINT"] =
+    "Your code as the lock shows it. Each glyph is a few straight bars, so you can build them in your house as a clue."
+L["RD_LOCK_TRY"] = "Try the lock"
+L["RD_LOCK_TRY_TT"] = "Opens the lock as visitors see it, with the code above. Nothing is saved or changed."
 
 -- ── Story faces and Find decor (UI/DecorPicker.lua) ──────────────────
 L["SY_SHOW"] = "Show:"
@@ -642,6 +668,10 @@ L["TR_TT_ADD"] = "Add this room as the last stop."
 L["TR_PICK_HINT"] = "Click a stop to change its story."
 L["TR_MAP_TIP"] = "Click to add this room to the tour. Click a stop to change its story."
 L["TR_YAPPER_X"] = "Story of %s"
+L["TR_GUIDE"] = "Tour guide"
+L["TR_GUIDE_TITLE"] = "Who speaks the welcome and the goodbye"
+L["TR_TT_GUIDE"] =
+    "Pick the head, decor or text only card for the welcome and the goodbye. It starts as your own character."
 L["TR_SAVE"] = "Save tour"
 L["TR_TRY"] = "Try it"
 L["TR_TT_TRY"] = "Save, then start the tour yourself."

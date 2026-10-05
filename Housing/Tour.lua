@@ -18,14 +18,14 @@ function CH.IsTourStop(n)
 end
 
 -- A room that can be a stop, the Tour panel's list as well. A sound spot or
--- a stair landing is never walked into as a room, and a secret room would
--- be named on the visitor's card. Stairwells are rooms and can be stops.
+-- a stair landing is never walked into as a room. Stairwells are rooms and
+-- can be stops. A secret room can be one too since 3.43.0: it stays off the
+-- visitor's map, so the card's arrow is how they find it.
 function CH.TourRoom(z)
-    return CH.IsRoom(z) and not z.secret and not z.part
+    return CH.IsRoom(z) and not z.part
 end
 
--- A room that counts on the tour. A secret room keeps its number but sits it
--- out.
+-- A room that counts on the tour.
 local function OnTour(z)
     return z.tourStop ~= nil and CH.TourRoom(z)
 end
@@ -348,6 +348,13 @@ local function Speak(zone, text)
     CH.ShowTalkingHead(setmetatable({ rpText = text }, { __index = zone }))
 end
 
+-- Who speaks the welcome and the goodbye, picked in the Tour panel the way a
+-- room's story is. Without a pick it's the owner's own character.
+local OWNER = { useOwnerHead = true }
+function CH.TourGuide(h)
+    return h.tourGuide or OWNER
+end
+
 -- The welcome plays as you start. Standing in the first stop already counts
 -- it, and its own words follow the welcome in the same yapper.
 function CH.StartTour(guid)
@@ -355,7 +362,7 @@ function CH.StartTour(guid)
     tour = { guid = guid, seen = {} }
     local room = CH.currentRoom
     local text = h.tourWelcome
-    local speaker = { useOwnerHead = true }
+    local speaker = CH.TourGuide(h)
     if room and OnTour(room) and room.tourStop == NextStop(h).tourStop then
         tour.seen[room.tourStop] = true
         if room.rpText and room.rpText ~= "" then
@@ -433,7 +440,6 @@ function CH.TourTick(h, x, y, mapID)
         PointAt(x, y, mapID)
     elseif tour.byePending and not CH.talkingHead:IsShown() then
         tour.byePending = false
-        -- the goodbye belongs to no room, so the default head's voice reads it
-        CH.Speak(h.tourBye, CH.ResolveZoneVoice({}))
+        Speak(CH.TourGuide(h), h.tourBye)
     end
 end

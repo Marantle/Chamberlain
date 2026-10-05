@@ -1,6 +1,6 @@
 local ADDON, CH = ...
 
-CH.VERSION = "3.42.0"
+CH.VERSION = "3.43.0"
 
 -- How often the zone ticker samples your position, in seconds. Drives stair
 -- detection and the per-room time stats both, so they stay in step if it changes.
@@ -334,6 +334,11 @@ events:SetScript("OnEvent", function(_, event, arg1)
         if ChamberlainDB.recentColors == nil then
             ChamberlainDB.recentColors = {}
         end
+        -- codes that opened locked areas, so a new map of the house opens
+        -- them again (3.43.0, Housing/Lock.lua)
+        if ChamberlainDB.lockCodes == nil then
+            ChamberlainDB.lockCodes = {}
+        end
         -- Stored house maps (Housing/Archive.lua), each with its own id so a
         -- live map can say which entry it matches. Local only, never shared.
         if ChamberlainDB.archive == nil then
@@ -481,6 +486,9 @@ SlashCmdList["CH"] = function(msg)
         -- house at the one you're standing in, for when a house move changed its
         -- internal id and owner name (see UI/FixHouse.lua).
         CH.OpenFixHouse()
+    elseif cmd == "relock" then
+        -- off the help list too, for trying a house's locks again
+        CH.Relock(CH.currentHouseGUID)
     elseif cmd == "logs" then
         -- also off the help list, since it's only for when someone asks for it
         CH.OpenShareLog()

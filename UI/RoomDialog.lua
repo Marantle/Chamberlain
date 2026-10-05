@@ -133,7 +133,7 @@ local function Pane()
     panes[#panes + 1] = p
     return p
 end
-local paneRoom, paneYapper, paneSound, paneBanner = Pane(), Pane(), Pane(), Pane()
+local paneRoom, paneYapper, paneSound, paneBanner, paneLock = Pane(), Pane(), Pane(), Pane(), Pane()
 
 local function ShowPane(i)
     for n, p in ipairs(panes) do
@@ -141,7 +141,8 @@ local function ShowPane(i)
     end
 end
 
-local tabs = CH.MakeTabs(dialog, { "RD_TAB_ROOM", "RD_TAB_YAPPER", "RD_TAB_SOUND", "RD_TAB_BANNER" }, ShowPane)
+local tabs =
+    CH.MakeTabs(dialog, { "RD_TAB_ROOM", "RD_TAB_YAPPER", "RD_TAB_SOUND", "RD_TAB_BANNER", "RD_TAB_LOCK" }, ShowPane)
 tabs:SetPoint("TOPLEFT", 12, -110)
 tabs:SetPoint("TOPRIGHT", -12, -110)
 
@@ -842,6 +843,89 @@ local function RefreshFloorRow()
     roomSep:SetWidth(PANE_W)
 end
 
+-- ── Lock tab ─────────────────────────────────────────────────────────
+-- A code turns the room into a locked area (Housing/Lock.lua): visitors see
+-- the lock on the banner and solve it for the name, the banner style and the
+-- story. The owner always sees it open.
+
+local lockCheck = MakeCheck(paneLock, "RD_LOCK_ON", "RD_LOCK_ON_HINT", "RD_LOCK_TT_TITLE", "RD_LOCK_TT1", "RD_LOCK_TT2")
+lockCheck:SetPoint("TOPLEFT", -3, -2)
+
+local codeLabel = Label(paneLock, "RD_LOCK_CODE", -62)
+local codeBox = MakeBox(paneLock, 120, CH.LOCK_CODE_MAX)
+codeBox:SetPoint("TOPLEFT", LABEL_W, -56)
+codeBox:SetNumeric(true)
+-- grey help under a control in the right column
+local function LockHint(key)
+    local hint = paneLock:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    hint:SetWidth(PANE_W - LABEL_W)
+    hint:SetJustifyH("LEFT")
+    hint:SetText(CH.L[key])
+    hint:SetTextColor(CH.RGBA(CH.COLORS.dim, 1))
+    return hint
+end
+
+local codeHint = LockHint("RD_LOCK_CODE_HINT")
+codeHint:SetPoint("TOPLEFT", codeBox, "BOTTOMLEFT", 0, -6)
+
+-- The code as the lock draws it, a glyph per digit as it's typed. Each one
+-- is a few straight bars, so the owner can build it in the house as a clue.
+local glyphLabel = Label(paneLock, "RD_LOCK_GLYPHS", -112)
+local glyphs = {}
+for i = 1, CH.LOCK_CODE_MAX do
+    local g = CH.MakeIcon(paneLock, "lock-glyph1", 26)
+    g:SetPoint("TOPLEFT", LABEL_W + (i - 1) * 32, -106)
+    g:SetVertexColor(CH.RGBA(CH.COLORS.gold, 1))
+    glyphs[i] = g
+end
+local glyphHint = LockHint("RD_LOCK_GLYPHS_HINT")
+glyphHint:SetPoint("TOPLEFT", LABEL_W, -138)
+
+local function RefreshGlyphs()
+    local code = codeBox:GetText()
+    for i, g in ipairs(glyphs) do
+        local d = code:sub(i, i)
+        if d ~= "" then
+            CH.SetIconFile(g, "lock-glyph" .. d)
+        end
+        g:SetShown(d ~= "")
+    end
+end
+codeBox:HookScript("OnTextChanged", RefreshGlyphs)
+
+-- Opens the ward the way a visitor gets it, from the fields and the code as
+-- they stand now, saved or not.
+local tryBtn = CH.MakeButton(paneLock, "RD_LOCK_TRY", 140, 22)
+tryBtn:SetPoint("TOPLEFT", glyphHint, "BOTTOMLEFT", 0, -14)
+CH.Tip(tryBtn, "RD_LOCK_TRY_TT")
+
+local function RefreshLockTab()
+    local on = lockCheck:GetChecked()
+    tryBtn:SetEnabled(on)
+    codeBox:SetEnabled(on)
+    for _, r in ipairs({ codeLabel, codeHint, glyphLabel, glyphHint, unpack(glyphs) }) do
+        r:SetAlpha(on and 1 or 0.4)
+    end
+    RefreshGlyphs()
+end
+lockCheck:HookScript("OnClick", RefreshLockTab)
+
+local function PendingLockCode()
+    return lockCheck:GetChecked() and codeBox:GetText() or nil
+end
+
+local Pending -- set below
+tryBtn:SetScript("OnClick", function()
+    local p = Pending()
+    if not CH.ValidLockCode(p.lockCode or "") then
+        CH.Print(CH.L["RD_LOCK_BAD_CODE"])
+        return
+    end
+    p.lockSalt = renameTarget.lockSalt
+    local guid = DialogGUID()
+    CH.OpenLock(CH.LockTestCopy(p, guid, p.lockCode), guid, true)
+end)
+
 -- ── Footer ───────────────────────────────────────────────────────────
 
 -- The row of buttons, and the question that takes its place when you try to
@@ -932,9 +1016,10 @@ local SAVED = {
     "setFloor",
     "floorDelta",
     "gameRoom",
+    "lockCode",
 }
 
-local function Pending()
+Pending = function()
     local decor, noPortrait = CH.StoryFields(pendingStory)
     return {
         name = editBox:GetText():match("^%s*(.-)%s*$"),
@@ -961,6 +1046,7 @@ local function Pending()
         setFloor = pendingSetFloor,
         floorDelta = pendingFloorDelta,
         gameRoom = pendingGameRoom,
+        lockCode = PendingLockCode(),
     }
 end
 
@@ -982,6 +1068,7 @@ dialog:SetScript("OnHide", function(self)
     descBox:ClearFocus()
     headIdBox:ClearFocus()
     speakerBox:ClearFocus()
+    codeBox:ClearFocus()
     if testing then
         CH.StopSpeaking()
     end -- don't keep narrating after the dialog closes
@@ -1084,6 +1171,10 @@ function CH.OpenRenameDialog(zone, houseGUID)
     FillSettings(zone)
     RefreshShapeButtons()
     RefreshFloorRow()
+    -- the lock stays with its room, so Copy from never takes it
+    lockCheck:SetChecked(zone.lockCode ~= nil)
+    codeBox:SetText(zone.lockCode or "")
+    RefreshLockTab()
     opened = Pending()
     -- Locked, the dialog is the Sound tab (3) alone, so a save can only change
     -- what goes to the group as a patch.
@@ -1137,6 +1228,10 @@ ConfirmZone = function()
         CH.Print(CH.L["RD_ENTER_NAME"])
         return
     end
+    if p.lockCode and not CH.ValidLockCode(p.lockCode) then
+        CH.Print(CH.L["RD_LOCK_BAD_CODE"])
+        return
+    end
 
     if renameTarget then
         local guid = renameHouseGUID or CH.currentHouseGUID
@@ -1154,6 +1249,16 @@ ConfirmZone = function()
             -- the map, and the voice never leaves this client
             for _, k in ipairs(SAVED) do
                 renameTarget[k] = p[k]
+            end
+            -- A code seals the area from its own fields on every export. A
+            -- copy that came in locked has nothing to hide any more after
+            -- that, so its old blob goes.
+            if p.lockCode then
+                renameTarget.lockStyle = renameTarget.lockStyle or 1
+                renameTarget.lockSalt = renameTarget.lockSalt or CH.NewLockSalt()
+                renameTarget.lockBlob, renameTarget.lockOpen = nil, nil
+            else
+                renameTarget.lockStyle, renameTarget.lockSalt = nil, nil
             end
             -- Stamp our current character GUID once on the house (not per room) so
             -- visitors can match us in their party even on an alt whose name differs
@@ -1219,13 +1324,16 @@ end
 
 -- Drop a new room at a world position. This is the build rail's "add room
 -- here": it makes a room centred on (x, y) at the game's own size for its
--- shape (the smallest square for a plain room), moves it onto the nearest
--- open door in DROP_REACH when Snap is on (CH.FitToOpenDoor), files it under
--- the current house, and returns the zone and its house guid so the caller can select it
--- and open this dialog to name it. shape is a CH.SHAPES key or nil for a
--- rectangle. Without a name it's named after its shape. Replaces the old
--- Mark A/B flow. Past the reach it lands at your feet, since a door across
--- the house is hardly ever the one you meant.
+-- shape, moves it onto the nearest open door in DROP_REACH when Snap is on
+-- (CH.FitToOpenDoor), files it under the current house, and returns the zone
+-- and its house guid so the caller can select it and open this dialog to
+-- name it. shape is a CH.SHAPES key or nil for a rectangle. Without a name
+-- it's named after its shape. Replaces the old Mark A/B flow. Past the reach
+-- it lands at your feet, since a door across the house is hardly ever the
+-- one you meant.
+-- A plain square is the odd one out (3.43.0). It drops as one grid square
+-- right where you stand and never snaps, which suits small spots like a
+-- locked area. Dragging it afterwards snaps as usual.
 local DROP_REACH = 50
 
 function CH.CreateZoneAt(x, y, mapID, shape, name)
@@ -1234,8 +1342,8 @@ function CH.CreateZoneAt(x, y, mapID, shape, name)
         return
     end
     local h = CH.CurrentHouse()
-    local z = CH.NewZone(h, x, y, mapID, shape, name)
-    if ChamberlainDB.settings.snapRooms and not CH.FitToOpenDoor(h, z, x, y, nil, DROP_REACH) then
+    local z = CH.NewZone(h, x, y, mapID, shape, name, not shape and CH.GRID or nil)
+    if shape and ChamberlainDB.settings.snapRooms and not CH.FitToOpenDoor(h, z, x, y, nil, DROP_REACH) then
         CH.SnapToGrid(z)
     end
     table.insert(h.zones, z)

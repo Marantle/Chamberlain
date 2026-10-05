@@ -700,6 +700,7 @@ function CH.ApplyLayout(houseGUID, data, senderName)
         existing.plaqueName = data.plaqueName
         existing.tourWelcome = data.tourWelcome
         existing.tourBye = data.tourBye
+        existing.tourGuide = data.tourGuide
     else
         ChamberlainDB.houses[houseGUID] = {
             owner = data.owner,
@@ -715,10 +716,12 @@ function CH.ApplyLayout(houseGUID, data, senderName)
             plaqueName = data.plaqueName,
             tourWelcome = data.tourWelcome,
             tourBye = data.tourBye,
+            tourGuide = data.tourGuide,
             zones = data.zones,
         }
     end
     CH.BuildParts(ChamberlainDB.houses[houseGUID])
+    CH.ReopenLocks(ChamberlainDB.houses[houseGUID], houseGUID)
     Debug("ApplyLayout: saved", houseGUID, "(" .. #data.zones .. " zones) from", senderName)
     CH.ShareLog(
         "saved",
@@ -980,6 +983,56 @@ local function ReadBox(z)
     return z.x1, z.x2, z.y1, z.y2, def and z.sh or nil, rot
 end
 
+-- The zone fields a lock can hide (CH.LOCK_HIDDEN), read off wire keys. A
+-- locked area's blob holds the same keys, so opening one reads them here too.
+function CH.ReadHiddenFields(z)
+    return {
+        name = type(z.n) == "string" and string.sub(z.n, 1, 48) or nil,
+        headID = type(z.hi) == "number" and z.hi or nil,
+        headDisplay = type(z.hd) == "number" and z.hd or nil,
+        speaker = type(z.sp) == "string" and string.sub(z.sp, 1, 40) or nil,
+        useOwnerHead = z.oh == true or nil,
+        decor = type(z.dr) == "number" and z.dr > 0 and z.dr % 1 == 0 and z.dr or nil,
+        noPortrait = z.np == true or nil,
+        rpText = type(z.t) == "string" and string.sub(z.t, 1, CH.DESC_MAX) or nil,
+        -- past the end of the list the house's style shows instead
+        bannerStyle = CH.BANNER_IDS[z.bs],
+    }
+end
+
+-- The tour's guide (3.43.0), who speaks the welcome and the goodbye, goes
+-- in a room's own wire keys under the payload's tg.
+local GUIDE_KEYS = {
+    hi = "headID",
+    hd = "headDisplay",
+    sp = "speaker",
+    oh = "useOwnerHead",
+    dr = "decor",
+    np = "noPortrait",
+}
+
+local function WriteGuide(g)
+    if not g then
+        return nil
+    end
+    local e = {}
+    for k, field in pairs(GUIDE_KEYS) do
+        e[k] = g[field]
+    end
+    return e
+end
+
+local function ReadGuide(tg)
+    if type(tg) ~= "table" then
+        return nil
+    end
+    local read, g = CH.ReadHiddenFields(tg), {}
+    for _, field in pairs(GUIDE_KEYS) do
+        g[field] = read[field]
+    end
+    return g
+end
+
 -- Decode a base64 blob (the bytes inside a "CHB1:" string, or a reassembled BLOB
 -- transfer) into a validated { guid, owner, timestamp, zones } table, or nil.
 -- Shared by string import and the over-the-wire blob receive.
@@ -1007,8 +1060,7 @@ local function DeserializeLayout(b64)
                 color = { z.c[1], z.c[2], z.c[3] }
             end
             local music, sfx, sfxPlays = ReadRoomSounds(z.mu, z.mn, z.sx, z.sn)
-            zones[#zones + 1] = {
-                name = string.sub(z.n, 1, 48),
+            local zone = {
                 mapID = z.m,
                 minX = minX,
                 maxX = maxX,
@@ -1017,13 +1069,6 @@ local function DeserializeLayout(b64)
                 shape = shape,
                 rot = rot,
                 color = color,
-                headID = type(z.hi) == "number" and z.hi or nil,
-                headDisplay = type(z.hd) == "number" and z.hd or nil,
-                speaker = type(z.sp) == "string" and string.sub(z.sp, 1, 40) or nil,
-                useOwnerHead = z.oh == true or nil,
-                decor = type(z.dr) == "number" and z.dr > 0 and z.dr % 1 == 0 and z.dr or nil,
-                noPortrait = z.np == true or nil,
-                rpText = type(z.t) == "string" and string.sub(z.t, 1, CH.DESC_MAX) or nil,
                 tourStop = CH.IsTourStop(z.to) and z.to or nil,
                 secret = z.se == true or nil,
                 noBanner = z.nb == true or nil,
@@ -1033,8 +1078,6 @@ local function DeserializeLayout(b64)
                 sfxPlays = sfxPlays,
                 echo = sfx and CH.IsEcho(z.ec) and z.ec or nil,
                 tapering = sfx and z.tp == true or nil,
-                -- past the end of the list the house's style shows instead
-                bannerStyle = CH.BANNER_IDS[z.bs],
                 -- Multi-floor (2.4.0): defaults to floor 1 so pre-floors blobs
                 -- (which omit these) land every room on the ground floor.
                 floor = type(z.fl) == "number" and z.fl or 1,
@@ -1043,6 +1086,17 @@ local function DeserializeLayout(b64)
                 fromFloor = type(z.ff) == "number" and z.ff or nil,
                 gameRoom = type(z.gr) == "string" and #z.gr <= 40 and z.gr:find("^Housing%-") and z.gr or nil,
             }
+            for k, v in pairs(CH.ReadHiddenFields(z)) do
+                zone[k] = v
+            end
+            -- A locked area (3.43.0) keeps its blob until a code opens it,
+            -- see Housing/Lock.lua
+            if type(z.lk) == "string" and #z.lk <= 4096 then
+                zone.lockBlob = z.lk
+                zone.lockStyle = type(z.ls) == "number" and z.ls % 1 == 0 and z.ls >= 1 and z.ls <= 255 and z.ls or 1
+                zone.name = CH.L["LOCK_AREA"]
+            end
+            zones[#zones + 1] = zone
         end
     end
     if #zones == 0 then
@@ -1067,8 +1121,48 @@ local function DeserializeLayout(b64)
         plaqueName = CH.CleanText(payload.pn, CH.HOUSE_TEXT.plaqueName),
         tourWelcome = CH.CleanText(payload.tw, CH.HOUSE_TEXT.tourWelcome),
         tourBye = CH.CleanText(payload.tb, CH.HOUSE_TEXT.tourBye),
+        tourGuide = ReadGuide(payload.tg),
         madeWith = type(payload.cv) == "string" and string.sub(payload.cv, 1, 16) or nil,
         zones = zones,
+    }
+end
+
+-- A room's wire entry, all but its box (WriteBox) and its lock (CH.SealEntry).
+-- Try the lock seals one of these too, the same way an export does.
+function CH.ZoneEntry(z)
+    return {
+        n = z.name,
+        m = z.mapID,
+        c = z.color,
+        sh = z.shape, -- room shape (3.0.0), nil for a rectangle, see WriteBox
+        t = z.rpText, -- room description
+        to = z.tourStop, -- its place on the owner's tour (3.41.0)
+        hi = z.headID, -- talking-head index
+        hd = z.headDisplay, -- custom head display ID (overrides hi)
+        sp = z.speaker, -- custom speaker name (overrides head name)
+        oh = z.useOwnerHead, -- show the house owner's character when present
+        -- A decor's catalog record in place of the head, or the words with
+        -- no face at all (3.42.0). Older clients show the head in hi/hd.
+        dr = z.decor,
+        np = z.noPortrait,
+        se = z.secret, -- hidden from visitors' floor plan and room list, banner still fires
+        nb = z.noBanner, -- no banner on entry (3.8.0, older clients still show one)
+        am = z.ambience, -- index into CH.AMBIENCE (3.8.0)
+        -- music file id (3.10.0). Clients before 3.12.0 read a sound from here
+        -- with its count in mn, so a room without music sends its sound this
+        -- way too and they keep hearing it.
+        mu = z.music or z.sfx,
+        mn = not z.music and z.sfxPlays or nil,
+        sx = z.sfx, -- sound on entry, any game file id (3.12.0)
+        sn = z.sfxPlays, -- times it plays on walking in, 0 loops
+        ec = z.echo, -- yards the others hear it from, CH.WHOLE_HOUSE for all (3.13.0)
+        tp = z.tapering, -- sx plays as its kit and the echo fades (3.40.0), see CH.TAPERING
+        bs = CH.BANNER_ID[z.bannerStyle], -- the room's banner style over the house's (3.25.0)
+        fl = z.floor, -- which floor the room is on (2.4.0; appended, old clients ignore)
+        sf = z.setFloor, -- absolute stair anchor: stepping on sets this floor
+        fd = z.floorDelta, -- relative stair anchor: +1/-1 from current floor
+        ff = z.fromFloor, -- stair anchor only fires from this floor (the linked floor)
+        gr = z.gameRoom, -- the game's room it's linked to for the floor check (3.28.0)
     }
 end
 
@@ -1090,6 +1184,7 @@ function CH.ExportLayout(houseGUID)
         pn = h.plaqueName, -- the owner's own name for the house, over hn (3.23.0)
         tw = h.tourWelcome, -- the tour's first and last words (3.41.0)
         tb = h.tourBye,
+        tg = WriteGuide(h.tourGuide), -- who speaks those two, nil for the owner (3.43.0)
         cv = CH.VERSION, -- so an older reader can say it may miss things (3.28.0)
         zones = {},
     }
@@ -1113,41 +1208,9 @@ function CH.ExportLayout(houseGUID)
     -- a barn's stairs are built again by whoever reads this
     for i = 1, CH.ZoneCount(h.zones) do
         local z = h.zones[i]
-        local e = {
-            n = z.name,
-            m = z.mapID,
-            c = z.color,
-            sh = z.shape, -- room shape (3.0.0), nil for a rectangle, see WriteBox
-            t = z.rpText, -- room description
-            to = z.tourStop, -- its place on the owner's tour (3.41.0)
-            hi = z.headID, -- talking-head index
-            hd = z.headDisplay, -- custom head display ID (overrides hi)
-            sp = z.speaker, -- custom speaker name (overrides head name)
-            oh = z.useOwnerHead, -- show the house owner's character when present
-            -- A decor's catalog record in place of the head, or the words with
-            -- no face at all (3.42.0). Older clients show the head in hi/hd.
-            dr = z.decor,
-            np = z.noPortrait,
-            se = z.secret, -- hidden from visitors' floor plan and room list, banner still fires
-            nb = z.noBanner, -- no banner on entry (3.8.0, older clients still show one)
-            am = z.ambience, -- index into CH.AMBIENCE (3.8.0)
-            -- music file id (3.10.0). Clients before 3.12.0 read a sound from here
-            -- with its count in mn, so a room without music sends its sound this
-            -- way too and they keep hearing it.
-            mu = z.music or z.sfx,
-            mn = not z.music and z.sfxPlays or nil,
-            sx = z.sfx, -- sound on entry, any game file id (3.12.0)
-            sn = z.sfxPlays, -- times it plays on walking in, 0 loops
-            ec = z.echo, -- yards the others hear it from, CH.WHOLE_HOUSE for all (3.13.0)
-            tp = z.tapering, -- sx plays as its kit and the echo fades (3.40.0), see CH.TAPERING
-            bs = CH.BANNER_ID[z.bannerStyle], -- the room's banner style over the house's (3.25.0)
-            fl = z.floor, -- which floor the room is on (2.4.0; appended, old clients ignore)
-            sf = z.setFloor, -- absolute stair anchor: stepping on sets this floor
-            fd = z.floorDelta, -- relative stair anchor: +1/-1 from current floor
-            ff = z.fromFloor, -- stair anchor only fires from this floor (the linked floor)
-            gr = z.gameRoom, -- the game's room it's linked to for the floor check (3.28.0)
-        }
+        local e = CH.ZoneEntry(z)
         WriteBox(e, z)
+        CH.SealEntry(e, z, houseGUID) -- a locked area hides its name and story (3.43.0)
         payload.zones[#payload.zones + 1] = e
     end
     local ok, blob = pcall(function()

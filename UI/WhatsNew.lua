@@ -32,6 +32,26 @@ end
 -- Refresh method.
 CH.WHATS_NEW = {
     {
+        v = "3.43.0",
+        lead = {
+            icon = "icon-lock",
+            title = "Locked areas",
+            text = "Put a code on a room and it becomes a puzzle for your visitors. Give it 4 to 8 "
+                .. 'digits on the new Lock tab of the room editor. Walking in, they see "Locked by Arcane '
+                .. 'Ward" and a lock on the banner. The lock opens a ring of magic circles, and each digit '
+                .. "is a glyph made of straight bars, so you can lay the clue out in the house.\n\nThe right "
+                .. "code spins the ward apart and shows the area's real name, banner style and story. The answer is "
+                .. "scrambled in the map you share and the code stays with you.",
+        },
+        notes = {
+            "Square room now drops one small grid square right where you stand, without snapping.",
+            "Tour guide in the Tour panel picks who speaks your welcome and goodbye, with the same switch "
+                .. "as a room's story. The goodbye now opens under the banner too.",
+            "Secret rooms can be tour stops. They stay off your visitors' map, so the tour card's arrow "
+                .. "leads the way.",
+        },
+    },
+    {
         v = "3.42.0",
         lead = {
             icon = "icon-book",

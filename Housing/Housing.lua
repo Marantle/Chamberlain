@@ -888,6 +888,7 @@ function CH.CheckZones()
     if foundName ~= currentZone then
         currentZone = foundName
         CH.currentRoom = found
+        CH.CloseLock()
         CH.SetHudRoom(found)
         if found then
             -- Entering a room shows the gold banner with its name. If the room
@@ -910,6 +911,46 @@ function CH.CheckZones()
         end
     end
     CH.TourTick(h, x, y, mapID)
+end
+
+-- A locked area just opened (Housing/Lock.lua) and has its real name now.
+-- The ticker goes by name, so it's told here, or it would take the area for
+-- a new room and close the story we open. If you're out of the area by now,
+-- the next walk in shows it anyway.
+function CH.RoomRevealed(zone)
+    if CH.currentRoom ~= zone then
+        return
+    end
+    currentZone = zone.name
+    CH.SetHudRoom(zone)
+    if ChamberlainDB.settings.bannerEnabled then
+        CH.SetBannerRoom(zone)
+        CH.ShowBanner(0.3)
+        CH.OpenYapper()
+    end
+    if CH.floorPlan:IsShown() then
+        CH.FP.Build()
+    end
+end
+
+-- Try the lock's ending: the banner and story a visitor gets, for a while,
+-- then the banner goes back to the room you stand in.
+local PREVIEW_TIME = 8
+
+function CH.PreviewReveal(zone)
+    CH.SetBannerRoom(zone)
+    CH.ShowBanner(0.3)
+    CH.OpenYapper()
+    C_Timer.After(PREVIEW_TIME, function()
+        if CH.bannerRoom ~= zone then
+            return
+        end
+        CH.HideTalkingHead()
+        CH.SetBannerRoom(CH.currentRoom)
+        if not CH.currentRoom then
+            CH.HideBanner()
+        end
+    end)
 end
 
 -- Called when the "Show room banners" setting is flipped. Drop any banner that's

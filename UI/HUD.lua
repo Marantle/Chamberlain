@@ -695,6 +695,7 @@ CH.SHOWCASE = {
     { frame = "hud", key = "showcaseBar", label = "SET_SHOWCASE_BAR", off = true },
     { frame = "floorPlan", key = "showcaseMap", label = "SET_SHOWCASE_MAP" },
     { frame = "autoMapGuide", key = "showcaseAutoMap", label = "SET_SHOWCASE_AUTO_MAP" },
+    { frame = "lockWindow", key = "showcaseLock", label = "SET_SHOWCASE_LOCK" },
     { frame = "housePanel", key = "showcaseHousePanel", label = "SET_SHOWCASE_HOUSE_PANEL", off = true },
     {
         frames = { "roomManager", "consentDialog", "acceptDialog", "exportDialog" },
@@ -733,10 +734,11 @@ function CH.RefreshKeepOnScreen()
     for _, e in ipairs(CH.SHOWCASE) do
         local want = on and s[e.key]
         for _, name in ipairs(e.frames or { e.frame }) do
+            -- the lock window is only built when a lock first opens
             local f = CH[name]
-            if want and not kept[f] then
+            if f and want and not kept[f] then
                 Keep(f)
-            elseif not want and kept[f] then
+            elseif f and not want and kept[f] then
                 Return(f, kept[f])
                 kept[f] = nil
             end

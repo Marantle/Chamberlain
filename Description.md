@@ -30,6 +30,8 @@ Houses list, for everyone who has your map.
 To make a room, open the Build toolbox and click the shape of the room you
 built. All eight of the game's rooms are there, closet and hallway too. The room drops where you stand
 at the size the game builds it, and the room editor opens so you can name it.
+The plain square is the one exception. It drops as a single grid square, and
+Quick resize takes it up to the game's sizes.
 Quick resize switches a square
 or an octagon between the game's sizes, and Rotate turns an L, a T, a closet or a hallway. To fit
 the room to the walls, select it, walk to a wall and click Slide to me, then do
@@ -162,11 +164,32 @@ tile. You can write a description for its card, which drops down under the
 banner when you click Read. The card shows a talking head beside the words, or a
 piece of decor you find in the housing catalog, or the words alone. Your
 computer can speak the description in a voice you pick. The voice stays on
-your computer and goes to nobody. The room editor keeps these on four tabs,
-Room, Story, Sound and Banner, under a preview of the banner.
+your computer and goes to nobody. The room editor keeps these on five tabs,
+Room, Story, Sound, Banner and Lock, under a preview of the banner.
 
 A room marked Secret stays off the house maps and room lists of your visitors.
 Its banner still fires when they walk in.
+
+## Locked areas
+
+Turn any room into a little puzzle. On the Lock tab, tick Lock this area with
+a code and type 4 to 8 digits. Visitors who walk in see "Locked by Arcane Ward"
+on the banner, and the banner's button is a lock. It opens the Arcane Ward, a
+ring of magic circles with ten glyph stones under it. Each digit is a glyph,
+built from a few straight bars, so you can lay the clue out in the house with
+beams or planks. Glyphs fly into the ring as they're pressed and fly back when
+you click them. With the right code the circles spin apart and the area's real
+name, banner style and story show. A wrong code makes the ward bite back.
+
+The name, banner style and story are scrambled in the map you share, so
+nobody finds the answer by searching it, and the code itself never
+leaves your computer. You always see your own areas open. A visitor who
+solved one keeps it open, even after you send a new map, unless you change
+the code. Sounds play in a locked area as usual. The Try the lock button on
+the Lock tab shows you the lock the way visitors get it, so you can check your code.
+
+The Square room button drops one small grid square right where you stand,
+without snapping, which suits a locked spot. Drag it and it snaps as usual.
 
 ## Tours
 
@@ -178,6 +201,9 @@ the order you like with the arrows. Click a stop to
 change its story right there, the head or decor, the speaker and the words. These are
 the room's own, so the room editor shows the same. Write a welcome for the
 start and a goodbye for the end, then Save. Try it walks the tour yourself.
+The Tour guide button at the top of the panel picks who speaks those two,
+with the same Head, Decor and Text only switch as a room's story. It starts
+on your own character.
 
 A visitor with your map gets Take the tour on the plaque and a Tour button on
 the Chamberlain bar. The welcome plays first. The stops go in your order, and
@@ -186,7 +212,8 @@ shows its banner and waits for its turn. A card counts the rooms seen, and its
 arrow turns with them to point at the next stop, with upstairs or downstairs
 when it's on another floor. The next stop turns gold and pulses on the house
 map and on the minimap. When they've seen every stop the card
-shows your goodbye. Secret rooms can't be stops.
+shows your goodbye. A secret room can be a stop too. It stays off your
+visitors' map, so the card's arrow is the only way they find it.
 
 ## Ambience and music
 

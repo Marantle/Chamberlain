@@ -89,7 +89,8 @@ end
 Header("TB_ADD_HEADER", -10)
 
 -- The game's room shapes four to a row, an icon each with the name on hover.
--- A click drops that room at your feet at the game's size.
+-- A click drops that room at your feet at the game's size, the plain square
+-- at one grid square.
 local SHAPE_W = (ROW_W - 3 * 6) / 4
 for i, e in ipairs(CH.SHAPE_LIST) do
     local b = CH.MakeShapeButton(tb, e, 28)

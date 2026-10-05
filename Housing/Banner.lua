@@ -400,7 +400,9 @@ local function MakeReadButton(b, onRead)
         btn:SetScript("OnLeave", function(self)
             self:Tint(self.c)
         end)
-        CH.Tip(btn, "BANNER_READ")
+        CH.Tip(btn, function()
+            return CH.IsLocked(CH.bannerRoom) and "LOCK_UNLOCK" or "BANNER_READ"
+        end)
     else
         btn:EnableMouse(false) -- a preview's button is only a picture
     end
@@ -1446,8 +1448,14 @@ end
 
 -- ── The banner itself ────────────────────────────────────────────────
 
+-- On a locked area the button is the lock (3.43.0) and opens it instead.
 CH.banner = CH.MakeBanner(UIParent, function()
-    CH.OpenYapper()
+    local zone = CH.bannerRoom
+    if CH.IsLocked(zone) then
+        CH.OpenLock(zone, CH.currentHouseGUID)
+    else
+        CH.OpenYapper()
+    end
 end)
 local banner = CH.banner
 banner:SetFrameStrata("HIGH")
@@ -1463,8 +1471,12 @@ function CH.SetBannerRoom(zone)
         banner.oldRead:Hide()
         return
     end
-    local read = zone.rpText ~= nil and zone.rpText ~= "" and ChamberlainDB.settings.showRoomText
-    CH.PaintBanner(banner, zone.name, zone.color, read, CH.RoomBannerStyle(CH.currentHouseGUID, zone.bannerStyle))
+    local locked = CH.IsLocked(zone)
+    local read = locked or zone.rpText ~= nil and zone.rpText ~= "" and ChamberlainDB.settings.showRoomText
+    local name = locked and string.format(CH.L["LOCK_BANNER_X"], CH.LockStyleName(zone)) or zone.name
+    CH.PaintBanner(banner, name, zone.color, read, CH.RoomBannerStyle(CH.currentHouseGUID, zone.bannerStyle))
+    CH.SetIconFile(banner.book.icon, locked and "icon-lock" or "icon-book")
+    banner.oldRead:SetText(CH.L[locked and "LOCK_UNLOCK" or "BANNER_READ"])
 end
 
 -- The owner's pick for the room wins over the one for the house, and that one

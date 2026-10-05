@@ -42,6 +42,7 @@
     { "match": "MM_", "context": "A line in the minimap button's tooltip." },
     { "match": "HOUSE_", "context": "A housing-detection message printed to chat." },
     { "match": "BANNER_", "context": "A control on the gold room banner that appears on room entry." },
+    { "match": "LOCK_", "context": "Text on a locked area, a spot in a player's house that visitors open by entering a code on a magic lock window. Shown on the room banner and on the lock window." },
     { "match": "TH_", "context": "A tooltip on a small button of the talking-head box, the strip with the room's description that hangs under the room banner." },
     { "match": "RD_", "context": "A field, button, or tooltip in the room create/edit dialog." },
     { "match": "SY_", "context": "A button, hint or label on the Story tab of the room editor and in the Tour panel, where the owner picks what the room's card shows beside its text. That's a talking head, a piece of housing decor (furniture or an ornament from the game's catalog) or the text alone. Also the Find decor list that searches the catalog." },
