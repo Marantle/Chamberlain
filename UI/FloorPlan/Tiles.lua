@@ -847,11 +847,9 @@ function FP.Build()
             floorCount > 1 and string.format(CH.L["FP_NO_ROOMS_ON_FLOOR_X"], viewedFloor) or CH.L["FP_NO_ROOMS"]
         )
         FP.empty:Show()
-        -- The entrance goes on the ground floor of a house of yours with no rooms.
-        local offerEntrance = FP.CanEdit()
-            and not FP.viewGUID
-            and viewedFloor == 1
-            and not (h and h.zones and #h.zones > 0)
+        -- Any floor of a house of yours with no rooms, since the entrance goes on
+        -- the floor the map shows and a basement puts it above floor 1.
+        local offerEntrance = FP.CanEdit() and not FP.viewGUID and not (h and h.zones and #h.zones > 0)
         FP.entranceBtn:SetShown(offerEntrance)
         local above = offerEntrance and FP.entranceBtn or FP.empty
         -- Only for a house with nothing saved at all. An empty floor in a house that

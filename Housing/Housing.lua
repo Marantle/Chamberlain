@@ -833,8 +833,12 @@ function CH.CheckZones()
     -- Bannerless rooms run their own smallest-wins beside it. They only bring
     -- a sound, so a hearth inside the great hall must not take the hall's place
     -- as the room you're in.
-    local found, spot = nil, nil
-    local foundArea, spotArea = math.huge, math.huge
+    -- A room with no music or ambience of its own lets a room under it play,
+    -- whatever the sizes and even where they only overlap, so a room for a
+    -- story doesn't stop and restart the track. The sound on entry is left out
+    -- since it would ring again in each room on top.
+    local found, spot, musicFound, ambienceFound = nil, nil, nil, nil
+    local foundArea, spotArea, musicArea, ambienceArea = math.huge, math.huge, math.huge, math.huge
     for _, zone in ipairs(h.zones) do
         if IsInZone(zone, x, y, mapID) and (zone.floor or 1) == CH.activeFloor and not CH.IsAnchor(zone) then
             local area = CH.ZoneArea(zone)
@@ -843,19 +847,29 @@ function CH.CheckZones()
                     spot = zone
                     spotArea = area
                 end
-            elseif area < foundArea then
-                found = zone
-                foundArea = area
+            else
+                if area < foundArea then
+                    found = zone
+                    foundArea = area
+                end
+                if zone.music and area < musicArea then
+                    musicFound = zone
+                    musicArea = area
+                end
+                if zone.ambience and area < ambienceArea then
+                    ambienceFound = zone
+                    ambienceArea = area
+                end
             end
         end
     end
     -- There is one music slot, so a bannerless room with a track (a stage, a
     -- music box) takes it from the room around it. The sound on entry has one
     -- slot as well and goes the same way.
-    local musicZone = spot and spot.music and spot or found
+    local musicZone = spot and spot.music and spot or musicFound
     local sfxZone = spot and spot.sfx and spot or found
     CH.UpdateAmbience(
-        CH.ResolveSound(h, "ambience", found),
+        CH.ResolveSound(h, "ambience", ambienceFound),
         spot and spot.ambience,
         CH.ResolveSound(h, "music", musicZone),
         sfxZone and sfxZone.sfx,

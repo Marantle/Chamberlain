@@ -852,7 +852,8 @@ L["AR_DELETED_X"] = "Deleted %s from the archive."
 -- ── Floor plan (UI/FloorPlan.lua) ────────────────────────────────────
 L["FP_TITLE"] = "House Map"
 L["FP_NO_ROOMS"] = "No rooms defined for this house."
-L["FP_FIX_HINT"] = "Did you move this house? Your rooms are still saved under the house it was before."
+L["FP_FIX_HINT"] =
+    "A new house? Add the entrance or turn on Auto map to start.\n\nDid you move this house? Fix house brings its rooms over."
 L["FP_ARCHIVE_HINT"] = "The archive has a stored map for this house."
 L["FP_OPEN_ARCHIVE"] = "Open archive"
 L["FP_ADD_ENTRANCE"] = "Add default entrance"
@@ -1078,7 +1079,7 @@ L["MP_USE"] = "Use this track"
 L["MP_USE_SOUND"] = "Use this sound"
 L["MP_NONE"] = "Clear"
 L["MP_TT_NONE"] =
-    "Removes the pick. The floor's or the house's music plays here again, or the game's own. For no music at all pick Silence at the top of the list."
+    "Removes the pick. The music of the room under this one, the floor or the house plays here again, or the game's own. For no music at all pick Silence at the top of the list."
 L["MP_TT_NONE_SOUND"] = "Removes the sound, so nothing plays as you walk in."
 L["MP_TAPERING"] = "Tapering echoes"
 L["MP_TAPERING_NOTE1"] = "Only the echo fades, down to a tenth at 100 yards or more."

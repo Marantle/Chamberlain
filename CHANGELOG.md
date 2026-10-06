@@ -1,5 +1,21 @@
 # Changelog
 
+## 3.44.0
+- A room with no music of its own now lets the room under it play its music
+  where the two overlap. Ambience works the same way. Before, the floor's or
+  the house's sound took over, so a little room for a story stopped the track
+  and started it again on the way out. Pick Silence for a room that should be
+  quiet.
+- Walking out of a house in the middle of a tour no longer throws an error.
+  The tour card stops pointing while you're outside and picks up again when
+  you come back in.
+- Add default entrance now shows on every floor of an empty map, not only on
+  floor 1. A house with a basement starts higher up, and the entrance goes on
+  the floor the map shows.
+- In a second house of yours with no rooms yet, the map no longer opens with
+  "Did you move this house?" alone. It says how to start a new house first,
+  and Fix house comes second for a house you did move.
+
 ## 3.43.0
 - The room editor has a new Lock tab where you give a room a code of 4 to 8
   digits. Visitors see "Locked by Arcane Ward" on the banner, and

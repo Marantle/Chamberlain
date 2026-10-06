@@ -245,6 +245,11 @@ local function PointAt(x, y, mapID)
     if not nextZone then
         return
     end
+    -- Out on the plot the house is another map and there is no distance to give
+    if nextZone.mapID ~= mapID then
+        arrow:Hide()
+        return
+    end
     local facing = GetPlayerFacing()
     arrow:SetShown(facing ~= nil)
     if facing then

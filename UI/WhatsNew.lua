@@ -32,6 +32,14 @@ end
 -- Refresh method.
 CH.WHATS_NEW = {
     {
+        v = "3.44.0",
+        notes = {
+            "A room with no music or ambience of its own lets the room under it play where they overlap, "
+                .. "so a room for a story no longer stops the track.",
+            "Add default entrance shows on any floor of an empty map, for houses that start above a basement.",
+        },
+    },
+    {
         v = "3.43.0",
         lead = {
             icon = "icon-lock",
