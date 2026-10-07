@@ -1,5 +1,45 @@
 # Changelog
 
+## 3.45.0
+- The Welcome home window is now a first steps guide for a new house. It lists
+  five steps and ticks each one off as you do it. Most steps have a button of
+  their own, like Drop this room or Done walking. The guide keeps its place per
+  house, so Auto map brings it back where you left off.
+- After the last step the window comes back once to say that's the basics and
+  points you to the House panel.
+- Houses you mapped before this version don't get the guide by themselves.
+  To run it in the house you stand in, click Show again under First steps on
+  the Map and bar page of Settings, or type /rooms guide. With rooms on the
+  map it starts at step 3.
+- The first room Smart drop puts on a floor now follows you while you walk in
+  it, like rooms that join a door already did. Drop it from a corner, walk to
+  the far corners and it moves and turns on the grid to fit the walls. This
+  needs Snap on. Round rooms stay where they drop.
+- Renaming the room you stand in no longer counts as walking into it for the
+  guide.
+- The Banner tick in the room editor is now Kind, with three choices. Room is
+  what every room was. Nameless room is new. It sits on the map with no name
+  on it and shows no banner, so a hall can join your rooms on the map with
+  nothing to announce. It can still have its own sounds, but it's never a
+  tour stop.
+  Sound spot is the old unticked Banner, a sound inside a bigger room, and
+  every room you unticked before is one now. Older versions of Chamberlain
+  show a nameless room as a normal room.
+- Smart drop no longer refuses a room when no open door fits. It puts the
+  room down where you stand and says so, and with Snap on the room follows
+  you to its corners like a first room. Auto map still waits for a door.
+- Match game room, the Smart drop icon next to Edit room, fixes a room that's
+  already on your map. Select the room, stand in the real one and click it.
+  The room takes the game's shape and size and goes where Smart drop would
+  put it, but keeps its name, sounds and story. If another room remembered
+  that game room for the floor check, it lets go and chat tells you which.
+- Turning on Auto map turns Snap on too when it's off, with a line in chat.
+- Slide to me and Stretch to me now put the wall right where you stand, with
+  no padding, which makes small spots easier to line up.
+- Chinese, Korean and Russian room names no longer show as boxes on the
+  banner, the house plaque and the story card when your game runs in another
+  language. They use the game's own fonts for those alphabets.
+
 ## 3.44.0
 - A room with no music of its own now lets the room under it play its music
   where the two overlap. Ambience works the same way. Before, the floor's or

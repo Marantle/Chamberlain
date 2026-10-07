@@ -1072,6 +1072,7 @@ local function DeserializeLayout(b64)
                 tourStop = CH.IsTourStop(z.to) and z.to or nil,
                 secret = z.se == true or nil,
                 noBanner = z.nb == true or nil,
+                nameless = z.nl == true or nil,
                 ambience = KNOWN.ambience(z.am) and z.am or nil,
                 music = music,
                 sfx = sfx,
@@ -1147,6 +1148,7 @@ function CH.ZoneEntry(z)
         np = z.noPortrait,
         se = z.secret, -- hidden from visitors' floor plan and room list, banner still fires
         nb = z.noBanner, -- no banner on entry (3.8.0, older clients still show one)
+        nl = z.nameless, -- on the map with no name and no banner (3.45.0), older clients show both
         am = z.ambience, -- index into CH.AMBIENCE (3.8.0)
         -- music file id (3.10.0). Clients before 3.12.0 read a sound from here
         -- with its count in mn, so a room without music sends its sound this

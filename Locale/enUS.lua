@@ -27,6 +27,7 @@ L["CMD_HELP_MANAGE"] = "  /chamberlain manage          - open room manager"
 L["CMD_HELP_FLOOR"] = "  /chamberlain floor           - open house map"
 L["CMD_HELP_ARCHIVE"] = "  /chamberlain archive         - open the archive of stored maps"
 L["CMD_HELP_AUTOMAP"] = "  /chamberlain automap         - open the Auto map guide in your house"
+L["CMD_HELP_GUIDE"] = "  /chamberlain guide           - run the first steps again in your house"
 L["CMD_HELP_TOUR"] = "  /chamberlain tour            - start or stop the tour of this house"
 L["CMD_HELP_SETTINGS"] = "  /chamberlain settings        - open settings"
 L["CMD_HELP_RESET"] = "  /chamberlain reset           - reset frame positions"
@@ -124,9 +125,14 @@ L["TB_SMART_UNKNOWN_X"] = "Chamberlain doesn't know the size of %s yet. Add this
 L["TB_ENTRANCE_MOVED"] =
     "Your entrance isn't where the game first builds it, so it goes where you stand. Walk from one of its doors to the other and it turns to fit."
 L["TB_AUTO_FIRST"] = "Auto map can't place the first room of a floor. Stand in it and click Smart drop, then walk on."
+L["TB_SMART_AT_FEET"] =
+    "No open door fits here, so the room went down where you stand. With Snap on it can line up as you walk to its corners."
 L["TB_SMART_NO_FIT_X"] =
     "%s doesn't fit on an open door near you. Map the room you came from first, or add this one by hand."
 L["TB_SMART_THIS_ROOM"] = "this room"
+L["TB_TT_MATCH_ROOM"] =
+    "Match game room\nGives the selected room the shape and size of the room you stand in, and puts it where Smart drop would.\nIt keeps its name, sounds and story."
+L["TB_MATCH_LINK_MOVED_X"] = "%s no longer remembers the room you stand in. The selected room does now."
 L["TB_SELECTED_HEADER"] = "Selected room"
 L["TB_SELECT_ROOM"] = "Pick a room"
 L["TB_QUICK_RESIZE"] = "Quick resize"
@@ -444,15 +450,19 @@ L["RD_SECRET"] = "Secret"
 L["RD_SECRET_TT_TITLE"] = "Secret room"
 L["RD_SECRET_TT1"] = "Visitors won't see this room on their house map or room list."
 L["RD_SECRET_TT2"] = "The banner still shows when they walk into it, and you still see the room on your own house map."
-L["RD_BANNER"] = "Banner"
-L["RD_BANNER_TT_TITLE"] = "Room banner"
-L["RD_BANNER_TT1"] = "Shows the banner when you walk into this room. Untick for a room with no banner."
-L["RD_BANNER_TT2"] = "For a spot that only brings a sound, like a fireplace or a fountain."
-L["RD_BANNER_TT3"] = "Give it an ambience or a sound and tick Secret to keep it off visitors' maps."
-L["RD_BANNER_TT4"] = "The bigger room around it keeps its own banner and sound."
+L["RD_KIND"] = "Kind"
+L["RD_KIND_ROOM"] = "Room"
+L["RD_KIND_NAMELESS"] = "Nameless room"
+L["RD_KIND_SPOT"] = "Sound spot"
+L["RD_KIND_TT_TITLE"] = "Kind of room"
+L["RD_KIND_TT1"] = "A Room shows its name on the map and its banner when you walk in."
+L["RD_KIND_TT2"] = "A Nameless room sits on the map with no name and no banner, for halls and gaps between your rooms."
+L["RD_KIND_TT3"] = "A Sound spot sits inside a bigger room and only plays a sound, like a fireplace or a fountain."
+L["RD_KIND_TT4"] =
+    "Its ambience plays over the room's. Its music or entry sound replaces the room's while you stand in it."
 L["RD_BANNER_STYLE_HINT"] =
     "Visitors see this style in this room unless they keep their own. Your group gets it with the map after you save."
-L["RD_BANNER_STYLE_OFF"] = "This room shows no banner. Tick Banner on the Room tab to give it one."
+L["RD_BANNER_STYLE_OFF"] = "This room shows no banner. Set Kind to Room on the Room tab to give it one."
 L["RD_AMBIENCE"] = "Ambience:"
 L["RD_AMBIENCE_NONE"] = "None"
 L["RD_AMBIENCE_PICK"] = "Sound of the room"
@@ -701,6 +711,32 @@ L["AM_HINT_STAIRS"] =
 L["AM_START"] = "Start auto map"
 L["AM_STOP"] = "Stop auto map"
 L["AM_CLOSE"] = "Close"
+L["AM_STEP_1"] = "Drop your first room"
+L["AM_STEP_2"] = "Line it up and walk on"
+L["AM_STEP_3"] = "Walk through your house"
+L["AM_STEP_4"] = "Name your rooms"
+L["AM_STEP_5"] = "See a banner"
+L["AM_GUIDE_1"] =
+    "Your house has no rooms on its map yet. I can draw them for you as you walk around.\n\nStand in the middle of your entrance and click Drop this room. I put it on the map where you stand."
+L["AM_GUIDE_2"] =
+    "Your first room is on the map. Walk into its far corners and to the end of each arm, and it moves and turns to fit the walls.\n\nThen walk through a door into the next room. Auto map is on, so I put that one on the map too."
+L["AM_GUIDE_3"] =
+    "Auto map is on. Walk into each room and I put it on the map, joined to the room you came from.\n\nClick Done walking when every room you want is on the map."
+L["AM_GUIDE_4"] =
+    "Your rooms are on the map. Now give them names of your own.\n\nClick Open map, pick a room and click Edit room. Type a name and click Save."
+L["AM_GUIDE_5"] = "Walk into a room you named. Its banner shows as you step in."
+L["AM_GUIDE_6"] =
+    "That's the basics. I announce each room you named as you walk in.\n\nWhen you want more, House on the bar gives your house a name, a motto and its own banner look."
+L["AM_DROP"] = "Drop this room"
+L["AM_DONE_WALKING"] = "Done walking"
+L["AM_OPEN_MAP"] = "Open map"
+L["AM_OPEN_HOUSE"] = "Open House"
+L["AM_SNAP_ON"] = "Auto map turned Snap on, so your rooms line up with the game's walls."
+L["AM_GUIDE_OWN_HOUSE"] = "The first steps run in your own house only."
+L["SET_GUIDE"] = "First steps"
+L["SET_HINT_GUIDE"] =
+    "Runs the Welcome home guide again in the house you stand in. A house that has rooms on its map starts at step 3."
+L["SET_GUIDE_BUTTON"] = "Show again"
 
 -- ── Room manager (UI/RoomManager.lua) ────────────────────────────────
 L["RM_WINDOW_TITLE"] = "|cffFFD700Chamberlain|r  Rooms"

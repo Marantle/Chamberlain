@@ -20,9 +20,10 @@ end
 -- A room that can be a stop, the Tour panel's list as well. A sound spot or
 -- a stair landing is never walked into as a room. Stairwells are rooms and
 -- can be stops. A secret room can be one too since 3.43.0: it stays off the
--- visitor's map, so the card's arrow is how they find it.
+-- visitor's map, so the card's arrow is how they find it. A nameless room
+-- has no name or story to show, so it's never one.
 function CH.TourRoom(z)
-    return CH.IsRoom(z) and not z.part
+    return CH.IsRoom(z) and not z.part and not z.nameless
 end
 
 -- A room that counts on the tour.

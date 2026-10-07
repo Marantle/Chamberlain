@@ -50,7 +50,6 @@ function CH.HouseName(guid)
     return h and h.plaqueName or CH.GameHouseName(guid)
 end
 
-local MORPHEUS = QuestFont_Huge:GetFont()
 local MOTTO_INK = { 0.91, 0.86, 0.69 }
 
 local plaque = CreateFrame("Frame", nil, UIParent, "BackdropTemplate")
@@ -80,13 +79,11 @@ entering:SetTextColor(CH.RGBA(CH.COLORS.muted, 1))
 local halo = {}
 local HALO_R = 2
 for i = 1, 8 do
-    local fs = plaque:CreateFontString(nil, "ARTWORK")
-    fs:SetFont(MORPHEUS, 30, "")
+    local fs = plaque:CreateFontString(nil, "ARTWORK", "QuestFont_Huge")
     fs:SetTextColor(CH.RGBA(CH.COLORS.bannerText, 0.18))
     halo[i] = fs
 end
-local name = plaque:CreateFontString(nil, "OVERLAY")
-name:SetFont(MORPHEUS, 30, "")
+local name = plaque:CreateFontString(nil, "OVERLAY", "QuestFont_Huge")
 name:SetShadowOffset(2, -2)
 name:SetShadowColor(0, 0, 0, 1)
 name:SetTextColor(CH.RGBA(CH.COLORS.bannerText, 1))
@@ -202,7 +199,9 @@ function CH.ShowPlaque(guid, preview)
     entering:SetText(CH.L["PL_ENTERING"])
     -- a house the game never named is announced by its owner alone
     name:SetText(houseName or whose)
+    CH.SetNameFont(name, QuestFont_Huge, 30, "")
     for _, fs in ipairs(halo) do
+        fs:SetFont(name:GetFont())
         fs:SetText(houseName or whose)
     end
     owner:SetText(houseName and whose or "")

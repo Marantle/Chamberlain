@@ -381,26 +381,38 @@ end)
 
 local roomSep = CH.MakeRule(paneRoom)
 
--- "Banner": unticked, walking in shows nothing and the room stops counting as
--- the room you're in. With Secret and an ambience that makes a sound-only
--- spot, a hearth or a fountain, laid over a real room.
-local bannerCheck = MakeCheck(
-    paneRoom,
-    "RD_BANNER",
-    "RD_BANNER_TT1",
-    "RD_BANNER_TT_TITLE",
-    "RD_BANNER_TT1",
-    "RD_BANNER_TT2",
-    "RD_BANNER_TT3",
-    "RD_BANNER_TT4"
-)
-bannerCheck:SetPoint("TOPLEFT", roomSep, "BOTTOMLEFT", -3, -8)
+-- What the room is (3.45.0). A room has its name on the map and a banner. A
+-- nameless room joins the map like any room but shows neither, for the halls
+-- between the named ones. A sound spot is a sound and nothing more, a hearth or
+-- a fountain laid over a real room, and doesn't count as the room you're in.
+-- The spot is the old unticked Banner, so it still saves as noBanner.
+local KINDS = { "RD_KIND_ROOM", "RD_KIND_NAMELESS", "RD_KIND_SPOT" }
+local pendingKind = 1
+
+local kindLabel =
+    Label(paneRoom, "RD_KIND", 0, "RD_KIND_TT_TITLE", "RD_KIND_TT1", "RD_KIND_TT2", "RD_KIND_TT3", "RD_KIND_TT4")
+kindLabel:ClearAllPoints()
+kindLabel:SetPoint("TOPLEFT", roomSep, "BOTTOMLEFT", 0, -14)
+local kindBtn = CH.MakeMenuButton(paneRoom, PANE_W - LABEL_W, "RD_KIND_ROOM", function()
+    return CH.L[KINDS[pendingKind]]
+end, function(root, btn)
+    for i, key in ipairs(KINDS) do
+        root:CreateRadio(CH.L[key], function()
+            return pendingKind == i
+        end, function()
+            pendingKind = i
+            btn:Refresh()
+            UpdateBannerTab()
+        end)
+    end
+end)
+kindBtn:SetPoint("TOPLEFT", kindLabel, "TOPLEFT", LABEL_W, 5)
 
 -- "Secret": keeps the room off visitors' floor plans and room lists, while still
 -- sharing it so the banner and yapper fire when they walk in.
 local secretCheck =
     MakeCheck(paneRoom, "RD_SECRET", "RD_SECRET_TT1", "RD_SECRET_TT_TITLE", "RD_SECRET_TT1", "RD_SECRET_TT2")
-secretCheck:SetPoint("TOPLEFT", bannerCheck, "BOTTOMLEFT", 0, -30)
+secretCheck:SetPoint("TOPLEFT", kindLabel, "BOTTOMLEFT", -3, -16)
 
 -- ── Story tab ────────────────────────────────────────────────────────
 
@@ -733,7 +745,7 @@ local roomPick = {
 }
 
 UpdateBannerTab = function()
-    local on = bannerCheck:GetChecked()
+    local on = pendingKind == 1
     local name, note = CH.BannerPickText(pendingBannerStyle, true)
     styleName:SetText(name)
     styleNote:SetText(note)
@@ -745,7 +757,6 @@ UpdateBannerTab = function()
         CH.HideRoomBannerPicker()
     end
 end
-bannerCheck:HookScript("OnClick", UpdateBannerTab)
 paneBanner:SetScript("OnShow", UpdateBannerTab)
 paneBanner:SetScript("OnHide", UpdateBannerTab)
 
@@ -979,8 +990,9 @@ local function FillSettings(zone)
     speakerBox:SetText(zone.speaker or "")
     ownerCheck:SetChecked(zone.useOwnerHead)
     secretCheck:SetChecked(zone.secret)
-    bannerCheck:SetChecked(not zone.noBanner)
-    SetPendingColor(zone.color) -- repaints both banners, so it comes after the Banner tick
+    pendingKind = zone.noBanner and 3 or zone.nameless and 2 or 1
+    kindBtn:Refresh()
+    SetPendingColor(zone.color) -- repaints both banners, so it comes after the kind
     pendingAmbience = zone.ambience
     ambienceBtn:Refresh()
     SetPendingMusic(zone.music)
@@ -1004,6 +1016,7 @@ local SAVED = {
     "rpText",
     "secret",
     "noBanner",
+    "nameless",
     "bannerStyle",
     "ambience",
     "music",
@@ -1033,7 +1046,8 @@ Pending = function()
         noPortrait = noPortrait,
         rpText = GetDescText(),
         secret = secretCheck:GetChecked() or nil,
-        noBanner = not bannerCheck:GetChecked() or nil,
+        noBanner = pendingKind == 3 or nil,
+        nameless = pendingKind == 2 or nil,
         bannerStyle = pendingBannerStyle,
         ambience = pendingAmbience,
         music = pendingMusic,
@@ -1271,6 +1285,9 @@ ConfirmZone = function()
             end
             CH.PushRecentColor(pendingColor)
             CH.TouchHouse(guid)
+            if before.name ~= name then
+                CH.GuideReached(guid, 4)
+            end
             -- A save that changed the sounds and nothing else goes to the group
             -- as a patch. Anything more and they have to pull the map, since a
             -- patch would stamp their copy current with the old name still on it.

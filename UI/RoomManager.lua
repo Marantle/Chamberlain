@@ -290,7 +290,7 @@ local function Matches(item)
         return true
     end
     for _, zone in ipairs(item.zones or {}) do
-        if string.find(string.lower(zone.name or ""), query, 1, true) then
+        if string.find(string.lower(CH.ShownName(zone) or ""), query, 1, true) then
             return true
         end
     end
@@ -532,7 +532,7 @@ local function AddZoneRow(zoneIdx, w, y, zone, houseGUID, own)
     row:SetPoint("TOPLEFT", roomChild, "TOPLEFT", 0, -y)
     row:Show()
     row.bg:SetColorTexture(0, 0, 0, zoneIdx % 2 == 0 and 0.18 or 0)
-    row.nameLabel:SetText(string.format(CH.L["FMT_NAME_DIM_X"], zone.name, CH.ZoneDimText(zone)))
+    row.nameLabel:SetText(string.format(CH.L["FMT_NAME_DIM_X"], CH.ShownName(zone), CH.ZoneDimText(zone)))
 
     if own then
         row.delBtn:Show()

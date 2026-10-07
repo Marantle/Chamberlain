@@ -29,8 +29,6 @@ local MIN_SPEED, MAX_SPEED, SPEED_STEP = 3, 40, 3
 local HEAD_ZOOM = 0.90
 local HEAD_CAMDIST = 1.30
 
-local MORPHEUS = QuestFont_Huge:GetFont()
-
 -- ── Decor ────────────────────────────────────────────────────────────
 -- A decor's catalog entry by its record, nil for a record the catalog
 -- doesn't know (a typo on the wire, or not loaded yet).
@@ -210,8 +208,7 @@ local warming = false
 
 -- The speaker's name in the plaque's lettering. The banner above names the
 -- room.
-th.name = th:CreateFontString(nil, "OVERLAY")
-th.name:SetFont(MORPHEUS, 19, "")
+th.name = th:CreateFontString(nil, "OVERLAY", "QuestFont_Huge")
 th.name:SetShadowOffset(2, -2)
 th.name:SetShadowColor(0, 0, 0, 1)
 th.name:SetHeight(NAME_H - 4)
@@ -493,6 +490,7 @@ end
 -- under it or at the top.
 local function SetName(text)
     th.name:SetText(text or "")
+    CH.SetNameFont(th.name, QuestFont_Huge, 19, "")
     th.name:SetShown(text ~= nil)
     th.name:ClearAllPoints()
     th.name:SetPoint("TOPLEFT", textX, -TOP)

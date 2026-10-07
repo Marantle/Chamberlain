@@ -1,6 +1,6 @@
 local ADDON, CH = ...
 
-CH.VERSION = "3.44.0"
+CH.VERSION = "3.45.0"
 
 -- How often the zone ticker samples your position, in seconds. Drives stair
 -- detection and the per-room time stats both, so they stay in step if it changes.
@@ -339,6 +339,10 @@ events:SetScript("OnEvent", function(_, event, arg1)
         if ChamberlainDB.lockCodes == nil then
             ChamberlainDB.lockCodes = {}
         end
+        -- the first steps guide's step per house (3.45.0, UI/AutoMapWelcome.lua)
+        if ChamberlainDB.guide == nil then
+            ChamberlainDB.guide = {}
+        end
         -- Stored house maps (Housing/Archive.lua), each with its own id so a
         -- live map can say which entry it matches. Local only, never shared.
         if ChamberlainDB.archive == nil then
@@ -479,6 +483,8 @@ SlashCmdList["CH"] = function(msg)
         CH.ToggleTour()
     elseif cmd == "automap" then
         CH.OpenAutoMap()
+    elseif cmd == "guide" then
+        CH.RestartGuide()
     elseif cmd == "whatsnew" or cmd == "changes" then
         CH.OpenWhatsNew()
     elseif cmd == "fixer" then
@@ -506,6 +512,7 @@ SlashCmdList["CH"] = function(msg)
         print(CH.L["CMD_HELP_ARCHIVE"])
         print(CH.L["CMD_HELP_TOUR"])
         print(CH.L["CMD_HELP_AUTOMAP"])
+        print(CH.L["CMD_HELP_GUIDE"])
         print(CH.L["CMD_HELP_SETTINGS"])
         print(CH.L["CMD_HELP_RESET"])
         print(CH.L["CMD_HELP_HUD"])

@@ -411,11 +411,14 @@ snapBtn:SetPoint("TOPLEFT", canvas, "TOPLEFT", 4, -4)
 snapBtn:SetFrameLevel(FP.Level("buttons"))
 snapBtn:Hide()
 CH.Tip(snapBtn, "FP_TT_SNAP")
-snapBtn:SetScript("OnClick", function(self)
-    local s = ChamberlainDB.settings
-    s.snapRooms = not s.snapRooms
-    CH.SetButtonActive(self, s.snapRooms)
+-- Auto map turns it on from outside the map too.
+function FP.SetSnap(on)
+    ChamberlainDB.settings.snapRooms = on
+    CH.SetButtonActive(snapBtn, on)
     FP.PositionHandles()
+end
+snapBtn:SetScript("OnClick", function()
+    FP.SetSnap(not ChamberlainDB.settings.snapRooms)
 end)
 snapBtn:SetScript("OnShow", function(self)
     CH.SetButtonActive(self, ChamberlainDB.settings.snapRooms)

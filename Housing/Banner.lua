@@ -335,9 +335,36 @@ for id, style in ipairs(CH.BANNER_IDS) do
     CH.BANNER_ID[style] = id
 end
 
-local FRIZ, LARGE = GameFontNormalLarge:GetFont()
--- the face of the game's own zone names, with its stand-ins for Asian clients
-local MORPHEUS = QuestFont_Huge:GetFont()
+-- The game's font families the banner draws its name in, the second the face
+-- of its own zone names.
+local FRIZ, MORPHEUS = GameFontNormalLarge, QuestFont_Huge
+local _, LARGE = FRIZ:GetFont()
+
+-- The game's font for the client's own language has no Korean or Chinese
+-- letters, and a font family doesn't help since the client uses one member
+-- for the whole string (tried in game 2026-10-07). The text picks the
+-- member instead. Any Hangul makes it Korean, any Han or kana Chinese and
+-- any Cyrillic Russian. The rest of the name, Latin included,
+-- comes out in that font too. Sized the way the game sizes the member against
+-- its roman one.
+local function Alphabet(text)
+    if text:find("[\234-\237][\128-\191][\128-\191]") then
+        return "korean"
+    elseif text:find("[\227-\233][\128-\191][\128-\191]") then
+        return "simplifiedchinese"
+    elseif text:find("[\208-\211][\128-\191]") then
+        return "russian"
+    end
+    return "roman"
+end
+
+-- Sets fs to base's face for the text it holds, so call it after SetText.
+-- The plaque and the story card use it too.
+function CH.SetNameFont(fs, base, size, flags)
+    local _, romanH = base:GetFontObjectForAlphabet("roman"):GetFont()
+    local file, h = base:GetFontObjectForAlphabet(Alphabet(fs:GetText() or "")):GetFont()
+    fs:SetFont(file, size * h / romanH, flags)
+end
 
 -- The colour to tint an svg with so it shows as c scaled by k. An svg's tint
 -- goes through the display curve, where a flat texture's doesn't: tinted at
@@ -491,7 +518,7 @@ local function PlaceGroup(b, showRead, dx, dy)
 end
 
 local function Font(b, face, size, flags, shadow)
-    b.name:SetFont(face, size, flags)
+    CH.SetNameFont(b.name, face, size, flags)
     b.name:SetShadowOffset(shadow, -shadow)
     b.name:SetShadowColor(0, 0, 0, 1)
 end

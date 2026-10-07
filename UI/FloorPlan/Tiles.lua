@@ -349,9 +349,13 @@ local function StyleTile(f, zone, i, selected, stairBoxes)
     local h = FP.CurrentHouse()
     FP.SetTileStairs(f, f, zone, h and h.zones or {}, r, g, b)
 
-    -- a marker's name is in its tooltip
+    -- a marker's name is in its tooltip, and a nameless room has none to show
     local stop = tourRanks and tourRanks[zone]
-    f.label:SetText(marker and "" or stop and string.format(CH.L["TOUR_STOP_NAME_X"], stop, zone.name) or zone.name)
+    f.label:SetText(
+        (marker or zone.nameless) and ""
+            or stop and string.format(CH.L["TOUR_STOP_NAME_X"], stop, zone.name)
+            or zone.name
+    )
     f.label:SetTextColor(0.95, 0.92, 0.85, 1)
     -- the room a side panel works on stands out from the rest, and so do the
     -- stops a tour still has to show
@@ -900,7 +904,7 @@ function FP.Build()
         -- Store for tooltip and click selection
         f.zone = zone
         f.zoneIdx = i
-        f.zoneName = zone.name
+        f.zoneName = CH.ShownName(zone)
         f.zoneDim = TipDim(zone)
         f.zoneTime = h.stats and h.stats[zone.name] or 0
         f.cr, f.cg, f.cb = r, g, b

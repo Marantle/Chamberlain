@@ -32,6 +32,20 @@ end
 -- Refresh method.
 CH.WHATS_NEW = {
     {
+        v = "3.45.0",
+        notes = {
+            "The Welcome home window now walks you through five first steps in a new house and ticks "
+                .. "each one off as you go. Show again on the Map and bar page of Settings runs it in a house you already mapped.",
+            "The first room Smart drop puts on a floor moves and turns to fit as you walk to its corners.",
+            "Kind in the room editor can make a Nameless room, a hall with no name or banner. Sound spot is "
+                .. "the old unticked Banner.",
+            "Fixed slide to me and Stretch to me to put the wall right where you stand.",
+            "The Smart drop icon next to Edit room gives a room already on the map the shape and size "
+                .. "of the game room you stand in.",
+            "Chinese, Korean and Russian room names show on the banner instead of boxes.",
+        },
+    },
+    {
         v = "3.44.0",
         notes = {
             "A room with no music or ambience of its own lets the room under it play where they overlap, "

@@ -82,6 +82,12 @@ function CH.IsRoom(zone)
     return not CH.IsAnchor(zone) and not zone.noBanner
 end
 
+-- What a room is called on lists and tooltips. A nameless room's own name is
+-- only the owner's note to self (3.45.0).
+function CH.ShownName(zone)
+    return zone.nameless and CH.L["RD_KIND_NAMELESS"] or zone.name
+end
+
 -- A barn brings the stairs to its loft with it. They're never shared since
 -- every client bulds them from the barn, at the end of the zone list, so the rooms
 -- before them keep the numbers the wire uses. z.part is the index of the room
@@ -233,6 +239,13 @@ local function Apply(zone, rot, b)
     zone.minY, zone.maxY = b.minY, b.minY + b.h
 end
 
+-- The last quarter turn worth trying for zone. A box looks the same half way
+-- round but a masked shape or a stairwell doesn't.
+local function Turns(zone)
+    local def = zone.shape and CH.SHAPES[zone.shape]
+    return def and def.rotates and ((def.mask or def.art) and 3 or 1) or 0
+end
+
 -- With Snap on, a room just dropped at (px, py) goes onto the nearest door
 -- that opens onto nothing, one of its own doors on it. An L, a T, a closet or
 -- a hallway turns whichever way lands it nearest to you, and a spot that runs
@@ -242,9 +255,7 @@ end
 -- yards from you is too far to go to. True once it moved the room.
 function CH.FitToOpenDoor(h, zone, px, py, spots, reach)
     local doors, rooms = OpenDoors(h, zone, px, py)
-    local def = zone.shape and CH.SHAPES[zone.shape]
-    -- a box looks the same half way round but a masked shape or a stairwell doesn't
-    local turns = def and def.rotates and ((def.mask or def.art) and 3 or 1) or 0
+    local turns = Turns(zone)
     for _, open in ipairs(doors) do
         if reach and open.d > reach * reach then
             return -- the rest are further still
@@ -299,12 +310,20 @@ end
 -- nearest it wins. Anywhere else in the room the guess can be wrong, and the
 -- spots walked after rule out the places that miss one. True once it moved
 -- the zone.
+-- Since 3.45.0 the first room of a floor follows you the same way. An L or a
+-- T tries all four turns there, and a plain square has no shape to size it
+-- by, so the size comes off the box.
 function CH.FitOnGrid(zone, spots)
     local fx, fy = spots[1][1], spots[1][2]
     local best, bestD, bestRot
-    test.shape, test.rot = zone.shape, nil
-    for rot = 0, 1 do
-        local w, h = CH.ShapeSize(zone.shape, rot)
+    test.shape = zone.shape
+    local boxW, boxH = zone.maxX - zone.minX, zone.maxY - zone.minY
+    for rot = 0, Turns(zone) do
+        local w, h = boxW, boxH
+        if (rot - (zone.rot or 0)) % 2 == 1 then
+            w, h = h, w
+        end
+        test.rot = rot > 0 and rot or nil
         local x0, x1 = Starts(fx, w, CH.GRID_X)
         local y0, y1 = Starts(fy, h, CH.GRID_Y)
         for x = x0, x1, CH.GRID do
@@ -900,16 +919,26 @@ function CH.CheckZones()
 
     local foundName = found and found.name or nil
     if foundName ~= currentZone then
+        -- a rename of the room you stand in comes through here too, with the
+        -- same zone, and that's no walk in for the guide
+        local walkedIn = found ~= CH.currentRoom
         currentZone = foundName
         CH.currentRoom = found
         CH.CloseLock()
-        CH.SetHudRoom(found)
-        if found then
+        -- a nameless room is the room you're in for its sounds and nothing
+        -- else, so the bar and the banner act as if you stood in none
+        local named = found and not found.nameless and found or nil
+        CH.SetHudRoom(named)
+        if named then
             -- Entering a room shows the gold banner with its name. If the room
             -- has a description, the banner's Read button opens the talking-head
             -- yapper on demand. Only a tour stop pops it by itself. Close any
             -- yapper left over from the previous room.
             CH.HideTalkingHead()
+            -- with banners off the guide's last step ticks all the same
+            if walkedIn then
+                CH.GuideReached(CH.currentHouseGUID, 5)
+            end
             if ChamberlainDB.settings.bannerEnabled then
                 CH.EnterBannerRoom(found)
             else

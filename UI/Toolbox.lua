@@ -168,7 +168,7 @@ dupBtn:SetPoint("LEFT", selDrop, "RIGHT", 6, 0)
 -- A double click on the room does the same, and so does Edit room on the map.
 -- With nothing picked right after a delete, it brings that room back
 -- instead.
-local editBtn = CH.MakeButton(tb, "RD_TITLE_EDIT_ROOM", ROW_W - 32, 24)
+local editBtn = CH.MakeButton(tb, "RD_TITLE_EDIT_ROOM", ROW_W - 64, 24)
 editBtn:SetPoint("TOPLEFT", PAD, -200)
 CH.SetButtonActive(editBtn, true)
 CH.Tip(editBtn, function()
@@ -203,10 +203,17 @@ function CH.DeleteRoom(z, guid)
     CH.TouchHouse(guid)
 end
 
+-- Smart drop for a room already on the map, with Smart drop's icon. No room
+-- for a row of its own down with the fit tools.
+local matchBtn = IconButton("icon-build", "TB_TT_MATCH_ROOM", 24, function()
+    CH.MatchGameRoom(CH.tbSelZone)
+end)
+matchBtn:SetPoint("LEFT", editBtn, "RIGHT", 6, 0)
+
 local delBtn = IconButton("icon-trash", "TB_TT_DELETE", 24, function()
     CH.DeleteRoom(CH.tbSelZone, CH.tbSelGuid)
 end)
-delBtn:SetPoint("LEFT", editBtn, "RIGHT", 6, 0)
+delBtn:SetPoint("LEFT", matchBtn, "RIGHT", 6, 0)
 
 -- Put the last deleted room of house guid back where it was in the list, with
 -- its time. Returns the room, or nil when there's none to bring back.
@@ -428,6 +435,8 @@ function CH.RefreshToolbox()
         b:SetEnabled(z ~= nil)
     end
     dupBtn:SetEnabled(z ~= nil and not CH.IsAnchor(z))
+    -- a sound spot sits inside a room and never takes the game room's walls
+    matchBtn:SetEnabled(z ~= nil and CH.IsRoom(z))
     local undo = not z and CH.DeletedRoom(CH.currentHouseGUID) or nil
     editBtn.undo = undo
     editBtn:SetEnabled(z ~= nil or undo ~= nil)
@@ -552,12 +561,11 @@ selDrop:SetScript("OnClick", function(self)
     end)
 end)
 
--- The wall of the box nearest where the player stands: its bound's key, the
--- bound of the wall across from it, and which way is out (-1 for a min
--- wall, 1 for a max wall). Distance to each wall as a finite segment, not an
--- infinite line. Standing off to one side, the top and bottom walls are only
--- reachable at their corner, so the side wall you're actually next to wins
--- (squared distance, no sqrt needed).
+-- The wall of the box nearest where the player stands: its bound's key and
+-- the bound of the wall across from it. Distance to each wall as a finite
+-- segment, not an infinite line. Standing off to one side, the top and
+-- bottom walls are only reachable at their corner, so the side wall you're
+-- next to wins (squared distance, no sqrt needed).
 local function NearestWall(z, x, y)
     local function vDist(ex) -- a vertical wall at X = ex, spanning the room's Y
         local dy = 0
@@ -583,13 +591,13 @@ local function NearestWall(z, x, y)
     local dMinY, dMaxY = hDist(z.minY), hDist(z.maxY)
     local m = math.min(dMinX, dMaxX, dMinY, dMaxY)
     if m == dMinX then
-        return "minX", "maxX", -1
+        return "minX", "maxX"
     elseif m == dMaxX then
-        return "maxX", "minX", 1
+        return "maxX", "minX"
     elseif m == dMinY then
-        return "minY", "maxY", -1
+        return "minY", "maxY"
     end
-    return "maxY", "minY", 1
+    return "maxY", "minY"
 end
 
 -- A fit tool gets the picked room and where you stand, and its edit is saved.
@@ -609,13 +617,12 @@ local function FitTool(btn, fn)
     end)
 end
 
--- Where the wall you stand at really is: CH.WALL past you, away from the
--- room. Hands back the wall's key, the wall across from it, and the
--- coordinate to put it at.
+-- The wall nearest you, the wall across from it and where you stand along
+-- it. Right at your feet with no wall padding. Slide and Stretch line up
+-- small spots like a lock or a fireplace.
 local function WallAt(z, x, y)
-    local wall, across, out = NearestWall(z, x, y)
-    local pos = (wall == "minX" or wall == "maxX") and x or y
-    return wall, across, pos + out * CH.WALL
+    local wall, across = NearestWall(z, x, y)
+    return wall, across, (wall == "minX" or wall == "maxX") and x or y
 end
 
 -- Move the whole room so its nearest wall is where you stand. Two walls, one

@@ -8,13 +8,14 @@ entered each room.
 ## Start here
 
 In your own house, walk in while the map is still empty and the Welcome home
-window opens. Stand in the middle of your entrance and click Start auto map.
-Then walk into each room of the house. Each one goes on the map by itself,
-joined to the room you came from. If a room is an L or a T, walk to the end of
-each arm so it turns to fit. When you're done, click Map on the bar, click a
-room and click Edit to give it a name. Walk back into it and its banner shows.
-Closing the Welcome home window stops Auto map. Map on the bar, then Auto map,
-brings it back.
+window opens. It takes you through five steps and ticks each one off as you do
+it. Stand in the middle of your entrance and click Drop this room. Then walk
+into each room of the house. Each one goes on the map by itself, joined to the
+room you came from. If a room is an L or a T, walk to the end of each arm so it
+turns to fit. Click Done walking, then Open map, pick a room and click Edit
+room to give it a name. Walk back into it and its banner shows. Closing the
+window stops Auto map. Map on the bar, then Auto map, brings it back where you
+left off.
 
 In a friend's house, join a party with the owner. A gold dot on the Sharing
 button tells you that somebody has a map of the house. Click Sharing and take
@@ -29,11 +30,15 @@ Map on the bar opens the house map with the build tools down its left side.
 Click the shape of a room you built and it drops at the size the game builds
 it. With Snap on it goes onto the nearest open door. Smart drop maps the room
 you stand in at its real shape and size, the Westfall barns and the Stormwind
-Display Room too. To fit a room to the walls, select it, walk to a wall and
-click Slide to me, or drag its grips on the map. Rotate turns an L, a T, a
-closet or a hallway. Rooms can overlap, and the smaller one wins while you
-stand in it. The lock next to the map's close button keeps your layout safe
-from a stray drag.
+Display Room too. To fit a room already on the map to the real one, select
+it, stand in the real room and click the Smart drop icon next to Edit room.
+To line up a small spot, select it, stand where its wall
+should be and click Slide to me, or drag its grips on the map. Rotate turns an
+L, a T, a closet or a hallway. Rooms can overlap, and the smaller one wins
+while you stand in it. Set Kind in the room editor to Nameless room for a hall
+that sits on the map with no name or banner, or to Sound spot for a spot that
+only plays a sound. The lock next to the map's close button keeps your layout
+safe from a stray drag.
 
 ## Floors
 
@@ -81,12 +86,15 @@ A room, a floor or the whole house can have ambience from more than 100 game
 loops, and music from the game's tracks, with Silence as one of the picks. A
 room with no music or ambience of its own lets the room under it play where
 the two overlap, so the track doesn't stop when you step into it. A room can
-also ring a sound as you walk in, a door bell or anything else by its
-file number. Echo lets others in the house hear it, out to the yards you set,
-and an arrival sound rings for everyone inside when a visitor walks in. The
-arrival also reaches guildmates through the guild channel. Turn off My arrival
-sound to guildmates in Settings if you don't want that. The speaker on the bar
-mutes each kind of sound, and the game's own volume sliders apply.
+also ring a sound as you walk in, a door bell or anything else by its file
+number. A sound spot adds its ambience on top of the room it sits in, so a fire
+crackles over the hall's own sound, and its music or entry sound replaces the
+room's while you stand in it. Echo lets others in the house hear an entry
+sound, out to the yards you set, and an arrival sound rings for everyone inside
+when a visitor walks in. The arrival also reaches guildmates through the guild
+channel. Turn off My arrival sound to guildmates in Settings if you don't want
+that. The speaker on the bar mutes each kind of sound, and the game's own volume
+sliders apply.
 
 ## Map and minimap
 

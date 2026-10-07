@@ -11,7 +11,16 @@ local _, CH = ...
 -- every walk in while the map is empty, and never on a locked map, where Auto
 -- map can't place anything.
 
+-- The first steps guide (3.45.0) lives in the same window. A house whose map
+-- was empty when the window first opened gets a step in ChamberlainDB.guide,
+-- kept per house so a logout picks up where you left off. The steps tick
+-- themselves as you play. DONE is the page after the last step, and false a
+-- guide that's over. Houses mapped before only get one through Show again or
+-- /rooms guide.
+
 local W = 400
+local STEPS = 5
+local DONE = STEPS + 1
 
 local win = CreateFrame("Frame", "ChamberlainWelcome", UIParent, "BackdropTemplate")
 win:SetWidth(W)
@@ -34,8 +43,22 @@ end)
 -- Widths, not a right anchor: a RIGHT point pins the text's middle to the
 -- window's middle as well and squeezes it into a "..." line.
 local TEXT_W = W - 36
+local ROW_H = 20
+
+-- One line per step of the guide, and a band behind the one you're on.
+local current = win:CreateTexture(nil, "ARTWORK")
+current:SetHeight(ROW_H)
+current:SetColorTexture(CH.RGBA(CH.COLORS.border, 0.35))
+local rows = {}
+for i = 1, STEPS do
+    local fs = win:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    fs:SetPoint("TOPLEFT", 18, -16 - i * ROW_H)
+    fs:SetWidth(TEXT_W)
+    fs:SetJustifyH("LEFT")
+    rows[i] = fs
+end
+
 local body = win:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-body:SetPoint("TOPLEFT", 18, -38)
 body:SetWidth(TEXT_W)
 body:SetJustifyH("LEFT")
 body:SetJustifyV("TOP")
@@ -55,14 +78,48 @@ note:SetJustifyH("LEFT")
 note:SetTextColor(CH.RGBA(CH.COLORS.dim, 1))
 note:SetText(CH.L["AM_NOTE"])
 
+-- a guide that's over reads as none
+local function GuideStep()
+    return ChamberlainDB.guide[CH.currentHouseGUID] or nil
+end
+
+local function SetGuide(step)
+    ChamberlainDB.guide[CH.currentHouseGUID] = step
+end
+
+local function RoomsHere()
+    local h = CH.currentHouseGUID and ChamberlainDB.houses[CH.currentHouseGUID]
+    return h and CH.RoomCount(h.zones) or 0
+end
+
+-- The guide's button for each step. Without a guide, and on step 2, it's the
+-- plain Auto map switch. Step 5 is walking only, so false hides it.
+local JOBS = { "AM_DROP", nil, "AM_DONE_WALKING", "AM_OPEN_MAP", false, "AM_OPEN_HOUSE" }
+
 local startBtn = CH.MakeButton(win, "AM_START", 130, 24)
 CH.SetButtonActive(startBtn, true)
-startBtn:SetScript("OnClick", function()
-    CH.SetAutoMap(not CH.autoMap)
+startBtn:SetScript("OnClick", function(self)
+    local job = self.job
+    if job == "AM_DROP" then
+        CH.SmartDrop()
+        if RoomsHere() > 0 then
+            CH.SetAutoMap(true)
+        end
+    elseif job == "AM_DONE_WALKING" then
+        SetGuide(4)
+        CH.SetAutoMap(false)
+    elseif job == "AM_OPEN_MAP" then
+        win:Hide()
+        CH.OpenToolbox()
+    elseif job == "AM_OPEN_HOUSE" then
+        win:Hide()
+        CH.ToggleHousePanel()
+    else
+        CH.SetAutoMap(not CH.autoMap)
+    end
 end)
 
 local laterBtn = CH.MakeButton(win, "AM_CLOSE", 90, 24)
-laterBtn:SetPoint("LEFT", startBtn, "RIGHT", 8, 0)
 laterBtn:SetScript("OnClick", function()
     win:Hide()
 end)
@@ -116,16 +173,75 @@ local function Say(fs, text)
     end
 end
 
--- The words and the button for Auto map on or off, and the height to hold
--- them.
+local DONE_MARK = "|TInterface\\RaidFrame\\ReadyCheck-Ready:14|t  "
+
+-- The step lines, ticked up to the one you're on. Returns where the text
+-- under them starts.
+local function PaintSteps(step)
+    local listed = step and step < DONE
+    current:SetShown(listed)
+    for i, fs in ipairs(rows) do
+        fs:SetShown(listed)
+        if listed then
+            local label = CH.L["AM_STEP_" .. i]
+            fs:SetText((i < step and DONE_MARK or i .. ".  ") .. label)
+            if i < step then
+                fs:SetTextColor(CH.RGBA(CH.COLORS.dim, 1))
+            elseif i == step then
+                fs:SetTextColor(1, 1, 1)
+            else
+                fs:SetTextColor(CH.RGBA(CH.COLORS.muted, 1))
+            end
+        end
+    end
+    if not listed then
+        return 38
+    end
+    current:ClearAllPoints()
+    current:SetPoint("LEFT", win, "LEFT", 10, 0)
+    current:SetPoint("RIGHT", win, "RIGHT", -10, 0)
+    current:SetPoint("TOP", rows[step], "TOP", 0, 4)
+    return 38 + STEPS * ROW_H + 12
+end
+
+-- The map moves the guide on as rooms go down, however they got there, Smart
+-- drop or Add default entrance included.
+local function GuideNow()
+    local step = GuideStep()
+    if step == 1 and RoomsHere() > 0 then
+        step = 2
+    end
+    if step == 2 and RoomsHere() > 1 then
+        step = 3
+    end
+    if step and step ~= GuideStep() then
+        SetGuide(step)
+    end
+    return step
+end
+
+-- The words and the button for the guide's step or for Auto map on or off,
+-- and the height to hold them.
 local function Paint()
     local on = CH.autoMap
     local off = Progress()
-    CH.SetWindowTitle(win, off == "AM_BODY_OFF" and "AM_TITLE" or "AM_TITLE_AGAIN", true)
-    Say(body, CH.L[on and "AM_BODY_ON" or off])
-    startBtn:SetText(CH.L[on and "AM_STOP" or "AM_START"])
-    CH.SetButtonActive(startBtn, not on)
-    local y = 38 + body:GetStringHeight() + 12
+    local step = GuideNow()
+    local job = step and JOBS[step]
+    CH.SetWindowTitle(win, (step or off == "AM_BODY_OFF") and "AM_TITLE" or "AM_TITLE_AGAIN", true)
+    local y = PaintSteps(step)
+    body:ClearAllPoints()
+    body:SetPoint("TOPLEFT", 18, -y)
+    Say(body, CH.L[step and "AM_GUIDE_" .. step or on and "AM_BODY_ON" or off])
+    startBtn:SetShown(job ~= false)
+    startBtn.job = job
+    if job then
+        startBtn:SetText(CH.L[job])
+        CH.SetButtonActive(startBtn, true)
+    else
+        startBtn:SetText(CH.L[on and "AM_STOP" or "AM_START"])
+        CH.SetButtonActive(startBtn, not on)
+    end
+    y = y + body:GetStringHeight() + 12
     local shown = on and hintKey ~= nil
     hint:SetShown(shown)
     if shown then
@@ -137,11 +253,23 @@ local function Paint()
         -- so the same word after another room blinks again
         hint:SetText("")
     end
-    note:ClearAllPoints()
-    note:SetPoint("TOPLEFT", 18, -y)
+    -- once Auto map is done with, closing stops nothing worth a word
+    local noted = not step or step <= 3
+    note:SetShown(noted)
+    if noted then
+        note:ClearAllPoints()
+        note:SetPoint("TOPLEFT", 18, -y)
+        y = y + note:GetStringHeight() + 12
+    end
     startBtn:ClearAllPoints()
-    startBtn:SetPoint("TOPLEFT", note, "BOTTOMLEFT", 0, -12)
-    win:SetHeight(y + note:GetStringHeight() + 12 + 24 + 16)
+    startBtn:SetPoint("TOPLEFT", 18, -y)
+    laterBtn:ClearAllPoints()
+    if job == false then
+        laterBtn:SetPoint("TOPLEFT", 18, -y)
+    else
+        laterBtn:SetPoint("LEFT", startBtn, "RIGHT", 8, 0)
+    end
+    win:SetHeight(y + 24 + 16)
 end
 
 -- Smart drop placed z, by hand or by Auto map. Any other room clears the
@@ -179,6 +307,10 @@ win:SetScript("OnHide", function(self)
     if CH.autoMap then
         CH.SetAutoMap(false)
     end
+    -- the done page shows once and then the gudie is over
+    if GuideStep() == DONE then
+        SetGuide(false)
+    end
 end)
 
 -- Auto map was turned on or off here or on the map. Off, the word about the
@@ -206,7 +338,26 @@ function CH.MaybeWelcomeHome(guid)
         return
     end
     greeted = guid
+    if ChamberlainDB.guide[guid] == nil then
+        ChamberlainDB.guide[guid] = 1
+    end
     CH.OpenAutoMap()
+end
+
+-- Steps 4 and 5 happen away from the window, in the room editor and on a
+-- banner. The last one brings the window back for the done page.
+function CH.GuideReached(guid, step)
+    if ChamberlainDB.guide[guid] ~= step then
+        return
+    end
+    ChamberlainDB.guide[guid] = step + 1
+    if step == STEPS then
+        win:Show()
+        win:Raise()
+        Paint()
+    else
+        CH.RefreshAutoMapWelcome()
+    end
 end
 
 -- The guide again whenever you want it: /rooms automap opens it, and the
@@ -227,6 +378,20 @@ function CH.OpenAutoMap(start)
     else
         Paint()
     end
+end
+
+-- Settings and /rooms guide run the guide again in a house of yours. A house
+-- with rooms already ticks the first two steps off and starts walking.
+function CH.RestartGuide()
+    if not CH.isOwnHouse or not CH.currentHouseGUID then
+        CH.Print(CH.L["AM_GUIDE_OWN_HOUSE"])
+        return
+    end
+    if CH.RefuseLocked() then
+        return
+    end
+    ChamberlainDB.guide[CH.currentHouseGUID] = 1
+    CH.OpenAutoMap(true)
 end
 
 -- Leaving the house, so the next walk in can welcome you again.

@@ -280,6 +280,12 @@ SwitchRow(pageMap, "RM_TOGGLE_MINIMAP_SQUARE", "SET_HINT_SQUARE", "minimapSquare
 -- Both landings of a staircase on both floors it joins (Tiles.lua AnchorOnFloor).
 SwitchRow(pageMap, "RM_TOGGLE_STAIRS_BOTH", "SET_HINT_STAIRS_BOTH", "stairsBothFloors", CH.RebuildFloorPlan)
 SwitchRow(pageMap, "RM_TOGGLE_SLIM_BAR", "SET_HINT_SLIM_BAR", "hudStrip", CH.RefreshHUDMode)
+local guideRow = Row(pageMap, "SET_GUIDE", "SET_HINT_GUIDE", 90)
+local guideBtn = CH.MakeButton(guideRow, "SET_GUIDE_BUTTON", 90, 22)
+guideBtn:SetPoint("RIGHT")
+guideBtn:SetScript("OnClick", function()
+    CH.RestartGuide()
+end)
 
 -- ── Showcase ─────────────────────────────────────────────────────────
 -- The eye on the bar is the same switch, so the bar repaints it.

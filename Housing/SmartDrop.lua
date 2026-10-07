@@ -18,6 +18,11 @@ local function Mark(z)
     watch.box = { z.minX, z.maxX, z.minY, z.maxY, z.rot or 0 }
 end
 
+local function Watch(z, room, spots, grid)
+    watch = { zone = z, room = room, spots = spots, grid = grid }
+    Mark(z)
+end
+
 local function Touched(z)
     local b = watch.box
     return z.minX ~= b[1] or z.maxX ~= b[2] or z.minY ~= b[3] or z.maxY ~= b[4] or (z.rot or 0) ~= b[5]
@@ -46,7 +51,8 @@ local function Follow(room)
     if CH.ZoneContains(z, x, y) then
         return
     end
-    -- a moved entrance has no door to go on, only the grid
+    -- a moved entrance or the first room of a floor has no door to go on,
+    -- only the grid
     local first = watch.spots[1]
     local moved
     if watch.grid then
@@ -141,15 +147,22 @@ end
 
 local home = {} -- the entrance where the game first builds it
 
+-- Whether you stand in the entrance where the game first builds it, which
+-- leaves that box in home.
+local function AtHome(x, y)
+    local w, hh = CH.ShapeSize("closet", 0)
+    CH.BoxAbout(home, CH.ENTRANCE_X, CH.ENTRANCE_Y, w, hh)
+    return CH.ZoneContains(home, x, y)
+end
+
 -- The catalog record in a game room's id, Housing-2-<record>-<slot>, or nil.
 function CH.RoomRecord(room)
     return room and tonumber(room:match("^Housing%-%d+%-(%d+)%-"))
 end
 
--- Drops the room and returns nothing, or returns the chat line that says why
--- not and its argument. auto leaves the first room of a floor alone, since
--- where you happen to step in is no place to put it.
-local function Drop(auto)
+-- The game room you stand in, whether it's a stairwell, and your spot and
+-- map. Or the chat line that says why not, which comes first.
+local function Here()
     local room, stairs = CH.GameRoomHere()
     if not room then
         return "TB_SMART_NOT_IN_ROOM"
@@ -160,6 +173,69 @@ local function Drop(auto)
     end
     if not CH.currentHouseGUID then
         return "RD_HOUSE_NOT_IDENTIFIED"
+    end
+    return nil, room, stairs, x, y, mapID
+end
+
+-- The catalog's name for a room we don't know the size of.
+local function UnknownName(record)
+    local entry = record and C_HousingCatalog.GetCatalogEntryInfoByRecordID(Enum.HousingCatalogEntryType.Room, record)
+    return entry and entry.name or CH.L["TB_SMART_THIS_ROOM"]
+end
+
+-- Room z, at the game's shape and size about your spot, goes onto an open
+-- door or stays at your feet. It takes the game room and what comes with its
+-- shape and is followed as you walk. any says the floor has other rooms.
+-- False when auto finds no door, else true and whether it stayed at your
+-- feet with other rooms about. Smart drop and Match game room both end here.
+local function Place(h, z, room, stairs, x, y, any, auto)
+    local spots = { { x, y } }
+    -- The first room of a floor has no door to go on, so it stays at your
+    -- feet, on the grid with Snap on. So does a room with no open door that
+    -- fits when you clicked for it (3.45.0). Auto map waits for a door
+    -- instead, since a room it drops in a doorway is most often wrong.
+    local fitted = any and CH.FitToOpenDoor(h, z, x, y, spots)
+    if any and not fitted and auto then
+        return false
+    elseif not fitted and ChamberlainDB.settings.snapRooms then
+        CH.SnapToGrid(z)
+    end
+    -- a stairwell's id can cover more than one floor, and the floor check would
+    -- pull you to this floor from the other one, so it goes in unlinked
+    z.gameRoom = not stairs and room or nil
+    -- in before its other end or loft, so they don't get its name
+    if not tIndexOf(h.zones, z) then
+        table.insert(h.zones, z)
+    end
+    if IsStairwell(z) then
+        OtherEnd(h, z)
+    end
+    local def = z.shape and CH.SHAPES[z.shape]
+    if def and def.loft then
+        AddLoft(h, z, def.loft)
+    end
+    CH.TouchHouse(CH.currentHouseGUID)
+    CH.SetSelection(z, CH.currentHouseGUID)
+    -- A room with one door, like a stairwell or a barn, already told its turn.
+    --
+    -- A room at your feet follows you on the grid with Snap on, like a moved
+    -- entrance. A round room's disc doesn't fill its grid box, so it stays
+    -- where it dropped.
+    local follow = fitted or ChamberlainDB.settings.snapRooms and z.shape ~= "circle"
+    if follow and #CH.ZoneDoors(z) > 1 then
+        Watch(z, room, spots, not fitted)
+    end
+    CH.AutoMapPlaced(z)
+    return true, any and not fitted
+end
+
+-- Drops the room and returns nothing, or returns the chat line that says why
+-- not, or where it went, and its argument. auto leaves the first room of a
+-- floor alone, since where you happen to step in is no place to put it.
+local function Drop(auto)
+    local why, room, stairs, x, y, mapID = Here()
+    if why then
+        return why
     end
     local h = CH.CurrentHouse()
     local floor = CH.MapFloor()
@@ -183,12 +259,8 @@ local function Drop(auto)
     -- floor you're on, since it can be moved to another.
     local record = CH.RoomRecord(room)
     if record == CH.ENTRY_ROOM then
-        local w, hh = CH.ShapeSize("closet", 0)
-        CH.BoxAbout(home, CH.ENTRANCE_X, CH.ENTRANCE_Y, w, hh)
-        if not CH.ZoneContains(home, x, y) then
-            local z = CH.AddEntrance(room, x, y)
-            watch = { zone = z, room = room, spots = { { x, y } }, grid = true }
-            Mark(z)
+        if not AtHome(x, y) then
+            Watch(CH.AddEntrance(room, x, y), room, { { x, y } }, true)
             return "TB_ENTRANCE_MOVED"
         end
         for _, z in ipairs(h.zones) do
@@ -204,47 +276,72 @@ local function Drop(auto)
         return "TB_AUTO_FIRST"
     end
     local kind = record and CH.GAME_ROOMS[record]
-    local entry = record and C_HousingCatalog.GetCatalogEntryInfoByRecordID(Enum.HousingCatalogEntryType.Room, record)
     if not kind then
-        return "TB_SMART_UNKNOWN_X", entry and entry.name or CH.L["TB_SMART_THIS_ROOM"]
+        return "TB_SMART_UNKNOWN_X", UnknownName(record)
     end
 
     local name = (kind.gameName or ChamberlainDB.settings.gameRoomNames) and CH.GameRoomName(record) or nil
     local z = CH.NewZone(h, x, y, mapID, kind.shape, name, kind.size)
-    local spots = { { x, y } }
-    -- the first room of a floor has no door to go on, so it stays at your
-    -- feet, on the grid with Snap on
-    if any and not CH.FitToOpenDoor(h, z, x, y, spots) then
+    local placed, atFeet = Place(h, z, room, stairs, x, y, any, auto)
+    if not placed then
         return "TB_SMART_NO_FIT_X", name or CH.ShapeName(kind.shape)
-    elseif not any and ChamberlainDB.settings.snapRooms then
-        CH.SnapToGrid(z)
+    elseif atFeet then
+        return "TB_SMART_AT_FEET"
     end
-    -- a stairwell's id can cover more than one floor, and the floor check would
-    -- pull you to this floor from the other one, so it goes in unlinked
-    z.gameRoom = not stairs and room or nil
-    -- in before its other end or loft, so they don't get its name
-    table.insert(h.zones, z)
-    if IsStairwell(z) then
-        OtherEnd(h, z)
-    end
-    local def = z.shape and CH.SHAPES[z.shape]
-    if def and def.loft then
-        AddLoft(h, z, def.loft)
-    end
-    CH.TouchHouse(CH.currentHouseGUID)
-    CH.SetSelection(z, CH.currentHouseGUID)
-    -- a room with one door, like a stairwell or a barn, already told its turn
-    if any and #CH.ZoneDoors(z) > 1 then
-        watch = { zone = z, room = room, spots = spots }
-        Mark(z)
-    end
-    CH.AutoMapPlaced(z)
 end
 
 function CH.SmartDrop()
     local key, arg = Drop(false)
     if key then
         CH.Print(CH.L[key], arg)
+    end
+end
+
+-- Match game room on the build rail. Picked room z takes the shape and size
+-- of the game room you stand in and goes where smart drop would put it, on
+-- the floor you're on. It keeps its name and the rest the owner gave it.
+-- Another room linked to that game room lets go of it, since only one room
+-- can hold it.
+function CH.MatchGameRoom(z)
+    local why, room, stairs, x, y, mapID = Here()
+    if why then
+        CH.Print(CH.L[why])
+        return
+    end
+    local record = CH.RoomRecord(room)
+    local entrance = record == CH.ENTRY_ROOM
+    local kind = entrance and { shape = "closet" } or record and CH.GAME_ROOMS[record]
+    if not kind then
+        CH.Print(CH.L["TB_SMART_UNKNOWN_X"], UnknownName(record))
+        return
+    end
+    local h = CH.CurrentHouse()
+    local other = CH.LinkedZone(h, room)
+    if other and other ~= z then
+        other.gameRoom = nil
+        CH.Print(CH.L["TB_MATCH_LINK_MOVED_X"], other.name)
+    end
+    local w, hh = kind.size, kind.size
+    if not w then
+        w, hh = CH.ShapeSize(kind.shape)
+    end
+    z.shape, z.rot, z.floor, z.mapID = kind.shape, nil, CH.MapFloor(), mapID
+    CH.BoxAbout(z, x, y, w, hh)
+    -- the entrance goes where smart drop puts it, never on a door
+    if entrance then
+        if AtHome(x, y) then
+            z.minX, z.maxX, z.minY, z.maxY = home.minX, home.maxX, home.minY, home.maxY
+        else
+            CH.FitOnGrid(z, { { x, y } })
+            Watch(z, room, { { x, y } }, true)
+        end
+        z.gameRoom = room
+        CH.TouchHouse(CH.currentHouseGUID)
+        return
+    end
+    local _, atFeet = Place(h, z, room, stairs, x, y, #CH.OtherRooms(h, z) > 0)
+    if atFeet then
+        CH.Print(CH.L["TB_SMART_AT_FEET"])
     end
 end
 
@@ -316,9 +413,15 @@ end
 
 -- The map's button and the welcome window both turn it on and off here, so
 -- each shows what the other did.
+-- Auto map fits rooms to the game's walls, and so does Snap, so turning it on
+-- turns Snap on too and says so. Snap stays on after.
 function CH.SetAutoMap(on)
     if on then
         CH.autoMap = true
+        if not ChamberlainDB.settings.snapRooms then
+            CH.FP.SetSnap(true)
+            CH.Print(CH.L["AM_SNAP_ON"])
+        end
         CH.RefreshAutoMapWelcome()
     else
         CH.StopAutoMap()
