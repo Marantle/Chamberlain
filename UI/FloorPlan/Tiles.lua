@@ -602,13 +602,40 @@ local order = {} -- FP.DrawOrder's list, kept between builds
 local drawnCount = 0
 local labelsAtK -- the zoom the labels were last laid out for
 
+-- Rooms sit a little apart on the map, each drawn in from its walls, with a
+-- stub of floor across the gap at every door two rooms share. That's how the
+-- game's own layout editor shows a house. Doorways between rooms in Settings
+-- turns it off for rooms wall to wall. GAP is how far in a tile draws, in
+-- yards, and STUB the stub's width, the game's wide doorway.
+local GAP = 0.5
+local STUB = 8
+
+-- The gap in pixels at k pixels a yard, never so thin it vanishes or so wide
+-- it eats a small room.
+local function Inset(k)
+    return math.min(4, math.max(1, GAP * k))
+end
+
+-- How far in a room's tile of zw by zh pixels draws on either map, none with
+-- the rooms wall to wall.
+function FP.TileGap(zw, zh, k)
+    if not ChamberlainDB.settings.roomGaps then
+        return 0
+    end
+    return math.min(Inset(k), (zw - 2) / 2, (zh - 2) / 2)
+end
+
 -- Put a tile over its zone at the current zoom. With X flipped, zone.maxX maps
 -- to the left canvas edge and zone.maxY to the top. The spot is kept on the
--- frame for the lables.
+-- frame for the lables. A room draws in from its walls, an icon doesn't.
 local function PlaceTile(f, z, k)
     local px, py = FP.WorldToCanvas(z.maxX, z.maxY)
     local zw = math.max((z.maxX - z.minX) * k, 4)
     local zh = math.max((z.maxY - z.minY) * k, 4)
+    if not f.iconOnly then
+        local d = FP.TileGap(zw, zh, k)
+        px, py, zw, zh = px + d, py + d, zw - 2 * d, zh - 2 * d
+    end
     f:ClearAllPoints()
     f:SetPoint("TOPLEFT", canvas, "TOPLEFT", px, -py)
     f:SetSize(zw, zh)
@@ -620,6 +647,141 @@ local function PlaceTile(f, z, k)
         f:SetHitRectInsets(ix, ix, iy, iy)
     else
         f:SetHitRectInsets(0, 0, 0, 0)
+    end
+end
+
+-- The shared doors on the floor, each { x, y, nx, ny, r, g, b } in world
+-- yards with its first room's colour, found once a build and placed again
+-- on every pan and zoom. The tables are kept and refilled so a drag doesn't
+-- make new ones every step. The minimap keeps a list of its own.
+local doorways = {}
+local doorwayCount = 0
+local stubs = {}
+
+-- Whether room o has a door at (x, y) facing back the other way.
+local function DoorFacing(o, x, y, nx, ny)
+    for _, d in ipairs(CH.ZoneDoors(o)) do
+        local ox, oy, onx, ony = CH.DoorAt(o, d)
+        if onx == -nx and ony == -ny and (ox - x) ^ 2 + (oy - y) ^ 2 < 1 then
+            return true
+        end
+    end
+end
+
+-- A door is shared when the room past it has a door of its own on the same
+-- spot, facing it. A blank wall, like a stairwell's three closed sides or the
+-- outer side of an L's arm, never takes one. Two rooms meeting door to door
+-- both see it, so each spot counts once. Fills list from the rooms in draw
+-- order and gives back how many it found.
+function FP.FindDoorways(zones, drawn, list)
+    local count = 0
+    if not ChamberlainDB.settings.roomGaps then
+        return count
+    end
+    for _, i in ipairs(drawn) do
+        local z = zones[i]
+        if CH.IsRoom(z) then
+            for _, d in ipairs(CH.ZoneDoors(z)) do
+                local x, y, nx, ny = CH.DoorAt(z, d)
+                local taken = false
+                for n = 1, count do
+                    local w = list[n]
+                    if (w[1] - x) ^ 2 + (w[2] - y) ^ 2 < 1 then
+                        taken = true
+                        break
+                    end
+                end
+                if not taken then
+                    for _, j in ipairs(drawn) do
+                        local o = zones[j]
+                        if o ~= z and CH.IsRoom(o) and DoorFacing(o, x, y, nx, ny) then
+                            count = count + 1
+                            local w = list[count] or {}
+                            list[count] = w
+                            w[1], w[2], w[3], w[4] = x, y, nx, ny
+                            w[5], w[6], w[7] = FP.ZoneColor(z, i)
+                            break
+                        end
+                    end
+                end
+            end
+        end
+    end
+    return count
+end
+
+-- A stub's size and colour at k pixels a yard, a litle longer than the gap so
+-- only the part in the gap shows under the tiles. Either map places it.
+function FP.PaintStub(t, w, k)
+    local across = 2 * Inset(k) + 2
+    local along = STUB * k
+    -- a door facing along x crosses the gap sideways on the map
+    if w[3] ~= 0 then
+        t:SetSize(across, along)
+    else
+        t:SetSize(along, across)
+    end
+    t:SetColorTexture(Wash(w[5], w[6], w[7], 0.25))
+end
+
+-- Two square rooms side by side sharing a door, drawn at k pixels a yard.
+-- Apart, each draws in from its walls with the strip of floor across the
+-- door. Gives back the pair's width.
+local function JoinedPair(f, x, k, apart, caption)
+    local side = 12 * k
+    local d = apart and Inset(k) or 0
+    for i = 1, 2 do
+        local t = MakeTile(f)
+        t:SetPoint("TOPLEFT", x + (i - 1) * side + d, -(d + 8))
+        t:SetSize(side - 2 * d, side - 2 * d)
+        FP.PaintTile(t.border, t.fill, { name = "" }, i, false, false)
+    end
+    if apart then
+        local stub = f:CreateTexture(nil, "BACKGROUND", nil, 2)
+        stub:SetPoint("CENTER", f, "TOPLEFT", x + side, -(side / 2 + 8))
+        local r, g, b = FP.ZoneColor({}, 1)
+        FP.PaintStub(stub, { 0, 0, 1, 0, r, g, b }, k)
+    end
+    local label = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    label:SetPoint("TOP", f, "TOPLEFT", x + side, -(side + 14))
+    label:SetText(caption)
+    return 2 * side
+end
+
+-- The same two rooms joined at a door the old way and the new, for What's
+-- New, under the captions it's given.
+function FP.MakeDoorwaySample(parent, before, now)
+    local k = 5
+    local h = 12 * k + 32
+    local f = CreateFrame("Frame", nil, parent)
+    f:SetHeight(h)
+    local w = JoinedPair(f, 8, k, false, before)
+    w = w + 24 + JoinedPair(f, w + 32, k, true, now)
+    local ground = f:CreateTexture(nil, "BACKGROUND", nil, -8)
+    ground:SetPoint("TOPLEFT")
+    ground:SetSize(w + 16, h)
+    ground:SetColorTexture(GROUND[1], GROUND[2], GROUND[3], 1)
+    f:SetWidth(w + 16)
+    function f.Refresh() end
+    return f
+end
+
+local function PlaceStubs(k)
+    for n = 1, doorwayCount do
+        local w = doorways[n]
+        local t = stubs[n]
+        if not t then
+            t = canvas:CreateTexture(nil, "BACKGROUND", nil, 2)
+            stubs[n] = t
+        end
+        local px, py = FP.WorldToCanvas(w[1], w[2])
+        t:ClearAllPoints()
+        t:SetPoint("CENTER", canvas, "TOPLEFT", px, -py)
+        FP.PaintStub(t, w, k)
+        t:Show()
+    end
+    for n = doorwayCount + 1, #stubs do
+        stubs[n]:Hide()
     end
 end
 
@@ -785,6 +947,8 @@ function FP.Build()
         f:Hide()
         f.label:Hide() -- on labelLayer, so the tile doesn't take it along
     end
+    doorwayCount = 0
+    PlaceStubs(1)
     FP.HideBlips()
     FP.empty:Hide()
     FP.entranceBtn:Hide()
@@ -912,6 +1076,8 @@ function FP.Build()
         f.round = zone.shape == "circle"
     end
     drawnCount = #order
+    doorwayCount = FP.FindDoorways(zones, order, doorways)
+    PlaceStubs(k)
     LayoutLabels()
     labelsAtK = k
 
@@ -939,6 +1105,7 @@ function FP.TileReposition()
         local f = zonePool[i]
         PlaceTile(f, h.zones[f.zoneIdx], k)
     end
+    PlaceStubs(k)
     -- a pan carries the labels along. A zoom or a resize changes what fits
     -- where.
     if k ~= labelsAtK or CH.editingLayout then

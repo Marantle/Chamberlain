@@ -1,6 +1,6 @@
 local ADDON, CH = ...
 
-CH.VERSION = "3.45.0"
+CH.VERSION = "3.47.0"
 
 -- How often the zone ticker samples your position, in seconds. Drives stair
 -- detection and the per-room time stats both, so they stay in step if it changes.
@@ -279,6 +279,10 @@ events:SetScript("OnEvent", function(_, event, arg1)
         -- stairs" checkbox turns them into icons alone.
         if ChamberlainDB.settings.showStairsOnMap == nil then
             ChamberlainDB.settings.showStairsOnMap = true
+        end
+        -- Rooms a little apart with floor across their shared doors (3.47.0), on by default.
+        if ChamberlainDB.settings.roomGaps == nil then
+            ChamberlainDB.settings.roomGaps = true
         end
         -- Same for the bannerless sound spots, "Sound spots" on the map.
         if ChamberlainDB.settings.showSpotsOnMap == nil then

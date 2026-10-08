@@ -1,5 +1,33 @@
 # Changelog
 
+## 3.47.0
+- Smart drop and Auto map know every themed room the game sells, fifteen more
+  from Stormwind, Bel'ameth, Orgrimmar and Silvermoon. Each goes on the map at
+  its own shape, with its door where the game puts it.
+- Like the barn, they move and turn but don't resize. A shared map keeps
+  their turn, since they aren't quite square.
+- Eight of them show their steps and railings on the map, the way the barn
+  has them. The edge of higher ground is a solid white railing and each step
+  a thin line, its tread a little brighter the higher it sits. The other
+  seven have flat floors, so they have none.
+- Rooms on the house map and the minimap sit a little apart now, each drawn
+  half a yard in from its walls. A strip of floor bridges the gap where both
+  rooms have a door on the same spot, the way the game's own layout editor
+  shows a house. A blank wall, like a stairwell's closed sides, never gets
+  one. Doorways between rooms on the Map and bar page of Settings turns it
+  off, for rooms that touch wall to wall the old way.
+- Fixed Smart drop and Auto map turning down a themed room next to another
+  room when only the themed room's empty corners crossed it, like an
+  Orgrimmar Theater beside the entrance. They "couldn't find a door near you".
+- The Silvermoon Lofty Study has a loft like the barn. Smart drop puts it on
+  the floor above, over the study's far half and its spiral stair. A spiral
+  goes round on the spot, so the map counts how far you turn on its steps.
+  Most of the way up puts you on the loft's floor and most of the way down
+  puts you back. Half way up and back again changes nothing.
+- Off a loft some other way than its stairs, a jump say, the floor check
+  puts you back on the floor below once you stand outside every room up
+  there.
+
 ## 3.45.0
 - The Welcome home window is now a first steps guide for a new house. It lists
   five steps and ticks each one off as you do it. Most steps have a button of

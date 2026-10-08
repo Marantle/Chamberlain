@@ -100,11 +100,15 @@ local function CopyStairwell(h, z, floor)
     return true
 end
 
--- A barn's loft, a plain room of its own on the floor above, unless a room is
--- there already.
-local function AddLoft(h, z, box)
+-- A loft, a room of its own on the floor above, unless a room is there
+-- already. The barn's is a plain box, the Lofty Study's has its own shape
+-- turned with the room.
+local function AddLoft(h, z, def)
     local loft = { name = CH.FreeName(h, z.name), mapID = z.mapID, floor = z.floor + 1 }
-    loft.minX, loft.maxX, loft.minY, loft.maxY = CH.ShapeBox(z, box)
+    loft.minX, loft.maxX, loft.minY, loft.maxY = CH.ShapeBox(z, def.loft)
+    if def.loftShape then
+        loft.shape, loft.rot = def.loftShape, z.rot
+    end
     if RoomAt(h, loft.floor, CH.ZoneCentre(loft)) then
         return
     end
@@ -212,7 +216,7 @@ local function Place(h, z, room, stairs, x, y, any, auto)
     end
     local def = z.shape and CH.SHAPES[z.shape]
     if def and def.loft then
-        AddLoft(h, z, def.loft)
+        AddLoft(h, z, def)
     end
     CH.TouchHouse(CH.currentHouseGUID)
     CH.SetSelection(z, CH.currentHouseGUID)

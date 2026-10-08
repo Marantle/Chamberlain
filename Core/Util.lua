@@ -90,6 +90,11 @@ function CH.ShapePoint(z, s, t)
     return z.minX + u * (z.maxX - z.minX), z.minY + v * (z.maxY - z.minY), u, v
 end
 
+-- Where (x, y) sits in the room, as fractions of the shape unturned.
+function CH.ShapeSpot(z, x, y)
+    return Unturn((x - z.minX) / (z.maxX - z.minX), (y - z.minY) / (z.maxY - z.minY), z.rot)
+end
+
 -- A box given as fractions of the shape unturned, {x0, y0, x1, y1}, in world
 -- yards for the room as it stands.
 function CH.ShapeBox(z, b)
@@ -119,12 +124,11 @@ function CH.ZoneContains(z, x, y)
     if not def or not def.mask then
         return true
     end
-    local u, v = (x - z.minX) / (z.maxX - z.minX), (y - z.minY) / (z.maxY - z.minY)
+    local u, v = CH.ShapeSpot(z, x, y)
     if z.shape == "circle" then
         local dx, dy = u - 0.5, v - 0.5
         return dx * dx + dy * dy <= 0.25
     end
-    u, v = Unturn(u, v, z.rot)
     if def.diag then
         local d = def.diag
         return u + v >= d and 1 - u + v >= d and u + 1 - v >= d and 2 - u - v >= d

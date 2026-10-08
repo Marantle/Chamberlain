@@ -27,10 +27,16 @@ you want one.
 ## Building by hand
 
 Map on the bar opens the house map with the build tools down its left side.
+Rooms sit a little apart on it, with a strip of floor across each door two
+rooms share, like the game's own layout editor. Doorways between rooms in
+Settings puts them back wall to wall.
 Click the shape of a room you built and it drops at the size the game builds
 it. With Snap on it goes onto the nearest open door. Smart drop maps the room
-you stand in at its real shape and size, the Westfall barns and the Stormwind
-Display Room too. To fit a room already on the map to the real one, select
+you stand in at its real shape and size, most themed rooms from the Westfall
+barns to the Orgrimmar Council Room too. The barns and the Silvermoon Lofty
+Study bring their lofts, and the map follows you up their stairs, spiral
+included. To fit a room already on the map to
+the real one, select
 it, stand in the real room and click the Smart drop icon next to Edit room.
 To line up a small spot, select it, stand where its wall
 should be and click Slide to me, or drag its grips on the map. Rotate turns an

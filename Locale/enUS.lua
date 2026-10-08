@@ -384,6 +384,9 @@ L["SET_HINT_SQUARE"] = "Turn this on if another addon makes your minimap square.
 L["SET_HINT_SLIM_BAR"] = "The Chamberlain bar as one row of icons."
 L["SET_HINT_STAIRS_BOTH"] =
     "A staircase shows on both floors it joins, so you can line its two ends up from either. Off, each end shows only on its own floor."
+L["SET_ROOM_GAPS"] = "Doorways between rooms"
+L["SET_HINT_ROOM_GAPS"] =
+    "Rooms sit a little apart on the map and the minimap, with a strip of floor across each door they share, like the game's layout editor. Off, rooms touch wall to wall."
 L["SET_HINT_DEFAULT_VOICES"] =
     "Reads rooms that have no voice of their own, in any house. A voice set for a room in the room editor wins. Off to start with."
 L["SET_HINT_SHARING"] = "Your group can get the maps of your houses from you."

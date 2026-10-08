@@ -279,6 +279,8 @@ SwitchRow(pageMap, "RM_TOGGLE_MINIMAP_ROOMS", "SET_HINT_MINIMAP", "minimapRooms"
 SwitchRow(pageMap, "RM_TOGGLE_MINIMAP_SQUARE", "SET_HINT_SQUARE", "minimapSquare", CH.RefreshMinimapRooms, true)
 -- Both landings of a staircase on both floors it joins (Tiles.lua AnchorOnFloor).
 SwitchRow(pageMap, "RM_TOGGLE_STAIRS_BOTH", "SET_HINT_STAIRS_BOTH", "stairsBothFloors", CH.RebuildFloorPlan)
+-- Rooms drawn in from their walls with floor across shared doors, or wall to wall (Tiles.lua).
+SwitchRow(pageMap, "SET_ROOM_GAPS", "SET_HINT_ROOM_GAPS", "roomGaps", CH.RebuildFloorPlan)
 SwitchRow(pageMap, "RM_TOGGLE_SLIM_BAR", "SET_HINT_SLIM_BAR", "hudStrip", CH.RefreshHUDMode)
 local guideRow = Row(pageMap, "SET_GUIDE", "SET_HINT_GUIDE", 90)
 local guideBtn = CH.MakeButton(guideRow, "SET_GUIDE_BUTTON", 90, 22)

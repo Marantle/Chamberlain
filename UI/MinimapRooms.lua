@@ -121,6 +121,9 @@ local function MakeBlip(i)
     return bf
 end
 
+-- the floor across shared doors, like the house map's, under every room
+local stubs = {}
+
 local function ApplyShape()
     local want = not ChamberlainDB.settings.minimapSquare
     if want == round then
@@ -136,11 +139,15 @@ local function ApplyShape()
     for _, bf in ipairs(blips) do
         SetRim(bf.tex, round)
     end
+    for _, t in ipairs(stubs) do
+        SetRim(t, round)
+    end
 end
 
 local shown = 0 -- tiles in use, dense from 1
 local order = {} -- FP.DrawOrder's list, kept between rebuilds
 local depth = {} -- each drawn room's depth, by draw order
+local doorways, doorwayCount = {}, 0
 local lastX, lastY, lastScale, lastFloor, lastGuid
 
 -- Pick the rooms of the active floor and paint them. Placing them is left to
@@ -176,9 +183,22 @@ local function Rebuild()
             ShowTile(t, true)
             shown = n
         end
+        doorwayCount = FP.FindDoorways(zones, order, doorways)
+    else
+        doorwayCount = 0
     end
     for i = shown + 1, #tiles do
         ShowTile(tiles[i], false)
+    end
+    for n = 1, doorwayCount do
+        if not stubs[n] then
+            stubs[n] = overlay:CreateTexture(nil, "BACKGROUND", nil, 2)
+            SetRim(stubs[n], round)
+        end
+        stubs[n]:Show()
+    end
+    for n = doorwayCount + 1, #stubs do
+        stubs[n]:Hide()
     end
     FP.PaintBlip(me, "player")
     FP.minimapDirty = false
@@ -239,9 +259,12 @@ overlay:SetScript("OnUpdate", function()
             -- fill, the mask and the icon all hang off the border.
             local ox = (px - (z.minX + z.maxX) * 0.5) * s
             local oy = ((z.minY + z.maxY) * 0.5 - py) * s
+            local zw, zh = math.max((z.maxX - z.minX) * s, 4), math.max((z.maxY - z.minY) * s, 4)
+            -- a room draws in from its walls, an icon alone doesn't
+            local gap = t.marker and 0 or FP.TileGap(zw, zh, s)
             t.border:ClearAllPoints()
             t.border:SetPoint("CENTER", overlay, "CENTER", ox, oy)
-            t.border:SetSize(math.max((z.maxX - z.minX) * s, 4), math.max((z.maxY - z.minY) * s, 4))
+            t.border:SetSize(zw - 2 * gap, zh - 2 * gap)
             -- A stairs or sound icon shows while its far corner is still inside
             -- the ring.
             if t.icon and t.marker then
@@ -249,6 +272,12 @@ overlay:SetScript("OnUpdate", function()
                 local e = math.abs(oy) + 8
                 t.icon:SetShown(d * d + e * e <= reach * reach)
             end
+        end
+        for n = 1, doorwayCount do
+            local door = doorways[n]
+            stubs[n]:ClearAllPoints()
+            stubs[n]:SetPoint("CENTER", overlay, "CENTER", (px - door[1]) * s, (door[2] - py) * s)
+            FP.PaintStub(stubs[n], door, s)
         end
     end
 

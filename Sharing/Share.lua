@@ -924,9 +924,11 @@ local function ReadHouseSound(kind, house, floors)
 end
 
 -- A square box that turns can't tell its turn by its sides, so it sends r: a
--- stairwell (3.32.0), the barn (3.34.0) or the Display Room (3.37.0).
+-- stairwell (3.32.0), the barn (3.34.0) or the Display Room (3.37.0). The
+-- themed rooms from 3.47.0 are near square but not the same half way round,
+-- so they send it too.
 local function SendsTurn(def)
-    return def and def.rotates and def.w == def.h
+    return def and def.rotates and (def.w == def.h or def.artisanal)
 end
 
 -- A room's place on the wire. An L, a T or a plus is always the game's own
@@ -934,8 +936,10 @@ end
 -- quarter turns (left out at 0) say it all, and a client before 3.21.0 skips
 -- it for want of a box. Everything else sends its box, and sh names the
 -- shape drawn in it: circle (3.0.0), oct (3.21.0), closet or hall (3.30.0),
--- stairR, stairL or stairE (3.32.0), barn (3.34.0), display (3.37.0), a
--- rectangle otherwise. An older client draws a closet, a hall, a stairwell or
+-- stairR, stairL or stairE (3.32.0), barn (3.34.0), display (3.37.0), the
+-- fifteen themed rooms from swKitchen to smSmallStudy and the Lofty Study's
+-- loft smLoftyLoft (3.47.0), a rectangle
+-- otherwise. An older client draws a closet, a hall, a stairwell or
 -- a themed room as the rectangle it is.
 local function WriteBox(e, z)
     local def = z.shape and CH.SHAPES[z.shape]

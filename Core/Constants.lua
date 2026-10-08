@@ -68,9 +68,9 @@ local armMid = (1 + a) / 2
 
 -- The themed rooms keep the sizes they were walked at, and only the door is
 -- sure to land on a grid line. They're artisanal: the game builds each at
--- one size, so it moves and turns but never resizes. More of them come one at
--- a time as they're walked. Their cuts and boxes are in yards from the box's
--- low x, low y corner as the room stood when walked.
+-- one size, so it moves and turns but never resizes. The first two were
+-- walked, and their cuts and boxes are in yards from the box's low x, low y
+-- corner as the room stood when walked.
 local function Yards(side)
     return function(x0, y0, x1, y1)
         return { x0 / side, y0 / side, x1 / side, y1 / side }
@@ -85,6 +85,28 @@ local Barn = Yards(BARN)
 -- the low y side, opening onto a sunken landing.
 local DISPLAY = SPAN
 local Display = Yards(DISPLAY)
+-- The rest were measured off the game's own room models in October 2026.
+-- Each wall's inner face is pushed out half a yard to the line two rooms
+-- share, where a square room's wall sits. The door side stays on the door.
+-- They're w by h with the door on the low y side door yards along it, and the
+-- cuts are in yards from the low x, low y corner. drawn says the floor has
+-- steps or a railing to show, drawn into <mask>.png.
+local function Artisanal(mask, w, h, door, cuts, drawn)
+    local def = {
+        w = w,
+        h = h,
+        rotates = true,
+        artisanal = true,
+        mask = CH.MEDIA .. "mask-" .. mask,
+        deco = drawn and CH.MEDIA .. mask .. ".png" or nil,
+        cuts = {},
+        doors = { { door / w, 0 } },
+    }
+    for i, c in ipairs(cuts) do
+        def.cuts[i] = { c[1] / w, c[2] / h, c[3] / w, c[4] / h }
+    end
+    return def
+end
 CH.SHAPES = {
     L = {
         w = SIDE,
@@ -148,7 +170,7 @@ CH.SHAPES = {
             { box = Barn(36.6, 29.5, 43.1, 39.5), up = 1, to = 0 },
         },
         mask = CH.MEDIA .. "mask-barn",
-        deco = CH.MEDIA .. "barn.tga",
+        deco = CH.MEDIA .. "barn.png",
         cuts = {
             Barn(0, 0, 11.1, 7.9),
             Barn(0, 31.7, 11.1, 39.2),
@@ -163,11 +185,122 @@ CH.SHAPES = {
         rotates = true,
         artisanal = true,
         mask = CH.MEDIA .. "mask-display",
-        deco = CH.MEDIA .. "display.tga",
+        deco = CH.MEDIA .. "display.png",
         cuts = { Display(0, 21.5, 3, DISPLAY), Display(21, 21.5, DISPLAY, DISPLAY) },
         doors = { { 0.5, 0 } },
     },
+    -- the Kitchen's two side bays are in the cuts' gaps
+    swKitchen = Artisanal("swkitchen", 24, 22.87, 12, {
+        { 0, 12.75, 2, 22.75 },
+        { 22, 12.75, 24, 22.75 },
+        { 0, 0, 2, 3 },
+        { 22, 0, 24, 3 },
+    }, true),
+    -- the Stormwind Armory's walls were walked in game, they sit wider than the
+    -- model said and its door ends up near the middle
+    swArmory = Artisanal("swarmory", 36.2, 35.54, 17.9, {
+        { 32, 24.5, 36.25, 35.5 },
+        { 0, 32, 12, 35.5 },
+        { 24, 32, 32, 35.5 },
+        { 0, 23.75, 3.25, 32 },
+        { 0, 0, 4, 6.25 },
+        { 32, 0, 36.25, 5.5 },
+    }, true),
+    swGrandHall = Artisanal("swgrandhall", 45.5, 46.6, 22.75, {
+        { 0, 38.5, 14, 46.5 },
+        { 31.5, 38.5, 45.5, 46.5 },
+        { 0, 0, 5, 8 },
+        { 40.5, 0, 45.5, 8 },
+        { 0, 31.75, 5, 38.5 },
+        { 40.5, 31.75, 45.5, 38.5 },
+    }, true),
+    -- the Bel'ameth rooms round their corners off, too little for a cut
+    beBedroom = Artisanal("bebedroom", 23, 22.7, 11.5, {}),
+    beTheater = Artisanal("betheater", 23, 22.76, 11.5, {}, true),
+    beMeeting = Artisanal("bemeeting", 33.5, 35.01, 16.75, {
+        { 0, 0, 4.25, 25 },
+        { 29.25, 0, 33.5, 25 },
+    }),
+    -- most of the Temple Room's floor is a terrace three yards up
+    beTemple = Artisanal("betemple", 48, 48.76, 24, {
+        { 0, 14, 3.25, 19.5 },
+        { 44.75, 14, 48, 19.5 },
+        { 0, 29.25, 3, 35 },
+        { 45, 29.25, 48, 35 },
+        { 0, 0, 4, 4.25 },
+        { 44, 0, 48, 4.25 },
+    }, true),
+    ogCouncil = Artisanal("ogcouncil", 45, 45.71, 22.5, {
+        { 0, 0, 7.75, 7 },
+        { 37.25, 0, 45, 7 },
+        { 0, 39, 7.25, 45.75 },
+        { 37.75, 39, 45, 45.75 },
+        { 0, 7, 4.5, 10 },
+        { 40.5, 7, 45, 10 },
+        { 0, 35.5, 3.75, 39 },
+        { 41.25, 35.5, 45, 39 },
+        { 7.75, 0, 11, 3.75 },
+        { 34, 0, 37.25, 3.75 },
+    }, true),
+    ogStonePit = Artisanal("ogstonepit", 23.5, 21.25, 11.75, {}),
+    ogTheater = Artisanal("ogtheater", 36.5, 35.18, 18.25, {
+        { 0, 0, 5, 14.5 },
+        { 31.5, 0, 36.5, 14.5 },
+        { 0, 30.5, 14.25, 35.25 },
+        { 22.25, 30.5, 36.5, 35.25 },
+        { 5, 0, 13, 5.5 },
+        { 23.5, 0, 31.5, 5.5 },
+        { 0, 22, 5, 30.5 },
+        { 31.5, 22, 36.5, 30.5 },
+        { 5, 5.5, 8, 7.5 },
+        { 28.5, 5.5, 31.5, 7.5 },
+    }, true),
+    ogDisplay = Artisanal("ogdisplay", 23, 21.48, 11.5, {}),
+    smArmory = Artisanal("smarmory", 31.5, 33.28, 15.75, {
+        { 0, 0, 10.5, 2.5 },
+        { 21, 0, 31.5, 2.5 },
+    }),
+    smLoftyStudy = Artisanal("smloftystudy", 46.5, 47.25, 23.25, {
+        { 0, 0, 8, 8.5 },
+        { 38.5, 0, 46.5, 8.5 },
+        { 0, 39.25, 7.75, 47.25 },
+        { 38.75, 39.25, 46.5, 47.25 },
+        { 8, 0, 18.25, 2.25 },
+        { 28.25, 0, 38.5, 2.25 },
+        { 0, 29, 2, 39.25 },
+        { 44.5, 29, 46.5, 39.25 },
+    }, true),
+    -- the Lofty Study's loft over its far half and the spiral up to it
+    smLoftyLoft = Artisanal("smloftyloft", 46.5, 31.04, 0, {
+        { 0, 22.75, 7.5, 31 },
+        { 39, 22.75, 46.5, 31 },
+        { 4.75, 0, 16.5, 4.5 },
+        { 30.25, 0, 41.25, 4.75 },
+        { 0, 12.75, 2, 22.75 },
+        { 44.5, 12.75, 46.5, 22.75 },
+    }),
+    smDisplay = Artisanal("smdisplay", 21.5, 22.39, 10.75, {
+        { 0, 0, 6, 3 },
+        { 15.5, 0, 21.5, 3 },
+    }),
+    smSmallStudy = Artisanal("smsmallstudy", 23.51, 22.8, 11.75, {
+        { 0, 0, 2, 6 },
+        { 21.5, 0, 23.5, 6 },
+        { 0, 17, 2, 22.75 },
+        { 21.5, 17, 23.5, 22.75 },
+    }),
 }
+
+-- The Lofty Study puts its loft on the floor above like the barn, in the
+-- loft's own shape, which comes with the room and has no door to snap to.
+-- spiral is where its stair goes round, in yards at turn 0: the centre, the
+-- steps between r0 and r1 out, starting at angle from and climbing sweep
+-- degrees round with the angle falling. The centre is off points walked round
+-- the post, and r0 is the post's edge as the map draws it.
+CH.SHAPES.smLoftyLoft.doors = {}
+CH.SHAPES.smLoftyStudy.loft = { 0, 16.21 / 47.25, 1, 1 }
+CH.SHAPES.smLoftyStudy.loftShape = "smLoftyLoft"
+CH.SHAPES.smLoftyStudy.spiral = { s = 23.3, t = 23.81, r0 = 3, r1 = 7.6, from = 35, sweep = 235 }
 
 -- The shapes as the build rail and the room dialog offer them, in order, with
 -- the icon and the name a fresh room takes. A plain room has no shape. record
@@ -241,8 +374,8 @@ CH.SQUARE_SIZES = {
 -- The game's rooms smart drop knows, by the room's catalog record, which is
 -- also the middle number of its room id (Housing-2-<record>-<slot>). A size
 -- is the side of a plain room or an octagon. The Entry (46) isn't sold and
--- has no catalog record. Of the themed rooms only the barn and the Display
--- Room are measured yet.
+-- has no catalog record. Of the themed rooms only the two Riverside rooms
+-- are missing, because the game has no room data for them yet.
 CH.GAME_ROOMS = {
     [7] = { size = CORE },
     [1] = { size = STEPS[1] },
@@ -267,6 +400,21 @@ CH.GAME_ROOMS = {
     [400] = { shape = "barn", gameName = true },
     [401] = { shape = "barn", gameName = true },
     [281] = { shape = "display", gameName = true },
+    [277] = { shape = "swKitchen", gameName = true },
+    [273] = { shape = "swArmory", gameName = true },
+    [282] = { shape = "swGrandHall", gameName = true },
+    [290] = { shape = "beBedroom", gameName = true },
+    [289] = { shape = "beTheater", gameName = true },
+    [288] = { shape = "beMeeting", gameName = true },
+    [287] = { shape = "beTemple", gameName = true },
+    [132] = { shape = "ogCouncil", gameName = true },
+    [151] = { shape = "ogStonePit", gameName = true },
+    [292] = { shape = "ogTheater", gameName = true },
+    [294] = { shape = "ogDisplay", gameName = true },
+    [283] = { shape = "smArmory", gameName = true },
+    [285] = { shape = "smLoftyStudy", gameName = true },
+    [286] = { shape = "smDisplay", gameName = true },
+    [307] = { shape = "smSmallStudy", gameName = true },
 }
 CH.ENTRY_ROOM = 46
 -- where the Entry sits in every house, and the map's entrance closet with it

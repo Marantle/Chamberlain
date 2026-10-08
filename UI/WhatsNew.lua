@@ -11,11 +11,11 @@ local _, CH = ...
 -- silenced player can still read the notes.
 
 -- A themed room as the house map draws it, under the game's own name for it.
--- Its box is square.
 local function RoomSample(record, shape)
     return function(parent)
-        local w = CH.SHAPES[shape].w
-        local room = { name = CH.GameRoomName(record) or "", shape = shape, minX = 0, maxX = w, minY = 0, maxY = w }
+        local def = CH.SHAPES[shape]
+        local room =
+            { name = CH.GameRoomName(record) or "", shape = shape, minX = 0, maxX = def.w, minY = 0, maxY = def.h }
         return CH.FP.MakeRoomSample(parent, room, 160)
     end
 end
@@ -31,6 +31,38 @@ end
 -- show under the notes, or under the `lead` when there is one, a frame with a
 -- Refresh method.
 CH.WHATS_NEW = {
+    {
+        v = "3.47.0",
+        lead = {
+            icon = "icon-build",
+            title = "Every themed room",
+            text = "Smart drop and Auto map now know every themed room the game sells, fifteen more "
+                .. "from the Stormwind Kitchen to the Silvermoon Lofty Study. Each goes on the map at its "
+                .. "own shape with its door where the game puts it, and the ones with steps show them, "
+                .. "like the barn.",
+        },
+        notes = {
+            "Rooms on the house map and the minimap sit a little apart now, with a strip of floor across each door "
+                .. "two rooms share, the way the game's own layout editor shows a house. Doorways between "
+                .. "rooms in Settings brings back rooms wall to wall.",
+            "The Silvermoon Lofty Study gets its loft. Smart drop puts it on the floor above, and "
+                .. "climbing the spiral stair takes you up to it on the map and back down again.",
+            "Like the barn, themed rooms move and turn but don't resize.",
+            "Smart drop and Auto map put a themed room next to another room even when its empty "
+                .. "corners cross that room, where before they couldn't find a door.",
+        },
+        extra = function(parent)
+            local f = CreateFrame("Frame", nil, parent)
+            local hall = RoomSample(282, "swGrandHall")(f)
+            hall:SetPoint("TOPLEFT")
+            hall:SetWidth(176)
+            local doors = CH.FP.MakeDoorwaySample(f, "Before", "Now")
+            doors:SetPoint("TOPLEFT", hall, "BOTTOMLEFT", 0, -8)
+            f:SetHeight(hall:GetHeight() + 8 + doors:GetHeight())
+            function f.Refresh() end
+            return f
+        end,
+    },
     {
         v = "3.45.0",
         notes = {

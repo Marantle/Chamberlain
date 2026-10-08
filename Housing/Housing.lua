@@ -145,8 +145,29 @@ function CH.BuildParts(h)
     end
 end
 
+-- Whether two rooms share any floor. Two boxes can cross where one of them is
+-- cut away, like the empty corners of a themed room's box next to the room it
+-- joins, so where they cross both shapes get a look a yard apart.
 local function Overlaps(a, b)
-    return a.minX < b.maxX - 0.1 and b.minX < a.maxX - 0.1 and a.minY < b.maxY - 0.1 and b.minY < a.maxY - 0.1
+    local x0, x1 = math.max(a.minX, b.minX) + 0.1, math.min(a.maxX, b.maxX) - 0.1
+    local y0, y1 = math.max(a.minY, b.minY) + 0.1, math.min(a.maxY, b.maxY) - 0.1
+    if x0 >= x1 or y0 >= y1 then
+        return false
+    end
+    if not a.shape and not b.shape then
+        return true
+    end
+    local nx, ny = math.ceil(x1 - x0), math.ceil(y1 - y0)
+    for i = 0, nx do
+        local x = x0 + (x1 - x0) * i / nx
+        for j = 0, ny do
+            local y = y0 + (y1 - y0) * j / ny
+            if CH.ZoneContains(a, x, y) and CH.ZoneContains(b, x, y) then
+                return true
+            end
+        end
+    end
+    return false
 end
 
 -- The rooms on the zone's floor other than itself.
@@ -784,6 +805,89 @@ function CH.SyncAnchorLatch()
     currentAnchor = (h and x) and FindActiveAnchor(h, x, y, mapID) or nil
 end
 
+-- ── Spiral stairs ─────────────────────────────────────────────────────
+-- A spiral climbs on the spot, so a box on it can't tell going up from going
+-- down. The turn you make round it on its steps adds up instead, and past
+-- CH.SPIRAL_TURN you're on the other floor: up from the room's own floor,
+-- down from the one over it. Half way up and back again comes to nothing,
+-- and walking straight past under the steps can't turn you that far. It only
+-- counts when you stepped on at the end you climb from, the foot from the
+-- room's floor and the top from the one over it, since anywhere else on the
+-- room's floor you could be walking round under the steps.
+CH.SPIRAL_TURN = 175
+-- how far round from an end still counts as stepping on there, a step and a
+-- half or a running stride
+CH.SPIRAL_END = 25
+local SPIRAL_TURN, SPIRAL_END = CH.SPIRAL_TURN, CH.SPIRAL_END
+local spiralRoom, spiralAngle, spiralTurn, spiralCounts = nil, nil, 0, false
+
+-- The angle round room z's spiral you stand at and how far round from the
+-- foot that is, or nil off its steps.
+local function OnSpiral(z, x, y)
+    local def = CH.SHAPES[z.shape]
+    local sp = def.spiral
+    local u, v = CH.ShapeSpot(z, x, y)
+    local ds, dt = u * def.w - sp.s, v * def.h - sp.t
+    local r = math.sqrt(ds * ds + dt * dt)
+    if r < sp.r0 or r > sp.r1 then
+        return nil
+    end
+    local a = math.deg(math.atan2(dt, ds))
+    local up = (sp.from - a) % 360
+    if up > sp.sweep then
+        return nil
+    end
+    return a, up
+end
+
+local function CheckSpiral(h, x, y, mapID)
+    local room, angle, up
+    for _, z in ipairs(h.zones) do
+        local def = z.shape and CH.SHAPES[z.shape]
+        local floor = z.floor or 1
+        if def and def.spiral and z.mapID == mapID and (CH.activeFloor == floor or CH.activeFloor == floor + 1) then
+            angle, up = OnSpiral(z, x, y)
+            if angle then
+                room = z
+                break
+            end
+        end
+    end
+    if room ~= spiralRoom then
+        spiralRoom, spiralAngle, spiralTurn = room, angle, 0
+        if room then
+            if CH.activeFloor == (room.floor or 1) then
+                spiralCounts = up <= SPIRAL_END
+            else
+                spiralCounts = up >= CH.SHAPES[room.shape].spiral.sweep - SPIRAL_END
+            end
+        end
+        return
+    end
+    if not (room and spiralCounts) then
+        return
+    end
+    -- climbing turns the angle down
+    spiralTurn = spiralTurn - ((angle - spiralAngle + 180) % 360 - 180)
+    spiralAngle = angle
+    local floor = room.floor or 1
+    if CH.activeFloor == floor and spiralTurn >= SPIRAL_TURN then
+        CH.SetActiveFloor(floor + 1)
+    elseif CH.activeFloor == floor + 1 and spiralTurn <= -SPIRAL_TURN then
+        CH.SetActiveFloor(floor)
+    else
+        return
+    end
+    spiralTurn = 0
+    CH.SyncAnchorLatch()
+end
+
+-- Whether you stand on a spiral's steps, so the floor check knows you're
+-- still on your way and not fallen off the loft.
+function CH.OnSpiralStairs()
+    return spiralRoom ~= nil
+end
+
 function CH.CheckZones()
     -- Run for any house we have a layout for, not just our own. This lets a
     -- visitor who has the owner's shared layout see the room banners too.
@@ -845,6 +949,9 @@ function CH.CheckZones()
         if CH.OnActiveFloorChanged then
             CH.OnActiveFloorChanged()
         end
+    end
+    if not CH.editingLayout then
+        CheckSpiral(h, x, y, mapID)
     end
 
     -- 2. Room pass: smallest matching room wins, scoped to the active floor.

@@ -78,6 +78,21 @@ local function Held(h, linked, x, y, mapID)
     end
 end
 
+-- Up on a loft's floor in its room's game room but in nothing mapped there,
+-- so you came down some other way than the stairs, a jump say.
+local function OffLoft(h, linked, x, y, mapID)
+    local def = linked.shape and CH.SHAPES[linked.shape]
+    if not (def and def.loft) or CH.activeFloor ~= (linked.floor or 1) + 1 or CH.OnSpiralStairs() then
+        return false
+    end
+    for _, z in ipairs(h.zones) do
+        if (z.floor or 1) == CH.activeFloor and z.mapID == mapID and CH.ZoneContains(z, x, y) then
+            return false
+        end
+    end
+    return true
+end
+
 function CH.CheckFloorLink(h, x, y, mapID)
     ticks = ticks + 1
     if ticks < CHECK_EVERY or Paused() then
@@ -91,6 +106,11 @@ function CH.CheckFloorLink(h, x, y, mapID)
     if held then
         -- so stepping out of it is walking in
         seenRoom = nil
+        return
+    end
+    if linked and OffLoft(h, linked, x, y, mapID) then
+        CH.SetActiveFloor(linked.floor or 1)
+        CH.SyncAnchorLatch()
         return
     end
     if room == seenRoom then
