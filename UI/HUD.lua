@@ -68,7 +68,24 @@ local btnHouse = NavButton("HUD_HOUSE_BUTTON", "icon-seal", 72)
 local btnArchive = NavButton("HUD_ARCHIVE", "icon-map", 76)
 local btnSharing = NavButton("HUD_SHARING", "icon-share", 80)
 local btnTour = NavButton("HUD_TOUR", "icon-book", 64)
-local rowButtons = { btnMap, btnHouse, btnArchive, btnSharing, btnTour }
+-- A visitor's pumpkins found so far, with the count as its label. Where
+-- hunts are made (CH.OpenHuntPanel) the owner gets it too, to make one.
+local btnHunt = NavButton("HUD_PUMPKINS", "icon-pumpkin", 56)
+local function Hunting()
+    return CH.isOwnHouse and CH.OpenHuntPanel ~= nil
+end
+btnHunt.text = function()
+    local guid = CH.currentHouseGUID
+    local spots = #CH.HuntSpots(ChamberlainDB.houses[guid])
+    if Hunting() then
+        return tostring(spots)
+    end
+    return string.format(CH.L["HUNT_X_OF_Y"], CH.PumpkinsFound(guid), spots)
+end
+CH.Tip(btnHunt, function()
+    return Hunting() and "HUNT_TITLE" or "HUD_TT_PUMPKINS"
+end)
+local rowButtons = { btnMap, btnHouse, btnArchive, btnSharing, btnTour, btnHunt }
 
 -- A tour of one room is no tour, so your own Tour button waits for two.
 local TOUR_MIN_ROOMS = 2
@@ -144,6 +161,13 @@ btnTour:SetScript("OnClick", function()
         return
     end
     CH.ToggleTour()
+end)
+btnHunt:SetScript("OnClick", function()
+    if Hunting() then
+        CH.OpenHuntPanel()
+    else
+        CH.TogglePumpkinBag()
+    end
 end)
 btnSettings:SetScript("OnClick", function()
     CH.ToggleSettings()
@@ -453,7 +477,7 @@ local function DressButton(b, strip)
         b:SetWidth(26)
         return 26
     end
-    b:SetText(CH.L[b.key])
+    b:SetText(b.text and b.text() or CH.L[b.key])
     fs:ClearAllPoints()
     fs:SetPoint("LEFT", 20, 0)
     fs:SetPoint("RIGHT", -4, 0)
@@ -618,6 +642,10 @@ function CH.RefreshHUDMode()
         table.insert(buttons, tIndexOf(buttons, btnSharing), btnTour)
         CH.SetButtonActive(btnTour, touring)
     end
+    -- and Pumpkins for a visitor in a house with a hunt
+    if Hunting() or not CH.isOwnHouse and #CH.HuntSpots(h) > 0 then
+        table.insert(buttons, tIndexOf(buttons, btnSharing), btnHunt)
+    end
     -- The header's icons run from the gear leftward, the eye always next to
     -- it. The speaker joins in a house with sounds and the note while update
     -- notes are unread.
@@ -696,6 +724,7 @@ CH.SHOWCASE = {
     { frame = "floorPlan", key = "showcaseMap", label = "SET_SHOWCASE_MAP" },
     { frame = "autoMapGuide", key = "showcaseAutoMap", label = "SET_SHOWCASE_AUTO_MAP" },
     { frame = "lockWindow", key = "showcaseLock", label = "SET_SHOWCASE_LOCK" },
+    { frames = { "pumpkinPopup", "pumpkinBag" }, key = "showcaseHunt", label = "SET_SHOWCASE_HUNT" },
     { frame = "housePanel", key = "showcaseHousePanel", label = "SET_SHOWCASE_HOUSE_PANEL", off = true },
     {
         frames = { "roomManager", "consentDialog", "acceptDialog", "exportDialog" },

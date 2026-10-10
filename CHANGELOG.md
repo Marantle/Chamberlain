@@ -1,5 +1,24 @@
 # Changelog
 
+## 3.48.0
+- Three new locks for a locked area, in the style of old Hallowe'en
+  postcards. Style on the Lock tab picks one, and the Arcane Ward stays the
+  default.
+- The Pumpkin Balloon: the numbers fly into a row of slots under a
+  jack-o'-lantern balloon. The right code lights its eyes and it sails off
+  the card, pulling the witch up in her basket. A wrong one puts the eyes
+  out.
+- The Talking Board: each number sends the planchette across the board and
+  writes the number under it. Asked, it goes to Yes for the right code. A
+  wrong one gets No, then the planchette drifts back to Good bye and the
+  numbers go.
+- The Witch's Kite: each number sends out a bat on a string to the witch's
+  hand, and a click on a bat cuts it loose. The right code lets her fly off
+  west. A wrong one snaps the strings and the bats tumble away.
+- The art is cut from early 1900s postcards that are in the public domain.
+- A visitor on an older Chamberlain gets the Arcane Ward for these, and the
+  same code still opens it.
+
 ## 3.47.0
 - Smart drop and Auto map know every themed room the game sells, fifteen more
   from Stormwind, Bel'ameth, Orgrimmar and Silvermoon. Each goes on the map at

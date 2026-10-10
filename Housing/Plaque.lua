@@ -108,6 +108,11 @@ motto:SetSpacing(2)
 local facts = plaque:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 facts:SetTextColor(CH.RGBA(CH.COLORS.dim, 1))
 
+-- How many pumpkins the owner hid (Housing/Hunt.lua). The art is square,
+-- so the size puts it back in shape.
+local hunt = plaque:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+local GOURD_ICON = "|T" .. CH.MEDIA .. "lock-gourd.png:16:18|t "
+
 -- Under the rest when the owner left a tour (Housing/Tour.lua).
 local tourBtn = CH.MakeButton(plaque, "TOUR_TAKE", 130, 24)
 CH.SetButtonActive(tourBtn, true)
@@ -121,6 +126,7 @@ local ROWS = {
     { gap = 14 },
     { fs = owner, gap = 8 },
     { fs = motto, gap = 8 },
+    { fs = hunt, gap = 8 },
     { fs = facts, gap = 0 },
 }
 
@@ -206,6 +212,13 @@ function CH.ShowPlaque(guid, preview)
     end
     owner:SetText(houseName and whose or "")
     motto:SetText(text and text ~= "" and string.format(CH.L["PL_MOTTO_X"], text) or "")
+    local pumpkins = #CH.HuntSpots(h)
+    if pumpkins == 0 then
+        hunt:SetText("")
+    else
+        local line = pumpkins == 1 and CH.L["PL_PUMPKIN_ONE"] or string.format(CH.L["PL_PUMPKINS_X"], pumpkins)
+        hunt:SetText(GOURD_ICON .. line)
+    end
     local rooms = h and CH.RoomCount(h.zones) or 0
     if rooms == 0 then
         facts:SetText("")

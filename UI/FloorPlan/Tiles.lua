@@ -936,6 +936,13 @@ local function LayoutGrid(k)
     scaleText:SetShown(k ~= nil)
 end
 
+-- A side panel's own marks on the map, the hunt panel's pumpkins.
+local function PlacePins()
+    if FP.panel and FP.panel.pins then
+        FP.panel.pins()
+    end
+end
+
 function FP.Build()
     -- The minimap draws the same rooms and redraws them when this runs, whatever
     -- the reason (edit, drag step, floor change). See UI/MinimapRooms.lua.
@@ -1086,6 +1093,7 @@ function FP.Build()
     end
     FP.UpdateResetButton()
     FP.PositionHandles()
+    PlacePins()
 end
 
 -- Reposition the room tiles for the current zoom/pan. The dots, corner markers and
@@ -1114,6 +1122,7 @@ function FP.TileReposition()
     end
     LayoutGrid(k)
     FP.PositionHandles()
+    PlacePins()
 end
 
 -- Called from RoomManager when zones change so the floor plan stays in sync

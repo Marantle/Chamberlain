@@ -862,9 +862,31 @@ end
 local lockCheck = MakeCheck(paneLock, "RD_LOCK_ON", "RD_LOCK_ON_HINT", "RD_LOCK_TT_TITLE", "RD_LOCK_TT1", "RD_LOCK_TT2")
 lockCheck:SetPoint("TOPLEFT", -3, -2)
 
-local codeLabel = Label(paneLock, "RD_LOCK_CODE", -62)
+-- Which lock visitors get, CH.LOCK_STYLES in Housing/Lock.lua.
+local pendingLockStyle = 1
+local RefreshLockTab -- set below
+local styleLabel = Label(paneLock, "RD_LOCK_STYLE", -62)
+local styleBtn = CH.MakeMenuButton(paneLock, 160, "LOCK_STYLE_ARCANE", function()
+    return CH.L[CH.LOCK_STYLES[pendingLockStyle].key]
+end, function(root, btn)
+    for i, style in ipairs(CH.LOCK_STYLES) do
+        -- a hunt style the room already has stays on the list
+        if not style.hunt or CH.OpenHuntPanel or pendingLockStyle == i then
+            root:CreateRadio(CH.L[style.key], function()
+                return pendingLockStyle == i
+            end, function()
+                pendingLockStyle = i
+                btn:Refresh()
+                RefreshLockTab()
+            end)
+        end
+    end
+end)
+styleBtn:SetPoint("TOPLEFT", LABEL_W, -56)
+
+local codeLabel = Label(paneLock, "RD_LOCK_CODE", -100)
 local codeBox = MakeBox(paneLock, 120, CH.LOCK_CODE_MAX)
-codeBox:SetPoint("TOPLEFT", LABEL_W, -56)
+codeBox:SetPoint("TOPLEFT", LABEL_W, -94)
 codeBox:SetNumeric(true)
 -- grey help under a control in the right column
 local function LockHint(key)
@@ -881,16 +903,36 @@ codeHint:SetPoint("TOPLEFT", codeBox, "BOTTOMLEFT", 0, -6)
 
 -- The code as the lock draws it, a glyph per digit as it's typed. Each one
 -- is a few straight bars, so the owner can build it in the house as a clue.
-local glyphLabel = Label(paneLock, "RD_LOCK_GLYPHS", -112)
+-- Only the Arcane Ward draws glyphs, the others show plain numbers.
+local glyphLabel = Label(paneLock, "RD_LOCK_GLYPHS", -150)
 local glyphs = {}
 for i = 1, CH.LOCK_CODE_MAX do
     local g = CH.MakeIcon(paneLock, "lock-glyph1", 26)
-    g:SetPoint("TOPLEFT", LABEL_W + (i - 1) * 32, -106)
+    g:SetPoint("TOPLEFT", LABEL_W + (i - 1) * 32, -144)
     g:SetVertexColor(CH.RGBA(CH.COLORS.gold, 1))
     glyphs[i] = g
 end
 local glyphHint = LockHint("RD_LOCK_GLYPHS_HINT")
-glyphHint:SetPoint("TOPLEFT", LABEL_W, -138)
+glyphHint:SetPoint("TOPLEFT", LABEL_W, -176)
+
+local function Glyphed()
+    return CH.LOCK_STYLES[pendingLockStyle].id == "arcane"
+end
+
+-- The Pumpkin Patch has no code. It opens with the house's pumpkins, so its
+-- row says how many there are. They're hidden in the hunt panel, and a patch
+-- saves before there are any.
+local function Patched()
+    return CH.LOCK_STYLES[pendingLockStyle].id == "patch"
+end
+
+local function PatchPumpkins()
+    return #CH.HuntSpots(ChamberlainDB.houses[DialogGUID()])
+end
+
+local patchLabel = Label(paneLock, "RD_LOCK_OPENS", -100)
+local patchHint = LockHint("RD_LOCK_PATCH_X")
+patchHint:SetPoint("TOPLEFT", LABEL_W, -100)
 
 local function RefreshGlyphs()
     local code = codeBox:GetText()
@@ -899,7 +941,7 @@ local function RefreshGlyphs()
         if d ~= "" then
             CH.SetIconFile(g, "lock-glyph" .. d)
         end
-        g:SetShown(d ~= "")
+        g:SetShown(d ~= "" and Glyphed())
     end
 end
 codeBox:HookScript("OnTextChanged", RefreshGlyphs)
@@ -907,29 +949,58 @@ codeBox:HookScript("OnTextChanged", RefreshGlyphs)
 -- Opens the ward the way a visitor gets it, from the fields and the code as
 -- they stand now, saved or not.
 local tryBtn = CH.MakeButton(paneLock, "RD_LOCK_TRY", 140, 22)
-tryBtn:SetPoint("TOPLEFT", glyphHint, "BOTTOMLEFT", 0, -14)
 CH.Tip(tryBtn, "RD_LOCK_TRY_TT")
 
-local function RefreshLockTab()
+RefreshLockTab = function()
     local on = lockCheck:GetChecked()
     tryBtn:SetEnabled(on)
     codeBox:SetEnabled(on)
-    for _, r in ipairs({ codeLabel, codeHint, glyphLabel, glyphHint, unpack(glyphs) }) do
+    styleBtn:SetEnabled(on)
+    styleBtn:Refresh()
+    for _, r in ipairs({ styleLabel, codeLabel, codeHint, patchLabel, patchHint, glyphLabel, glyphHint, unpack(glyphs) }) do
         r:SetAlpha(on and 1 or 0.4)
     end
     RefreshGlyphs()
+    local glyphed, patched = Glyphed(), Patched()
+    glyphLabel:SetShown(glyphed)
+    glyphHint:SetShown(glyphed)
+    for _, r in ipairs({ codeLabel, codeBox, codeHint }) do
+        r:SetShown(not patched)
+    end
+    patchLabel:SetShown(patched)
+    patchHint:SetShown(patched)
+    if patched then
+        local n = PatchPumpkins()
+        patchHint:SetText(n > 0 and string.format(CH.L["RD_LOCK_PATCH_X"], n) or CH.L["RD_LOCK_NO_PUMPKINS"])
+    end
+    tryBtn:ClearAllPoints()
+    local over = patched and patchHint or glyphed and glyphHint or codeHint
+    tryBtn:SetPoint("TOPLEFT", over, "BOTTOMLEFT", 0, -14)
 end
 lockCheck:HookScript("OnClick", RefreshLockTab)
 
 local function PendingLockCode()
-    return lockCheck:GetChecked() and codeBox:GetText() or nil
+    if not lockCheck:GetChecked() then
+        return nil
+    end
+    return Patched() and CH.LOCK_PATCH or codeBox:GetText()
+end
+
+-- What's wrong with the lock in p, a string key, or nil when it can be
+-- saved. An empty patch saves but has nothing to try.
+local function LockProblem(p, trying)
+    if p.lockCode == CH.LOCK_PATCH then
+        return trying and PatchPumpkins() == 0 and "RD_LOCK_NO_PUMPKINS" or nil
+    end
+    return not CH.ValidLockCode(p.lockCode or "") and "RD_LOCK_BAD_CODE" or nil
 end
 
 local Pending -- set below
 tryBtn:SetScript("OnClick", function()
     local p = Pending()
-    if not CH.ValidLockCode(p.lockCode or "") then
-        CH.Print(CH.L["RD_LOCK_BAD_CODE"])
+    local problem = LockProblem(p, true)
+    if problem then
+        CH.Print(CH.L[problem])
         return
     end
     p.lockSalt = renameTarget.lockSalt
@@ -1030,6 +1101,7 @@ local SAVED = {
     "floorDelta",
     "gameRoom",
     "lockCode",
+    "lockStyle",
 }
 
 Pending = function()
@@ -1061,6 +1133,7 @@ Pending = function()
         floorDelta = pendingFloorDelta,
         gameRoom = pendingGameRoom,
         lockCode = PendingLockCode(),
+        lockStyle = lockCheck:GetChecked() and pendingLockStyle or nil,
     }
 end
 
@@ -1072,12 +1145,13 @@ local function Changed()
     return not tCompare(Pending(), opened, 2) -- 2 reaches into the colour
 end
 
+local leaveAfter -- what to do once the question is answered
+
+local panel = { frame = dialog }
+
 -- Whichever way the editor closes, the tests stop and the boxes let go.
--- Hide UI with the map kept on screen closes nothing.
-dialog:SetScript("OnHide", function(self)
-    if CH.OnlyParentHid(self) then
-        return
-    end
+-- Hide UI with the map kept on screen closes nothing, it never gets here.
+function panel.closed()
     editBox:ClearFocus()
     descBox:ClearFocus()
     headIdBox:ClearFocus()
@@ -1089,13 +1163,10 @@ dialog:SetScript("OnHide", function(self)
     SetTesting(false)
     SetPreviewing(false)
     Asking(false)
+    leaveAfter = nil
     renameTarget = nil
     renameHouseGUID = nil
-end)
-
-local leaveAfter -- what to do once the question is answered
-
-local panel = { frame = dialog }
+end
 
 -- A map build checks the room is still there to edit: a delete somewhere
 -- else, or the map moving to another house, ends the edit unsaved.
@@ -1187,7 +1258,8 @@ function CH.OpenRenameDialog(zone, houseGUID)
     RefreshFloorRow()
     -- the lock stays with its room, so Copy from never takes it
     lockCheck:SetChecked(zone.lockCode ~= nil)
-    codeBox:SetText(zone.lockCode or "")
+    codeBox:SetText(zone.lockCode ~= CH.LOCK_PATCH and zone.lockCode or "")
+    pendingLockStyle = CH.LOCK_STYLES[zone.lockStyle] and zone.lockStyle or 1
     RefreshLockTab()
     opened = Pending()
     -- Locked, the dialog is the Sound tab (3) alone, so a save can only change
@@ -1242,8 +1314,9 @@ ConfirmZone = function()
         CH.Print(CH.L["RD_ENTER_NAME"])
         return
     end
-    if p.lockCode and not CH.ValidLockCode(p.lockCode) then
-        CH.Print(CH.L["RD_LOCK_BAD_CODE"])
+    local problem = p.lockCode and LockProblem(p)
+    if problem then
+        CH.Print(CH.L[problem])
         return
     end
 

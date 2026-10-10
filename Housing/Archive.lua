@@ -158,6 +158,9 @@ function CH.ArchiveStore(houseKey, name, blueprint)
         tourWelcome = h.tourWelcome,
         tourBye = h.tourBye,
         tourGuide = h.tourGuide and CopyTable(h.tourGuide) or nil,
+        pumpkins = h.pumpkins and CopyTable(h.pumpkins) or nil,
+        pumpkinBlob = h.pumpkinBlob,
+        pumpkinReach = h.pumpkinReach,
         zones = CopyTable(h.zones),
         stats = h.stats and CopyTable(h.stats) or nil,
         blueprint = blueprint and { code = blueprint.code, name = blueprint.name } or nil,
@@ -184,6 +187,7 @@ function CH.ArchiveClear(houseKey)
     h.arrival = nil
     h.bannerStyle = nil
     h.tourWelcome, h.tourBye, h.tourGuide = nil, nil, nil
+    h.pumpkins, h.pumpkinBlob, h.pumpkinReach = nil, nil, nil
     h.stats = nil
     AfterSwap(houseKey, nil)
     CH.Print(CH.L["AR_CLEARED"])
@@ -221,6 +225,9 @@ function CH.ArchiveRestore(id, houseKey)
     h.bannerStyle = e.bannerStyle
     h.tourWelcome, h.tourBye = e.tourWelcome, e.tourBye
     h.tourGuide = e.tourGuide and CopyTable(e.tourGuide) or nil
+    h.pumpkins = e.pumpkins and CopyTable(e.pumpkins) or nil
+    h.pumpkinBlob = e.pumpkinBlob
+    h.pumpkinReach = e.pumpkinReach
     h.stats = e.stats and CopyTable(e.stats) or nil
     -- Standing in the house, re-stamp the rooms onto the map we're on. A house
     -- rebuilt from a blueprint may come back on a new interior map id, another

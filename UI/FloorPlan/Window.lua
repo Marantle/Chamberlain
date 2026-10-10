@@ -330,7 +330,8 @@ function FP.OpenPanel(p, zone)
 end
 
 -- noBuild is for a close from inside a map build, which draws the map itself.
--- The panel's own OnHide does its tidying up.
+-- A panel tidies up in its closed(), if it has one. OnHide isn't enough: a
+-- panel hidden while the map already was gets no second OnHide.
 function FP.ClosePanel(noBuild)
     local p = FP.panel
     if not p then
@@ -338,6 +339,9 @@ function FP.ClosePanel(noBuild)
     end
     FP.panel, FP.editZone = nil, nil
     p.frame:Hide()
+    if p.closed then
+        p.closed()
+    end
     if not noBuild and fp:IsShown() then
         FP.Build()
     end

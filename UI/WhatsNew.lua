@@ -32,6 +32,18 @@ end
 -- Refresh method.
 CH.WHATS_NEW = {
     {
+        v = "3.48.0",
+        lead = {
+            icon = "icon-lock",
+            title = "Hallowe'en locks",
+            text = "A locked area can wear one of three new locks, made from old Hallowe'en postcards. "
+                .. "Pick one under Style on the Lock tab of the room editor.\n\nThe Pumpkin Balloon "
+                .. "puts the numbers in a row of slots and sails off the card when the code is right. "
+                .. "The Talking Board slides a planchette to each number and to Yes or No. The Witch's "
+                .. "Kite sends out a bat for each number, and the right code lets her fly away.",
+        },
+    },
+    {
         v = "3.47.0",
         lead = {
             icon = "icon-build",

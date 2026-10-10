@@ -1,6 +1,6 @@
 local ADDON, CH = ...
 
-CH.VERSION = "3.47.0"
+CH.VERSION = "3.48.0"
 
 -- How often the zone ticker samples your position, in seconds. Drives stair
 -- detection and the per-room time stats both, so they stay in step if it changes.
@@ -342,6 +342,10 @@ events:SetScript("OnEvent", function(_, event, arg1)
         -- them again (3.43.0, Housing/Lock.lua)
         if ChamberlainDB.lockCodes == nil then
             ChamberlainDB.lockCodes = {}
+        end
+        -- pumpkins this player found, by house and spot (3.48.0, Housing/Hunt.lua)
+        if ChamberlainDB.pumpkinsFound == nil then
+            ChamberlainDB.pumpkinsFound = {}
         end
         -- the first steps guide's step per house (3.45.0, UI/AutoMapWelcome.lua)
         if ChamberlainDB.guide == nil then
