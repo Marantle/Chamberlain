@@ -79,6 +79,10 @@ Arcane Ward" and have to enter the code as glyphs on a ring of magic circles.
 The right code shows the room's real name, banner and story. The code never
 leaves your computer.
 
+Style on the same tab swaps the ward for a Hallowe'en lock made from old
+postcards: a pumpkin balloon, a talking board with a planchette or a witch
+flying a kite of bats.
+
 ## Tours
 
 Once your map has two rooms, Tour on the bar sets up a tour. Pick the rooms in

@@ -55,6 +55,7 @@ read_globals = {
     "GameFontNormalSmall",
     "GameFontNormalLarge",
     "QuestFont_Huge",
+    "QuestFont_30",
     "GameFontHighlightSmall",
     "GameFontDisableSmall",
     "_G",

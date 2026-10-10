@@ -3,7 +3,7 @@
 ## Notes: Names your housing rooms and announces them as you walk around your house.
 ## Category-enUS: Housing
 ## Category: Housing
-## Version: 3.47.0
+## Version: 3.48.0
 ## Author: Rothirr
 ## IconTexture: 133100
 ## X-Curse-Project-ID: 1573197
@@ -43,8 +43,15 @@ Housing\Plaque.lua
 Housing\TalkingHead.lua
 Housing\Tour.lua
 Housing\Lock.lua
+Housing\Hunt.lua
 UI\HUD.lua
-UI\LockWindow.lua
+UI\Lock\Window.lua
+UI\Lock\Arcane.lua
+UI\Lock\Pumpkin.lua
+UI\Lock\Board.lua
+UI\Lock\Kite.lua
+UI\Lock\Patch.lua
+UI\Hunt.lua
 UI\MusicPicker.lua
 Sharing\ShareLog.lua
 Sharing\Share.lua

@@ -701,6 +701,10 @@ function CH.ApplyLayout(houseGUID, data, senderName)
         existing.tourWelcome = data.tourWelcome
         existing.tourBye = data.tourBye
         existing.tourGuide = data.tourGuide
+        -- the spots come sealed, see Housing/Hunt.lua
+        existing.pumpkins = nil
+        existing.pumpkinBlob = data.pumpkinBlob
+        existing.pumpkinReach = data.pumpkinReach
     else
         ChamberlainDB.houses[houseGUID] = {
             owner = data.owner,
@@ -717,6 +721,8 @@ function CH.ApplyLayout(houseGUID, data, senderName)
             tourWelcome = data.tourWelcome,
             tourBye = data.tourBye,
             tourGuide = data.tourGuide,
+            pumpkinBlob = data.pumpkinBlob,
+            pumpkinReach = data.pumpkinReach,
             zones = data.zones,
         }
     end
@@ -1108,6 +1114,7 @@ local function DeserializeLayout(b64)
         return nil
     end
 
+    local pumpkinBlob, pumpkinReach = CH.ReadPumpkins(payload.pk, payload.pr)
     return {
         guid = type(payload.guid) == "string" and payload.guid or nil,
         owner = type(payload.owner) == "string" and payload.owner or nil,
@@ -1128,6 +1135,8 @@ local function DeserializeLayout(b64)
         tourBye = CH.CleanText(payload.tb, CH.HOUSE_TEXT.tourBye),
         tourGuide = ReadGuide(payload.tg),
         madeWith = type(payload.cv) == "string" and string.sub(payload.cv, 1, 16) or nil,
+        pumpkinBlob = pumpkinBlob,
+        pumpkinReach = pumpkinReach,
         zones = zones,
     }
 end
@@ -1194,6 +1203,8 @@ function CH.ExportLayout(houseGUID)
         cv = CH.VERSION, -- so an older reader can say it may miss things (3.28.0)
         zones = {},
     }
+    -- the pumpkin hunt's spots and how near finds one (3.48.0), Housing/Hunt.lua
+    payload.pk, payload.pr = CH.WritePumpkins(h)
     -- House and floor sounds: ha/fa ambience (3.9.0), hm/fm music (3.10.0), ar
     -- the arrival sound (3.13.0), which has no floors.
     -- The floor one is a value per floor with 0 for none, a plain array so

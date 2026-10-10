@@ -589,6 +589,10 @@ function CH.CheckHousingState()
         -- the build tools and the map of the house you left go with it, but a
         -- map picked in the Rooms window stays
         if not CH.FP.viewGUID then
+            -- whatever a side panel had pending goes unsaved. The map may be
+            -- hidden already behind the loading screen, and then hiding it
+            -- again wouldn't close the panel.
+            CH.FP.ClosePanel(true)
             CH.floorPlan:Hide()
         end
         CH.HideBanner(0.8)
@@ -600,6 +604,7 @@ function CH.CheckHousingState()
         CH.SetHudRoom(nil)
         CH.HidePlaque()
         CH.StopTour()
+        CH.StopHunt()
         CH.RefreshKeepOnScreen()
         currentZone = nil
         CH.currentRoom = nil
@@ -1025,7 +1030,9 @@ function CH.CheckZones()
     end
 
     local foundName = found and found.name or nil
-    if foundName ~= currentZone then
+    -- Every locked area has the same name, so one locked area into the next
+    -- counts as a new room too, or the banner keeps the first one's lock.
+    if foundName ~= currentZone or found ~= CH.currentRoom and CH.IsLocked(found) then
         -- a rename of the room you stand in comes through here too, with the
         -- same zone, and that's no walk in for the guide
         local walkedIn = found ~= CH.currentRoom
@@ -1061,6 +1068,7 @@ function CH.CheckZones()
         end
     end
     CH.TourTick(h, x, y, mapID)
+    CH.HuntTick(h, x, y)
 end
 
 -- A locked area just opened (Housing/Lock.lua) and has its real name now.

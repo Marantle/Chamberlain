@@ -18,9 +18,21 @@ local _, CH = ...
 CH.LOCK_HIDDEN = { "n", "bs", "t", "hi", "hd", "sp", "oh", "dr", "np" }
 -- what a locked zone sends as its name, for clients before 3.43.0
 CH.LOCK_WIRE_NAME = "Locked"
--- Lock styles by wire id, append only like the heads.
-CH.LOCK_STYLES = { "LOCK_STYLE_ARCANE" }
+-- Lock styles by wire id, append only like the heads. id is how the code
+-- knows a style, UI/Lock has a file for each. A client that doesn't know
+-- the wire id shows the first. A hunt style opens with a pumpkin hunt's
+-- pumpkins and is only offered where hunts can be made (CH.OpenHuntPanel).
+CH.LOCK_STYLES = {
+    { id = "arcane", key = "LOCK_STYLE_ARCANE" },
+    { id = "pumpkin", key = "LOCK_STYLE_PUMPKIN" },
+    { id = "board", key = "LOCK_STYLE_BOARD" },
+    { id = "kite", key = "LOCK_STYLE_KITE" },
+    { id = "patch", key = "LOCK_STYLE_PATCH", hunt = true },
+}
 CH.LOCK_CODE_MIN, CH.LOCK_CODE_MAX = 4, 8
+-- An owner's Pumpkin Patch keeps this for a code and the export seals it
+-- with the code the house's pumpkins make (CH.PatchCode).
+CH.LOCK_PATCH = "patch"
 
 local TWO32 = 2 ^ 32
 
@@ -42,6 +54,12 @@ local function Stream(data, seed)
         out[i] = string.char(bit.bxor(data:byte(i), math.floor(x / 2 ^ 24)))
     end
     return table.concat(out)
+end
+
+-- The same stream for anything else that shouldn't sit in the open, the
+-- hunt's pumpkins (Housing/Hunt.lua). Running it again with the key undoes it.
+function CH.Scramble(data, key)
+    return Stream(data, Hash(key))
 end
 
 local function Seed(code, house, salt)
@@ -84,8 +102,12 @@ function CH.IsLocked(zone)
     return zone ~= nil and zone.lockBlob ~= nil and not zone.lockOpen
 end
 
+function CH.LockStyle(zone)
+    return CH.LOCK_STYLES[zone.lockStyle] or CH.LOCK_STYLES[1]
+end
+
 function CH.LockStyleName(zone)
-    return CH.L[CH.LOCK_STYLES[zone.lockStyle] or CH.LOCK_STYLES[1]]
+    return CH.L[CH.LockStyle(zone).key]
 end
 
 -- An owner's area gets its salt the first time it's locked.
@@ -103,7 +125,11 @@ function CH.SealEntry(e, z, house)
         for _, k in ipairs(CH.LOCK_HIDDEN) do
             hidden[k] = e[k]
         end
-        blob = Seal(hidden, z.lockCode, z.lockSalt, house)
+        local code = z.lockCode
+        if code == CH.LOCK_PATCH then
+            code = CH.PatchCode(ChamberlainDB.houses[house])
+        end
+        blob = Seal(hidden, code, z.lockSalt, house)
     end
     if not blob then
         return
@@ -149,13 +175,21 @@ end
 -- whole round trip and the real room never changes.
 function CH.LockTestCopy(z, house, code)
     local e = CH.ZoneEntry(z)
-    CH.SealEntry(e, { lockCode = code, lockSalt = z.lockSalt or CH.NewLockSalt(), lockStyle = 1 }, house)
+    CH.SealEntry(e, { lockCode = code, lockSalt = z.lockSalt or CH.NewLockSalt(), lockStyle = z.lockStyle or 1 }, house)
     return { lockBlob = e.lk, lockStyle = e.ls, name = CH.L["LOCK_AREA"], color = z.color }
 end
 
 -- The zone fields an open lock filled in, which locking again takes back.
 local REVEALED =
     { "name", "headID", "headDisplay", "speaker", "useOwnerHead", "decor", "noPortrait", "rpText", "bannerStyle" }
+
+local function Shut(zone)
+    for _, k in ipairs(REVEALED) do
+        zone[k] = nil
+    end
+    zone.name = CH.L["LOCK_AREA"]
+    zone.lockOpen = nil
+end
 
 -- /rooms relock: shut every area this player opened in the house and forget
 -- the codes, so the locks can be tried again. Your own areas have no blob
@@ -174,15 +208,30 @@ function CH.Relock(house)
     local n = 0
     for _, zone in ipairs(h.zones) do
         if zone.lockOpen then
-            for _, k in ipairs(REVEALED) do
-                zone[k] = nil
-            end
-            zone.name = CH.L["LOCK_AREA"]
-            zone.lockOpen = nil
+            Shut(zone)
             n = n + 1
         end
     end
     CH.Print(CH.L["LOCK_RELOCKED_X"], n)
+    CH.OnBannerSettingChanged()
+end
+
+-- Starting a pumpkin hunt over shuts the patch locks and forgets their
+-- codes. The other locks stay as they are.
+-- The map can go while Start over is still asking.
+function CH.RelockPatch(house)
+    local h = ChamberlainDB.houses[house]
+    if not h then
+        return
+    end
+    for _, zone in ipairs(h.zones) do
+        if zone.lockBlob and CH.LockStyle(zone).id == "patch" then
+            ChamberlainDB.lockCodes[CodeKey(house, zone.lockBlob)] = nil
+            if zone.lockOpen then
+                Shut(zone)
+            end
+        end
+    end
     CH.OnBannerSettingChanged()
 end
 
